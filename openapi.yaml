@@ -1,0 +1,57 @@
+openapi: 3.0.0
+info:
+  title: Catalyst Grit API
+  version: 0.1.0
+paths:
+  /api/grit/events:
+    get:
+      summary: List recent events
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+      responses: { '200': { description: OK } }
+    post:
+      summary: Add event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind: { type: string, enum: [setback, recovery] }
+                note: { type: string }
+      responses: { '201': { description: Created } }
+  /api/grit/stats:
+    get:
+      summary: Perseverance & Resilience counts
+      responses: { '200': { description: OK } }
+  /api/grit/metrics/json:
+    post:
+      summary: Compute metrics from JSON arrays of blocks & topics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      minutes: { type: number }
+                      deliberate: { type: boolean }
+                      note: { type: string }
+                topics:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      topic: { type: string }
+                      minutes: { type: number }
+      responses: { '200': { description: OK } }
+components: {}

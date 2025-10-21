@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catalyst Grit</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <main class="container">
+    <h1>Catalyst Grit</h1>
+    <p><a href="{{ url_for('metrics_page') }}">Compute Grit Metrics →</a></p>
+
+    <section class="scores">
+      <div class="score">
+        <div class="label">Perseverance</div>
+        <div class="value">{{ perseverance }}</div>
+      </div>
+      <div class="score">
+        <div class="label">Resilience</div>
+        <div class="value">{{ resilience }}</div>
+      </div>
+    </section>
+
+    <section class="add">
+      <h2>Add Event</h2>
+      <form id="event-form">
+        <select id="kind">
+          <option value="setback">Setback</option>
+          <option value="recovery">Recovery</option>
+        </select>
+        <input id="note" placeholder="Optional note (max 500 chars)" maxlength="500">
+        <button type="submit">Add</button>
+      </form>
+      <p class="hint">Tip: log both the hit and how you bounced back.</p>
+    </section>
+
+    <section class="log">
+      <h2>Recent Events</h2>
+      <ul id="event-list">
+        {% for e in events %}
+          <li><strong>{{ e.kind }}</strong> — {{ e.note or "…" }} <em>({{ e.created_at }})</em></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

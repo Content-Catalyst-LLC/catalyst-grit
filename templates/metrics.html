@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catalyst Grit – Metrics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <main class="container">
+    <h1>Grit Metrics</h1>
+    <p>Upload your CSVs to compute <strong>Deliberate Practice Ratio</strong> and <strong>Consistency of Interests</strong>.</p>
+
+    <form method="post" enctype="multipart/form-data" style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0;">
+      <div>
+        <div><label>Blocks CSV:</label></div>
+        <input type="file" name="blocks_csv" accept=".csv" required>
+        <small>columns: <code>minutes, deliberate[, note]</code></small>
+      </div>
+      <div>
+        <div><label>Topics CSV:</label></div>
+        <input type="file" name="topics_csv" accept=".csv" required>
+        <small>columns: <code>topic, minutes</code></small>
+      </div>
+      <div style="align-self:flex-end">
+        <button type="submit">Compute</button>
+      </div>
+    </form>
+
+    {% if error %}
+      <p style="color:#c00"><strong>Error:</strong> {{ error }}</p>
+    {% endif %}
+
+    {% if result %}
+      <section class="scores">
+        <div class="score">
+          <div class="label">Deliberate Practice Ratio</div>
+          <div class="value">{{ result.deliberate_practice_ratio }}</div>
+        </div>
+        <div class="score">
+          <div class="label">Consistency of Interests</div>
+          <div class="value">{{ result.consistency_of_interests }}</div>
+        </div>
+      </section>
+    {% endif %}
+
+    <p><a href="{{ url_for('index') }}">← Back to Log</a></p>
+  </main>
+</body>
+</html>

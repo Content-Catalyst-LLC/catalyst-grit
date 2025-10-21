@@ -1,0 +1,26 @@
+[project]
+name = "catalyst-grit"
+version = "0.2.0"
+description = "Catalyst Grit: perseverance & resilience tracker with Flask/CLI and Duckworth-style metrics"
+authors = [{name="Tariq Ahmad", email="tariq@thecontentcatalyst.net"}]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "Flask>=3,<4",
+  "click>=8",
+  "Flask-Cors>=4",
+]
+
+[project.urls]
+Homepage = "https://github.com/Content-Catalyst-LLC/catalyst-grit"
+
+[project.scripts]
+grit = "catalyst_grit.cli:cli"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["catalyst_grit"]

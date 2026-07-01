@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Catalyst Grit Recovery Record",
+  "type": "object",
+  "required": [
+    "challenge",
+    "domain",
+    "impact_severity",
+    "pressure_level",
+    "energy_level",
+    "support_level",
+    "clarity_level",
+    "recovery_actions",
+    "time_horizon_days",
+    "review_status"
+  ],
+  "properties": {
+    "challenge": {
+      "type": "string"
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "work",
+        "learning",
+        "health_wellbeing",
+        "relationship",
+        "project",
+        "career",
+        "other"
+      ]
+    },
+    "impact_severity": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "pressure_level": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "energy_level": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "support_level": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "clarity_level": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "recovery_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "time_horizon_days": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "needs_review",
+        "reviewed"
+      ]
+    },
+    "recovery_score": {
+      "type": "number"
+    },
+    "resilience_state": {
+      "type": "string"
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "decision_note": {
+      "type": "string"
+    }
+  }
+}

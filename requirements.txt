@@ -1,0 +1,1 @@
+# Catalyst Grit core has no required runtime dependencies.

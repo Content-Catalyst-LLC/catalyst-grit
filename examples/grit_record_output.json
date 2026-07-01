@@ -1,0 +1,42 @@
+{
+  "challenge": "A sustainability reporting project lost momentum after conflicting stakeholder feedback and a missed internal deadline.",
+  "domain": "project",
+  "impact_severity": 7.0,
+  "pressure_level": 8.0,
+  "energy_level": 5.0,
+  "support_level": 6.0,
+  "clarity_level": 4.0,
+  "recovery_actions": [
+    "Clarify the next decision owner",
+    "Break the work into a 48-hour recovery task",
+    "Document unresolved assumptions",
+    "Schedule a short review with stakeholders"
+  ],
+  "time_horizon_days": 14,
+  "review_status": "draft",
+  "recovery_score": 52.3,
+  "resilience_state": "fragile recovery conditions",
+  "risk_flags": [
+    "High pressure: clarify what can pause, wait, or be delegated."
+  ],
+  "next_actions": [
+    "Clarify the next decision owner",
+    "Break the work into a 48-hour recovery task",
+    "Document unresolved assumptions",
+    "Schedule a short review with stakeholders",
+    "Write a one-sentence definition of what recovery means for this situation.",
+    "Reduce the work to one near-term checkpoint instead of a full reset."
+  ],
+  "decision_note": "Recovery conditions are assessed as fragile recovery conditions with a score of 52.3/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
+  "method_path": [
+    "setback",
+    "context",
+    "impact",
+    "pressure",
+    "support",
+    "response",
+    "recovery pattern",
+    "next action",
+    "review"
+  ]
+}

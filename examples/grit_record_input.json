@@ -1,0 +1,17 @@
+{
+  "challenge": "A sustainability reporting project lost momentum after conflicting stakeholder feedback and a missed internal deadline.",
+  "domain": "project",
+  "impact_severity": 7,
+  "pressure_level": 8,
+  "energy_level": 5,
+  "support_level": 6,
+  "clarity_level": 4,
+  "recovery_actions": [
+    "Clarify the next decision owner",
+    "Break the work into a 48-hour recovery task",
+    "Document unresolved assumptions",
+    "Schedule a short review with stakeholders"
+  ],
+  "time_horizon_days": 14,
+  "review_status": "draft"
+}

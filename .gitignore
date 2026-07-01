@@ -1,18 +1,10 @@
-# Python
 __pycache__/
-*.pyc
-*.pyo
-.venv/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+outputs/*.json
+outputs/*.md
 .env
 .DS_Store
-.pytest_cache/
-.coverage
-.mypy_cache/
-
-# SQLite
-*.sqlite
-instance/*.db
-instance/*.sqlite
-
-# VS Code
-.vscode/

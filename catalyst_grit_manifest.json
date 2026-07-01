@@ -1,0 +1,31 @@
+{
+  "module": "Catalyst Grit",
+  "slug": "catalyst-grit",
+  "shortcode": "[catalyst_grit_demo]",
+  "repository": "git@github.com:Content-Catalyst-LLC/catalyst-grit.git",
+  "method_path": [
+    "setback",
+    "context",
+    "impact",
+    "pressure",
+    "support",
+    "response",
+    "recovery pattern",
+    "next action",
+    "review"
+  ],
+  "boundaries": [
+    "not mental-health advice",
+    "not diagnosis",
+    "not performance rating",
+    "not outcome guarantee"
+  ],
+  "outputs": [
+    "recovery score",
+    "resilience state",
+    "review flags",
+    "next actions",
+    "decision note",
+    "JSON export"
+  ]
+}

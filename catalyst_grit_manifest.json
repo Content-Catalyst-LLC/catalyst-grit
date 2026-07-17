@@ -1,19 +1,20 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.5.0",
-  "schema_version": "1.5.0",
-  "engine_version": "1.5.0",
-  "release": "Learning Loops and Adaptation Patterns",
+  "version": "1.6.0",
+  "schema_version": "1.6.0",
+  "engine_version": "1.6.0",
+  "release": "Team Recovery and Facilitated Review",
   "canonical_product_model": "recovery-record",
-  "methodology_profile": "cg-recovery-conditions@1.5.0",
+  "methodology_profile": "cg-recovery-conditions@1.6.0",
   "workspace_format": "catalyst-grit-workspace/1.0",
   "storage": "SQLite private workspace with ordered packaged migrations",
   "migrations": [
     "001_core_workspace",
     "002_checkpoints_reviews_audit",
     "003_recovery_plans_actions_reassessment",
-    "004_learning_loops_adaptation_patterns"
+    "004_learning_loops_adaptation_patterns",
+    "005_team_recovery_facilitated_review"
   ],
   "persistent_entities": [
     "projects",
@@ -30,7 +31,13 @@
     "retrospectives",
     "pattern_reviews",
     "system_changes",
-    "system_change_events"
+    "system_change_events",
+    "team_memberships",
+    "facilitated_sessions",
+    "session_participants",
+    "team_perspectives",
+    "facilitated_agreements",
+    "facilitated_agreement_events"
   ],
   "shortcodes": [
     "[catalyst_grit_demo]",
@@ -113,5 +120,44 @@
       "retire"
     ],
     "safeguard": "patterns remain explainable, user-reviewable, non-diagnostic, and non-personality-based"
+  },
+  "team_recovery_contract": {
+    "roles": [
+      "owner",
+      "facilitator",
+      "contributor",
+      "reviewer",
+      "observer"
+    ],
+    "membership_statuses": [
+      "invited",
+      "active",
+      "removed"
+    ],
+    "consent_statuses": [
+      "pending",
+      "granted",
+      "withdrawn"
+    ],
+    "sharing_scopes": [
+      "shared",
+      "facilitator_only",
+      "private"
+    ],
+    "session_statuses": [
+      "planned",
+      "in_progress",
+      "completed",
+      "cancelled"
+    ],
+    "agreement_statuses": [
+      "proposed",
+      "accepted",
+      "in_progress",
+      "completed",
+      "blocked",
+      "retired"
+    ],
+    "safeguard": "team summaries describe shared work conditions and agreements; individual scoring, ranking, diagnosis, personality inference, and hidden evaluation are prohibited"
   }
 }

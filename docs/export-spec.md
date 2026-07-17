@@ -1,6 +1,6 @@
 # Export Specification
 
-Catalyst Grit v1.5.0 exports canonical JSON validated by `schemas/catalyst_grit_record.schema.json`, an optional Markdown review brief, and private `catalyst-grit-workspace/1.0` bundles.
+Catalyst Grit v1.6.0 exports canonical JSON validated by `schemas/catalyst_grit_record.schema.json`, an optional Markdown review brief, and private `catalyst-grit-workspace/1.0` bundles.
 
 Canonical-record exports preserve record identity, source provenance, submitted input, normalized values, methodology profile, component explanations, condition maps, recovery plan, generated retrospective, source-linked adaptation patterns, uncertainty, human review, and namespaced extensions.
 

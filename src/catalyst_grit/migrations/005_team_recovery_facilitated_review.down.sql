@@ -1,0 +1,10 @@
+DROP TRIGGER IF EXISTS facilitated_agreement_events_guard_delete;
+DROP TRIGGER IF EXISTS facilitated_agreement_events_no_update;
+DROP TRIGGER IF EXISTS team_perspectives_guard_delete;
+DROP TRIGGER IF EXISTS team_perspectives_no_update;
+DROP TABLE IF EXISTS facilitated_agreement_events;
+DROP TABLE IF EXISTS facilitated_agreements;
+DROP TABLE IF EXISTS team_perspectives;
+DROP TABLE IF EXISTS session_participants;
+DROP TABLE IF EXISTS facilitated_sessions;
+DROP TABLE IF EXISTS team_memberships;

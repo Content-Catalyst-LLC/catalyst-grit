@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Portable, dependency-free Catalyst Grit v1.5.0 smoke test."""
+"""Portable, dependency-free Catalyst Grit v1.6.0 smoke test."""
 from __future__ import annotations
 
 import json
@@ -41,12 +41,12 @@ def main() -> int:
         f"local package import mismatch: imported {imported_file}; expected under {expected_package}",
     )
     check(
-        version == __version__ == "1.5.0",
+        version == __version__ == "1.6.0",
         f"version identity mismatch: VERSION={version!r}, imported={__version__!r}, module={imported_file}",
     )
     manifest = json.loads((ROOT / "catalyst_grit_manifest.json").read_text())
     check(manifest["version"] == manifest["schema_version"] == manifest["engine_version"] == version, "manifest version mismatch")
-    check(json.loads((ROOT / "methodology/recovery-profile-v1.5.0.json").read_text()) == DEFAULT_METHODOLOGY_PROFILE, "methodology profile mismatch")
+    check(json.loads((ROOT / "methodology/recovery-profile-v1.6.0.json").read_text()) == DEFAULT_METHODOLOGY_PROFILE, "methodology profile mismatch")
     schema_names = [
         "catalyst_grit_record.schema.json",
         "catalyst_grit_request.schema.json",
@@ -57,12 +57,12 @@ def main() -> int:
     for name in schema_names:
         schema = json.loads((ROOT / "schemas" / name).read_text())
         check(schema["x-catalyst-grit-version"] == version, f"schema version mismatch: {name}")
-    check([item.version for item in MigrationManager.available()] == [1, 2, 3, 4], "packaged migration discovery failed")
+    check([item.version for item in MigrationManager.available()] == [1, 2, 3, 4, 5], "packaged migration discovery failed")
 
     plugin = (ROOT / "wordpress/catalyst-grit-demo/catalyst-grit-demo.php").read_text()
     check(bool(re.search(r"Version:\s*" + re.escape(version), plugin)), "plugin version mismatch")
     check("wp_ajax_nopriv_catalyst_grit_workspace" not in plugin, "private workspace exposes an anonymous AJAX action")
-    check("check_ajax_referer('catalyst_grit_workspace_v150', 'nonce')" in plugin, "workspace nonce guard missing")
+    check("check_ajax_referer('catalyst_grit_workspace_v160', 'nonce')" in plugin, "workspace nonce guard missing")
 
     request = json.loads((ROOT / "examples/grit_record_input.json").read_text())
     expected = json.loads((ROOT / "examples/grit_record_output.json").read_text())
@@ -96,7 +96,7 @@ def main() -> int:
             check(len(repo.action_history(actions[0]["action_id"])) >= 2, "append-only action history missing")
             blocker = repo.add_blocker(record_id, "Portable smoke dependency", action_id=actions[0]["action_id"], actor_id="portable-smoke")
             check(blocker["status"] == "open", "blocker persistence failed")
-            check(repo.health()["migrations"]["current"] == 4, "workspace migration level mismatch")
+            check(repo.health()["migrations"]["current"] == 5, "workspace migration level mismatch")
             retrospectives = repo.list_retrospectives(record_id)
             check(retrospectives and retrospectives[0]["content"]["uncertainties"], "persistent retrospective missing")
             project_patterns = repo.detect_project_patterns(project["project_id"], minimum_occurrences=1, include_singletons=True)
@@ -117,8 +117,19 @@ def main() -> int:
             exported = repo.export_record(record_id)
             check(exported["format"] == WORKSPACE_FORMAT, "workspace export format mismatch")
             check(exported["action_events"] and exported["blockers"], "plan-history export missing")
+            facilitator = repo.add_team_member(project["project_id"], "facilitator", "Facilitator", role="facilitator", status="active", consent_status="granted")
+            session = repo.create_facilitated_session(project["project_id"], "Portable facilitated review", facilitator_key="facilitator")
+            repo.add_session_participant(session["session_id"], "facilitator", participation_status="confirmed", consent_status="granted", actor_id="facilitator")
+            perspective = repo.add_team_perspective(project["project_id"], "Shared dependency pressure", perspective_type="constraint", member_key="facilitator", session_id=session["session_id"], actor_id="facilitator")
+            agreement = repo.create_facilitated_agreement(session["session_id"], "Name the decision owner", owner_key="facilitator", actor_id="facilitator")
+            agreement = repo.update_facilitated_agreement(agreement["agreement_id"], status="completed", completion_evidence="Decision owner recorded.", actor_id="facilitator")
+            check(perspective["sharing_scope"] == "shared", "team perspective sharing scope missing")
+            check(len(agreement["events"]) == 2, "facilitated agreement history missing")
+            summary = repo.team_recovery_summary(project["project_id"], actor_id="facilitator")
+            check(summary["member_count"] == 2 and summary["agreement_count"] == 1, "team recovery summary mismatch")
             project_export = repo.export_project(project["project_id"])
             check(project_export["pattern_reviews"] and project_export["system_changes"], "learning-history export missing")
+            check(project_export["team_members"] and project_export["facilitated_sessions"], "facilitated-review export missing")
             check(repo.health()["integrity"] == "ok", "SQLite integrity failed")
         with SQLiteWorkspaceRepository(database) as reopened:
             check(reopened.get_record(record_id, include_canonical=True)["canonical"] == expected, "record did not survive restart")
@@ -145,7 +156,7 @@ def main() -> int:
         elif path.suffix in {".db", ".sqlite", ".sqlite3"} and not allow_local_state:
             forbidden.append(str(rel))
     check(not forbidden, "forbidden repository artifacts: " + ", ".join(forbidden))
-    print("Catalyst Grit v1.5.0 portable release smoke tests passed.")
+    print("Catalyst Grit v1.6.0 portable release smoke tests passed.")
     return 0
 
 

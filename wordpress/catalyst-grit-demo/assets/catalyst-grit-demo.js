@@ -5,7 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var VERSION = '1.5.0';
+  var VERSION = '1.6.0';
   var METHOD_PATH = ['context', 'trigger', 'impact', 'pressure', 'constraints', 'supports', 'capacity', 'response', 'learning', 'retrospective', 'adaptation patterns', 'next steps', 'human review'];
   var DEFAULT_ACTIONS = ['Name the smallest recoverable next step', 'Review support and constraints', 'Schedule a short follow-up review'];
   var DOMAINS = ['work', 'learning', 'health_wellbeing', 'relationship', 'project', 'career', 'community', 'organization', 'other'];
@@ -31,7 +31,7 @@
   ];
   var DEFAULT_PROFILE = {
     profile_id: 'cg-recovery-conditions',
-    profile_version: '1.5.0',
+    profile_version: '1.6.0',
     calculation_spec: 'weighted-components-v1',
     component_weights: {
       impact_buffer: 15, pressure_buffer: 15, energy_capacity: 15, support_capacity: 15,

@@ -224,6 +224,10 @@ class SQLiteWorkspaceRepository:
                 "INSERT INTO projects(project_id,title,description,status,visibility,owner_id,retention_days,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)",
                 (project_id, title, description.strip(), "active", "private", owner_id, retention_days, now, now),
             )
+            self.connection.execute(
+                "INSERT INTO team_memberships(membership_id,project_id,member_key,display_name,role,status,access_scope,consent_status,joined_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (_id("cgm"), project_id, owner_id, owner_id, "owner", "active", "shared", "granted", now, now, now),
+            )
             self._history("project", project_id, None, "active", actor_id, "project created")
             self._audit("project.created", "project", project_id, actor_id, {"visibility": "private"})
         return self.get_project(project_id)
@@ -975,6 +979,425 @@ class SQLiteWorkspaceRepository:
             self._audit("system_change.reviewed", "system_change", system_change_id, actor_id, {"from_decision": current["decision"], "to_decision": decision})
         return self.get_system_change(system_change_id)
 
+    # --- v1.6 team recovery and facilitated review -------------------------
+
+    def _membership(self, project_id: str, member_key: str, *, include_removed: bool = False) -> dict[str, Any]:
+        row = _row(self.connection.execute(
+            "SELECT * FROM team_memberships WHERE project_id=? AND member_key=?",
+            (project_id, member_key),
+        ).fetchone())
+        if not row or (row["status"] == "removed" and not include_removed):
+            raise WorkspaceError(f"active team membership not found: {member_key}")
+        return row
+
+    def _require_team_role(self, project_id: str, actor_id: str, roles: set[str]) -> dict[str, Any]:
+        member = self._membership(project_id, actor_id)
+        if member["role"] not in roles or member["status"] != "active":
+            raise WorkspaceError("actor is not authorized for this team operation")
+        return member
+
+    def add_team_member(
+        self,
+        project_id: str,
+        member_key: str,
+        display_name: str,
+        *,
+        role: str = "contributor",
+        status: str = "invited",
+        access_scope: str = "shared",
+        consent_status: str = "pending",
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        self._require_project(project_id)
+        self._require_team_role(project_id, actor_id, {"owner", "facilitator"})
+        if role not in {"owner", "facilitator", "contributor", "reviewer", "observer"}:
+            raise WorkspaceError("unsupported team role")
+        if role == "owner" and self._membership(project_id, actor_id)["role"] != "owner":
+            raise WorkspaceError("only an owner can grant owner access")
+        if status not in {"invited", "active", "removed"}:
+            raise WorkspaceError("unsupported membership status")
+        if access_scope not in {"shared", "facilitation_only"}:
+            raise WorkspaceError("unsupported access scope")
+        if consent_status not in {"pending", "granted", "withdrawn"}:
+            raise WorkspaceError("unsupported consent status")
+        member_key = member_key.strip(); display_name = display_name.strip()
+        if not member_key or not display_name:
+            raise WorkspaceError("member_key and display_name are required")
+        membership_id = _id("cgm")
+        now = _utc_now()
+        joined_at = now if status == "active" else None
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO team_memberships(membership_id,project_id,member_key,display_name,role,status,access_scope,consent_status,joined_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (membership_id, project_id, member_key, display_name, role, status, access_scope, consent_status, joined_at, now, now),
+            )
+            self._audit("team.member_added", "membership", membership_id, actor_id, {"project_id": project_id, "role": role, "status": status})
+        return self.get_team_member(membership_id)
+
+    def get_team_member(self, membership_id: str) -> dict[str, Any]:
+        row = _row(self.connection.execute("SELECT * FROM team_memberships WHERE membership_id=?", (membership_id,)).fetchone())
+        if not row:
+            raise WorkspaceError(f"team membership not found: {membership_id}")
+        return row
+
+    def list_team_members(self, project_id: str, *, include_removed: bool = False) -> list[dict[str, Any]]:
+        self._require_project(project_id, include_deleted=True)
+        sql = "SELECT * FROM team_memberships WHERE project_id=?"
+        params: list[Any] = [project_id]
+        if not include_removed:
+            sql += " AND status<>'removed'"
+        sql += " ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'facilitator' THEN 1 WHEN 'reviewer' THEN 2 WHEN 'contributor' THEN 3 ELSE 4 END, display_name"
+        return [dict(row) for row in self.connection.execute(sql, params)]
+
+    def update_team_member(
+        self,
+        membership_id: str,
+        *,
+        role: str | None = None,
+        status: str | None = None,
+        access_scope: str | None = None,
+        consent_status: str | None = None,
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        current = self.get_team_member(membership_id)
+        actor = self._require_team_role(current["project_id"], actor_id, {"owner", "facilitator"})
+        next_role = current["role"] if role is None else role
+        next_status = current["status"] if status is None else status
+        next_scope = current["access_scope"] if access_scope is None else access_scope
+        next_consent = current["consent_status"] if consent_status is None else consent_status
+        if next_role not in {"owner", "facilitator", "contributor", "reviewer", "observer"}:
+            raise WorkspaceError("unsupported team role")
+        if (current["role"] == "owner" or next_role == "owner") and actor["role"] != "owner":
+            raise WorkspaceError("only an owner can change owner access")
+        if next_status not in {"invited", "active", "removed"}:
+            raise WorkspaceError("unsupported membership status")
+        if next_scope not in {"shared", "facilitation_only"}:
+            raise WorkspaceError("unsupported access scope")
+        if next_consent not in {"pending", "granted", "withdrawn"}:
+            raise WorkspaceError("unsupported consent status")
+        now = _utc_now()
+        joined_at = current["joined_at"] or (now if next_status == "active" else None)
+        with self.connection:
+            self.connection.execute(
+                "UPDATE team_memberships SET role=?,status=?,access_scope=?,consent_status=?,joined_at=?,updated_at=? WHERE membership_id=?",
+                (next_role, next_status, next_scope, next_consent, joined_at, now, membership_id),
+            )
+            self._audit("team.member_updated", "membership", membership_id, actor_id, {"role": next_role, "status": next_status, "consent_status": next_consent})
+        return self.get_team_member(membership_id)
+
+    def create_facilitated_session(
+        self,
+        project_id: str,
+        title: str,
+        *,
+        purpose: str = "",
+        facilitator_key: str = "self",
+        record_id: str | None = None,
+        scheduled_for: str | None = None,
+        ground_rules: Sequence[str] | None = None,
+        agenda: Sequence[str] | None = None,
+        notes: str = "",
+        actor_id: str = "self",
+        session_id: str | None = None,
+    ) -> dict[str, Any]:
+        self._require_project(project_id)
+        self._require_team_role(project_id, actor_id, {"owner", "facilitator"})
+        facilitator = self._membership(project_id, facilitator_key)
+        if facilitator["role"] not in {"owner", "facilitator"}:
+            raise WorkspaceError("session facilitator must have owner or facilitator role")
+        if facilitator["consent_status"] == "withdrawn":
+            raise WorkspaceError("session facilitator has withdrawn consent")
+        if record_id:
+            record = self._require_record(record_id)
+            if record["project_id"] != project_id:
+                raise WorkspaceError("session record belongs to another project")
+        title = title.strip()
+        if not title:
+            raise WorkspaceError("session title is required")
+        session_id = session_id or _id("cgfs")
+        now = _utc_now()
+        rules = list(ground_rules or [
+            "Discuss recorded conditions, not individual character.",
+            "No ranking, diagnosis, or hidden performance evaluation.",
+            "Participants control the sharing scope of their contributions.",
+            "Separate observation, interpretation, and decision.",
+        ])
+        steps = list(agenda or ["prepare", "share perspectives", "map conditions", "agree actions", "close and review consent"])
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO facilitated_sessions(session_id,project_id,record_id,title,purpose,status,facilitator_key,scheduled_for,started_at,completed_at,ground_rules_json,agenda_json,notes,created_at,updated_at) VALUES(?,?,?,?,?,'planned',?,?,NULL,NULL,?,?,?,?,?)",
+                (session_id, project_id, record_id, title, purpose.strip(), facilitator_key, scheduled_for, _json(rules), _json(steps), notes.strip(), now, now),
+            )
+            self._audit("facilitated_session.created", "facilitated_session", session_id, actor_id, {"project_id": project_id, "record_id": record_id})
+        return self.get_facilitated_session(session_id, actor_id=actor_id)
+
+    def _session_row(self, session_id: str) -> dict[str, Any]:
+        row = _row(self.connection.execute("SELECT * FROM facilitated_sessions WHERE session_id=?", (session_id,)).fetchone())
+        if not row:
+            raise WorkspaceError(f"facilitated session not found: {session_id}")
+        row["ground_rules"] = json.loads(row.pop("ground_rules_json"))
+        row["agenda"] = json.loads(row.pop("agenda_json"))
+        return row
+
+    def add_session_participant(
+        self,
+        session_id: str,
+        member_key: str,
+        *,
+        participation_status: str = "invited",
+        consent_status: str = "pending",
+        sharing_scope: str = "shared",
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        session = self._session_row(session_id)
+        self._require_team_role(session["project_id"], actor_id, {"owner", "facilitator"})
+        member = self._membership(session["project_id"], member_key)
+        if participation_status not in {"invited", "confirmed", "declined", "attended", "absent"}:
+            raise WorkspaceError("unsupported participation status")
+        if consent_status not in {"pending", "granted", "withdrawn"}:
+            raise WorkspaceError("unsupported consent status")
+        if sharing_scope not in {"shared", "facilitator_only", "private"}:
+            raise WorkspaceError("unsupported sharing scope")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO session_participants(session_id,membership_id,participation_status,consent_status,sharing_scope,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(session_id,membership_id) DO UPDATE SET participation_status=excluded.participation_status,consent_status=excluded.consent_status,sharing_scope=excluded.sharing_scope,updated_at=excluded.updated_at",
+                (session_id, member["membership_id"], participation_status, consent_status, sharing_scope, now, now),
+            )
+            self._audit("facilitated_session.participant_updated", "facilitated_session", session_id, actor_id, {"member_key": member_key, "participation_status": participation_status, "consent_status": consent_status})
+        return dict(self.connection.execute(
+            "SELECT sp.*,tm.member_key,tm.display_name,tm.role FROM session_participants sp JOIN team_memberships tm USING(membership_id) WHERE sp.session_id=? AND sp.membership_id=?",
+            (session_id, member["membership_id"]),
+        ).fetchone())
+
+    def add_team_perspective(
+        self,
+        project_id: str,
+        content: str,
+        *,
+        perspective_type: str = "other",
+        member_key: str | None = None,
+        contributor_label: str = "",
+        session_id: str | None = None,
+        record_id: str | None = None,
+        sharing_scope: str = "shared",
+        consent_status: str = "granted",
+        source_path: str = "",
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        self._require_project(project_id)
+        actor = self._membership(project_id, actor_id)
+        if perspective_type not in {"impact", "pressure", "constraint", "support", "capacity", "response", "learning", "other"}:
+            raise WorkspaceError("unsupported perspective type")
+        if sharing_scope not in {"shared", "facilitator_only", "private"}:
+            raise WorkspaceError("unsupported sharing scope")
+        if consent_status not in {"pending", "granted", "withdrawn"}:
+            raise WorkspaceError("unsupported consent status")
+        content = content.strip()
+        if not content:
+            raise WorkspaceError("perspective content is required")
+        member = self._membership(project_id, member_key or actor_id)
+        if member["member_key"] != actor_id and actor["role"] not in {"owner", "facilitator"}:
+            raise WorkspaceError("contributors may only submit their own perspective")
+        if session_id:
+            session = self._session_row(session_id)
+            if session["project_id"] != project_id:
+                raise WorkspaceError("session belongs to another project")
+        if record_id:
+            record = self._require_record(record_id)
+            if record["project_id"] != project_id:
+                raise WorkspaceError("record belongs to another project")
+        perspective_id = _id("cgtp")
+        now = _utc_now()
+        label = contributor_label.strip() or member["display_name"]
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO team_perspectives(perspective_id,project_id,session_id,record_id,membership_id,contributor_label,perspective_type,content,sharing_scope,consent_status,source_path,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                (perspective_id, project_id, session_id, record_id, member["membership_id"], label, perspective_type, content, sharing_scope, consent_status, source_path.strip(), now),
+            )
+            self._audit("team.perspective_added", "team_perspective", perspective_id, actor_id, {"project_id": project_id, "session_id": session_id, "sharing_scope": sharing_scope, "consent_status": consent_status})
+        return dict(self.connection.execute("SELECT * FROM team_perspectives WHERE perspective_id=?", (perspective_id,)).fetchone())
+
+    def list_team_perspectives(
+        self,
+        project_id: str,
+        *,
+        session_id: str | None = None,
+        record_id: str | None = None,
+        actor_id: str = "self",
+        include_withdrawn: bool = False,
+    ) -> list[dict[str, Any]]:
+        viewer = self._membership(project_id, actor_id)
+        sql = "SELECT tp.*,tm.member_key,tm.display_name FROM team_perspectives tp LEFT JOIN team_memberships tm USING(membership_id) WHERE tp.project_id=?"
+        params: list[Any] = [project_id]
+        if session_id:
+            sql += " AND tp.session_id=?"; params.append(session_id)
+        if record_id:
+            sql += " AND tp.record_id=?"; params.append(record_id)
+        if not include_withdrawn:
+            sql += " AND tp.consent_status='granted'"
+        sql += " ORDER BY tp.created_at,tp.rowid"
+        output = []
+        for row in self.connection.execute(sql, params):
+            item = dict(row)
+            own = item.get("member_key") == actor_id
+            manager = viewer["role"] in {"owner", "facilitator"}
+            visible = item["sharing_scope"] == "shared" or own or (manager and item["sharing_scope"] == "facilitator_only")
+            if visible:
+                output.append(item)
+        return output
+
+    def create_facilitated_agreement(
+        self,
+        session_id: str,
+        title: str,
+        *,
+        owner_key: str | None = None,
+        due_date: str | None = None,
+        status: str = "proposed",
+        support_needed: str = "",
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        session = self._session_row(session_id)
+        self._require_team_role(session["project_id"], actor_id, {"owner", "facilitator"})
+        if status not in {"proposed", "accepted", "in_progress", "completed", "blocked", "retired"}:
+            raise WorkspaceError("unsupported agreement status")
+        if owner_key:
+            self._membership(session["project_id"], owner_key)
+        title = title.strip()
+        if not title:
+            raise WorkspaceError("agreement title is required")
+        agreement_id = _id("cgfa")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO facilitated_agreements(agreement_id,session_id,title,owner_key,due_date,status,completion_evidence,support_needed,created_at,updated_at) VALUES(?,?,?,?,?,?, '',?,?,?)",
+                (agreement_id, session_id, title, owner_key, due_date, status, support_needed.strip(), now, now),
+            )
+            self.connection.execute(
+                "INSERT INTO facilitated_agreement_events(event_id,agreement_id,from_status,to_status,actor_id,reason,evidence,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (_id("cgfae"), agreement_id, None, status, actor_id, "agreement created", "", now),
+            )
+            self._audit("facilitated_agreement.created", "facilitated_agreement", agreement_id, actor_id, {"session_id": session_id, "owner_key": owner_key})
+        return self.get_facilitated_agreement(agreement_id)
+
+    def get_facilitated_agreement(self, agreement_id: str) -> dict[str, Any]:
+        row = _row(self.connection.execute("SELECT * FROM facilitated_agreements WHERE agreement_id=?", (agreement_id,)).fetchone())
+        if not row:
+            raise WorkspaceError(f"facilitated agreement not found: {agreement_id}")
+        row["events"] = [dict(item) for item in self.connection.execute("SELECT * FROM facilitated_agreement_events WHERE agreement_id=? ORDER BY created_at,rowid", (agreement_id,))]
+        return row
+
+    def update_facilitated_agreement(
+        self,
+        agreement_id: str,
+        *,
+        status: str,
+        reason: str = "agreement reviewed",
+        completion_evidence: str = "",
+        support_needed: str | None = None,
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        current = self.get_facilitated_agreement(agreement_id)
+        session = self._session_row(current["session_id"])
+        self._require_team_role(session["project_id"], actor_id, {"owner", "facilitator", "reviewer"})
+        if status not in {"proposed", "accepted", "in_progress", "completed", "blocked", "retired"}:
+            raise WorkspaceError("unsupported agreement status")
+        if status == "completed" and not completion_evidence.strip():
+            raise WorkspaceError("completion evidence is required for a completed agreement")
+        next_support = current["support_needed"] if support_needed is None else support_needed.strip()
+        if status == "blocked" and not next_support:
+            raise WorkspaceError("support_needed is required for a blocked agreement")
+        now = _utc_now()
+        evidence = completion_evidence.strip()
+        with self.connection:
+            self.connection.execute(
+                "UPDATE facilitated_agreements SET status=?,completion_evidence=?,support_needed=?,updated_at=? WHERE agreement_id=?",
+                (status, evidence, next_support, now, agreement_id),
+            )
+            self.connection.execute(
+                "INSERT INTO facilitated_agreement_events(event_id,agreement_id,from_status,to_status,actor_id,reason,evidence,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (_id("cgfae"), agreement_id, current["status"], status, actor_id, reason.strip(), evidence, now),
+            )
+            self._history("facilitated_agreement", agreement_id, current["status"], status, actor_id, reason)
+            self._audit("facilitated_agreement.updated", "facilitated_agreement", agreement_id, actor_id, {"from_status": current["status"], "to_status": status})
+        return self.get_facilitated_agreement(agreement_id)
+
+    def list_facilitated_agreements(self, session_id: str) -> list[dict[str, Any]]:
+        self._session_row(session_id)
+        ids = [row["agreement_id"] for row in self.connection.execute("SELECT agreement_id FROM facilitated_agreements WHERE session_id=? ORDER BY created_at,rowid", (session_id,))]
+        return [self.get_facilitated_agreement(item) for item in ids]
+
+    def update_facilitated_session(
+        self,
+        session_id: str,
+        *,
+        status: str,
+        notes: str | None = None,
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        current = self._session_row(session_id)
+        self._require_team_role(current["project_id"], actor_id, {"owner", "facilitator"})
+        if status not in {"planned", "in_progress", "completed", "cancelled"}:
+            raise WorkspaceError("unsupported facilitated-session status")
+        now = _utc_now()
+        started_at = current["started_at"] or (now if status == "in_progress" else None)
+        completed_at = current["completed_at"] or (now if status == "completed" else None)
+        with self.connection:
+            self.connection.execute(
+                "UPDATE facilitated_sessions SET status=?,started_at=?,completed_at=?,notes=?,updated_at=? WHERE session_id=?",
+                (status, started_at, completed_at, current["notes"] if notes is None else notes.strip(), now, session_id),
+            )
+            self._history("facilitated_session", session_id, current["status"], status, actor_id, "session status updated")
+            self._audit("facilitated_session.updated", "facilitated_session", session_id, actor_id, {"from_status": current["status"], "to_status": status})
+        return self.get_facilitated_session(session_id, actor_id=actor_id)
+
+    def get_facilitated_session(self, session_id: str, *, actor_id: str = "self") -> dict[str, Any]:
+        session = self._session_row(session_id)
+        self._membership(session["project_id"], actor_id)
+        session["participants"] = [dict(row) for row in self.connection.execute(
+            "SELECT sp.*,tm.member_key,tm.display_name,tm.role FROM session_participants sp JOIN team_memberships tm USING(membership_id) WHERE sp.session_id=? ORDER BY tm.display_name",
+            (session_id,),
+        )]
+        session["perspectives"] = self.list_team_perspectives(session["project_id"], session_id=session_id, actor_id=actor_id)
+        session["agreements"] = self.list_facilitated_agreements(session_id)
+        session["facilitation_boundary"] = {
+            "individual_scoring_prohibited": True,
+            "ranking_prohibited": True,
+            "diagnosis_prohibited": True,
+            "hidden_evaluation_prohibited": True,
+            "consent_required_for_shared_perspectives": True,
+        }
+        return session
+
+    def list_facilitated_sessions(self, project_id: str, *, actor_id: str = "self") -> list[dict[str, Any]]:
+        self._membership(project_id, actor_id)
+        ids = [row["session_id"] for row in self.connection.execute("SELECT session_id FROM facilitated_sessions WHERE project_id=? ORDER BY COALESCE(scheduled_for,created_at),rowid", (project_id,))]
+        return [self.get_facilitated_session(item, actor_id=actor_id) for item in ids]
+
+    def team_recovery_summary(self, project_id: str, *, actor_id: str = "self") -> dict[str, Any]:
+        members = self.list_team_members(project_id)
+        sessions = self.list_facilitated_sessions(project_id, actor_id=actor_id)
+        perspectives = self.list_team_perspectives(project_id, actor_id=actor_id)
+        agreements = [agreement for session in sessions for agreement in session["agreements"]]
+        by_type: dict[str, int] = {}
+        for item in perspectives:
+            by_type[item["perspective_type"]] = by_type.get(item["perspective_type"], 0) + 1
+        by_status: dict[str, int] = {}
+        for item in agreements:
+            by_status[item["status"]] = by_status.get(item["status"], 0) + 1
+        return {
+            "project_id": project_id,
+            "member_count": len([item for item in members if item["status"] == "active"]),
+            "session_count": len(sessions),
+            "perspective_count": len(perspectives),
+            "agreement_count": len(agreements),
+            "perspectives_by_type": by_type,
+            "agreements_by_status": by_status,
+            "review_required": any(item["status"] == "blocked" for item in agreements),
+            "interpretation_limit": "Team summaries describe shared work conditions and agreements. They do not score, rank, diagnose, or compare individual participants.",
+        }
+
     def status_history(self, entity_type: str, entity_id: str) -> list[dict[str, Any]]:
         return [dict(row) for row in self.connection.execute("SELECT * FROM status_history WHERE entity_type=? AND entity_id=? ORDER BY created_at, rowid", (entity_type, entity_id))]
 
@@ -1015,12 +1438,25 @@ class SQLiteWorkspaceRepository:
             "reviews": self.list_reviews(record_id),
             "status_history": self.status_history("record", record_id),
             "audit_events": self.audit_log(entity_id=record_id),
+            "team_perspectives": self.list_team_perspectives(project["project_id"], record_id=record_id, actor_id=project["owner_id"]),
         }
 
     def export_project(self, project_id: str) -> dict[str, Any]:
         project = self.get_project(project_id, include_deleted=True)
         records = self.list_records(project_id, include_archived=True, include_deleted=True)
-        return {"format": WORKSPACE_FORMAT, "exported_at": _utc_now(), "product_version": __version__, "project": project, "records": [self.export_record(item["record_id"]) for item in records], "patterns": self.detect_project_patterns(project_id, minimum_occurrences=1, include_singletons=True), "pattern_reviews": self.list_pattern_reviews(project_id), "system_changes": self.list_system_changes(project_id)}
+        return {
+            "format": WORKSPACE_FORMAT,
+            "exported_at": _utc_now(),
+            "product_version": __version__,
+            "project": project,
+            "records": [self.export_record(item["record_id"]) for item in records],
+            "patterns": self.detect_project_patterns(project_id, minimum_occurrences=1, include_singletons=True),
+            "pattern_reviews": self.list_pattern_reviews(project_id),
+            "system_changes": self.list_system_changes(project_id),
+            "team_members": self.list_team_members(project_id, include_removed=True),
+            "facilitated_sessions": self.list_facilitated_sessions(project_id, actor_id=project["owner_id"]),
+            "team_recovery_summary": self.team_recovery_summary(project_id, actor_id=project["owner_id"]),
+        }
 
     def import_payload(self, payload: Mapping[str, Any], *, project_id: str | None = None, actor_id: str = "self") -> dict[str, Any]:
         if payload.get("format") == WORKSPACE_FORMAT:
@@ -1155,11 +1591,144 @@ class SQLiteWorkspaceRepository:
                 self._audit("system_change.imported", "system_change", change_id, actor_id, {"project_id": target_project, "source_records": [item["record_id"] for item in valid_sources]})
             imported_system_changes += 1
 
+        imported_team_members = 0
+        for member in payload.get("team_members") or []:
+            member_key = str(member.get("member_key") or "").strip()
+            if not member_key or member_key == actor_id:
+                continue
+            if self.connection.execute("SELECT 1 FROM team_memberships WHERE project_id=? AND member_key=?", (target_project, member_key)).fetchone():
+                continue
+            role = str(member.get("role") or "contributor")
+            if role not in {"owner", "facilitator", "contributor", "reviewer", "observer"}:
+                role = "contributor"
+            status = str(member.get("status") or "invited")
+            if status not in {"invited", "active", "removed"}:
+                status = "invited"
+            consent = str(member.get("consent_status") or "pending")
+            if consent not in {"pending", "granted", "withdrawn"}:
+                consent = "pending"
+            self.add_team_member(
+                target_project,
+                member_key,
+                str(member.get("display_name") or member_key),
+                role=role,
+                status=status,
+                access_scope=str(member.get("access_scope") or "shared"),
+                consent_status=consent,
+                actor_id=actor_id,
+            )
+            imported_team_members += 1
+
+        imported_sessions = 0
+        imported_perspectives = 0
+        imported_agreements = 0
+        for source_session in payload.get("facilitated_sessions") or []:
+            facilitator_key = str(source_session.get("facilitator_key") or actor_id)
+            try:
+                facilitator = self._membership(target_project, facilitator_key)
+                if facilitator["role"] not in {"owner", "facilitator"}:
+                    facilitator_key = actor_id
+            except WorkspaceError:
+                facilitator_key = actor_id
+            record_id = source_session.get("record_id")
+            try:
+                if record_id:
+                    record = self._require_record(str(record_id))
+                    if record["project_id"] != target_project:
+                        record_id = None
+            except WorkspaceError:
+                record_id = None
+            session = self.create_facilitated_session(
+                target_project,
+                str(source_session.get("title") or "Imported facilitated review"),
+                purpose=str(source_session.get("purpose") or ""),
+                facilitator_key=facilitator_key,
+                record_id=record_id,
+                scheduled_for=source_session.get("scheduled_for"),
+                ground_rules=source_session.get("ground_rules") or [],
+                agenda=source_session.get("agenda") or [],
+                notes=str(source_session.get("notes") or ""),
+                actor_id=actor_id,
+            )
+            imported_sessions += 1
+            for participant in source_session.get("participants") or []:
+                member_key = str(participant.get("member_key") or "")
+                if not member_key:
+                    continue
+                try:
+                    self.add_session_participant(
+                        session["session_id"],
+                        member_key,
+                        participation_status=str(participant.get("participation_status") or "invited"),
+                        consent_status=str(participant.get("consent_status") or "pending"),
+                        sharing_scope=str(participant.get("sharing_scope") or "shared"),
+                        actor_id=actor_id,
+                    )
+                except WorkspaceError:
+                    continue
+            for perspective in source_session.get("perspectives") or []:
+                member_key = str(perspective.get("member_key") or actor_id)
+                try:
+                    self.add_team_perspective(
+                        target_project,
+                        str(perspective.get("content") or ""),
+                        perspective_type=str(perspective.get("perspective_type") or "other"),
+                        member_key=member_key,
+                        contributor_label=str(perspective.get("contributor_label") or ""),
+                        session_id=session["session_id"],
+                        record_id=record_id,
+                        sharing_scope=str(perspective.get("sharing_scope") or "shared"),
+                        consent_status=str(perspective.get("consent_status") or "granted"),
+                        source_path=str(perspective.get("source_path") or ""),
+                        actor_id=actor_id,
+                    )
+                    imported_perspectives += 1
+                except WorkspaceError:
+                    continue
+            for agreement in source_session.get("agreements") or []:
+                owner_key = agreement.get("owner_key")
+                try:
+                    created = self.create_facilitated_agreement(
+                        session["session_id"],
+                        str(agreement.get("title") or "Imported agreement"),
+                        owner_key=owner_key,
+                        due_date=agreement.get("due_date"),
+                        status="proposed",
+                        support_needed=str(agreement.get("support_needed") or ""),
+                        actor_id=actor_id,
+                    )
+                    target_status = str(agreement.get("status") or "proposed")
+                    if target_status != "proposed":
+                        evidence = str(agreement.get("completion_evidence") or "")
+                        if target_status == "completed" and not evidence:
+                            evidence = "Imported completion evidence was not supplied."
+                        support = str(agreement.get("support_needed") or "")
+                        if target_status == "blocked" and not support:
+                            support = "Imported blocker support need was not supplied."
+                        self.update_facilitated_agreement(
+                            created["agreement_id"],
+                            status=target_status,
+                            reason="workspace import",
+                            completion_evidence=evidence,
+                            support_needed=support,
+                            actor_id=actor_id,
+                        )
+                    imported_agreements += 1
+                except WorkspaceError:
+                    continue
+            source_status = str(source_session.get("status") or "planned")
+            if source_status != "planned" and source_status in {"in_progress", "completed", "cancelled"}:
+                self.update_facilitated_session(session["session_id"], status=source_status, actor_id=actor_id)
+
         return {
             "project_id": target_project,
             "imported": imported,
             "pattern_reviews_imported": imported_pattern_reviews,
             "system_changes_imported": imported_system_changes,
+            "team_members_imported": imported_team_members,
+            "facilitated_sessions_imported": imported_sessions,
+            "team_perspectives_imported": imported_perspectives,
+            "facilitated_agreements_imported": imported_agreements,
         }
 
     def write_export(self, payload: Mapping[str, Any], path: str | Path) -> Path:
@@ -1171,7 +1740,7 @@ class SQLiteWorkspaceRepository:
     def health(self) -> dict[str, Any]:
         integrity = self.connection.execute("PRAGMA integrity_check").fetchone()[0]
         counts = {}
-        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "checkpoints", "reviews", "status_history", "audit_events"):
+        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "checkpoints", "reviews", "status_history", "audit_events"):
             try:
                 counts[table] = self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             except sqlite3.OperationalError:

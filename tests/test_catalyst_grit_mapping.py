@@ -48,7 +48,7 @@ def test_v12_request_receives_defaults_and_prompts():
         for key in ["status","capacity_contribution","notes"]: item.pop(key, None)
     for key in ["attention_level","coordination_capacity","recovery_time_hours","load_level"]: value["input"]["capacity"].pop(key, None)
     record = generate_record(value).to_dict()
-    assert record["metadata"]["schema_version"] == "1.5.0"
+    assert record["metadata"]["schema_version"] == "1.6.0"
     assert record["normalized_input"]["pressure"]["decision_ambiguity"] == 5
     assert record["normalized_input"]["constraints"]["items"][0]["control_zone"] == "influence"
     assert record["findings"]["interpretation"]["review_required"] is True

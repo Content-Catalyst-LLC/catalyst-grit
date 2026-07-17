@@ -112,7 +112,7 @@ DEFAULT_ACTIONS = [
 
 DEFAULT_METHODOLOGY_PROFILE: dict[str, Any] = {
     "profile_id": "cg-recovery-conditions",
-    "profile_version": "1.5.0",
+    "profile_version": "1.6.0",
     "calculation_spec": "weighted-components-v1",
     "component_weights": {
         "impact_buffer": 15.0,
@@ -608,11 +608,11 @@ def _normalize_metadata(value: Any, *, source_schema_version: str) -> dict[str, 
         raise _issue("$.metadata.record_id", "record_id", "Must match cgr_ followed by 32 lowercase hexadecimal characters.", record_id)
 
     supplied_schema = _optional_text(metadata.get("schema_version"))
-    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.4.0", "1.3.0", "1.2.0", "1.1.0", "1.0.1"}:
+    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0", "1.0.1"}:
         raise _issue("$.metadata.schema_version", "schema_version", f"Unsupported source schema version: {supplied_schema}.", supplied_schema)
     supplied_engine = _optional_text(metadata.get("engine_version"))
-    if supplied_engine and supplied_engine != ENGINE_VERSION:
-        raise _issue("$.metadata.engine_version", "engine_version", "Requests may not select a different engine version.", supplied_engine)
+    if supplied_engine and supplied_engine not in {ENGINE_VERSION, "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0", "1.0.1"}:
+        raise _issue("$.metadata.engine_version", "engine_version", "Unsupported source engine version.", supplied_engine)
 
     created_default = _now_iso()
     created_at = _normalize_timestamp(metadata.get("created_at"), "$.metadata.created_at", created_default)

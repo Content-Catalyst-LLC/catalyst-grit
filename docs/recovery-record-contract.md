@@ -1,4 +1,4 @@
-# Recovery Record Contract v1.5.0
+# Recovery Record Contract v1.6.0
 
 The canonical record contains `metadata`, `user_input`, `normalized_input`, `findings`, `human_review`, and `extensions`.
 
@@ -37,4 +37,4 @@ The learning loop explicitly declares that personality labeling is prohibited. I
 
 ## Compatibility
 
-Inputs from v1.0.x through v1.4.0 remain importable. Missing v1.5.0 retrospective and pattern-review fields receive visible empty compatibility defaults. Historical submitted values and revisions are never silently rewritten.
+Inputs from v1.0.x through v1.4.0 remain importable. Missing v1.6.0 retrospective and pattern-review fields receive visible empty compatibility defaults. Historical submitted values and revisions are never silently rewritten.

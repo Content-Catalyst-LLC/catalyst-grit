@@ -1,15 +1,16 @@
 # Changelog
 
-## 1.5.0 — Learning Loops and Adaptation Patterns
+## 1.6.0 — Team Recovery and Facilitated Review
 
-- Added structured retrospectives with explicit evidence paths, completeness, and uncertainty preservation.
-- Added explainable adaptation-pattern candidates for recurring pressure, dependency failure, support gaps, clarity failures, scope/workload friction, helpful actions, unhelpful actions, and adaptation opportunities.
-- Added user-controlled accept, reject, and correct decisions for pattern candidates; patterns remain observations about recorded conditions, not personality labels.
-- Added migration 004 with append-only retrospectives, pattern reviews, source-linked system changes, and immutable system-change events.
-- Added project-level pattern aggregation and system-change pilot workflows with adopt, revise, defer, and retire decisions.
-- Added retrospective, pattern-review, and system-change CLI workflows plus evidence-preserving workspace exports.
-- Expanded the public WordPress demo with retrospective and learning-loop fields while preserving its non-persistent boundary.
-- Preserved v1.0.x through v1.4.0 compatibility, checksum-based installation, and existing private SQLite workspace files.
+- Added migration 005 with team memberships, facilitated sessions, session participants, append-only perspectives, shared agreements, and append-only agreement events.
+- Added explicit owner, facilitator, contributor, reviewer, and observer roles with status, access scope, and consent state.
+- Added consent-filtered shared, facilitator-only, and private perspective visibility.
+- Added session purpose, agenda, ground rules, participants, linked recovery records, and planned/in-progress/completed/cancelled lifecycle states.
+- Added agreement owners, due dates, support needs, completion evidence, and non-punitive blocked-state handling.
+- Added team summary, member, session, participant, perspective, and agreement CLI workflows.
+- Added team-aware workspace export/import and installed-wheel validation.
+- Expanded the authenticated WordPress workspace with team recovery boundaries and backward-compatible v1.5 user-meta loading.
+- Preserved v1.0.x through v1.5.0 recovery-record compatibility, existing SQLite workspace state, checksum-based installation, and the prohibition on individual scoring, ranking, diagnosis, or hidden performance evaluation.
 
 ## 1.4.0 — Recovery Planning and Action Management
 

@@ -16,7 +16,7 @@ def test_public_demo_remains_non_persistent():
 def test_private_workspace_requires_authentication_capability_and_nonce():
     assert "is_user_logged_in()" in PHP
     assert "current_user_can('read')" in PHP
-    assert "check_ajax_referer('catalyst_grit_workspace_v150', 'nonce')" in PHP
+    assert "check_ajax_referer('catalyst_grit_workspace_v160', 'nonce')" in PHP
     assert "wp_ajax_nopriv_catalyst_grit_workspace" not in PHP
 
 
@@ -32,3 +32,11 @@ def test_public_and_private_assets_are_separate():
     assert "assets/catalyst-grit-demo.js" in PHP
     assert "assets/catalyst-grit-workspace.js" in PHP
     assert PUBLIC_JS != PRIVATE_JS
+
+
+def test_team_workspace_exposes_consent_roles_and_legacy_workspace_migration():
+    assert "Private Team Recovery Workspace" in PHP
+    assert "Consent-aware sharing" in PHP
+    assert "facilitated_sessions" in PHP
+    assert "_catalyst_grit_workspace_v150" in PHP
+    assert "team_members must be an array" in PHP

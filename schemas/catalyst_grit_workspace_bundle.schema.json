@@ -3,7 +3,7 @@
   "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit-workspace-v1.0.json",
   "title": "Catalyst Grit Workspace Bundle",
   "type": "object",
-  "x-catalyst-grit-version": "1.5.0",
+  "x-catalyst-grit-version": "1.6.0",
   "required": [
     "format",
     "product_version",
@@ -115,6 +115,27 @@
       "items": {
         "type": "object"
       }
+    },
+    "team_members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "description": "Explicit project memberships with roles, status, access scope, and consent state."
+    },
+    "facilitated_sessions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "description": "Consent-aware facilitated reviews including participants, perspectives, agreements, and immutable agreement events."
+    },
+    "team_recovery_summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Aggregate work-condition summary that must not contain individual scores or rankings."
     }
   },
   "additionalProperties": true

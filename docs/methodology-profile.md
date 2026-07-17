@@ -1,8 +1,8 @@
-# Methodology Profile v1.5.0
+# Methodology Profile v1.6.0
 
-The default profile is stored at `methodology/recovery-profile-v1.5.0.json` and identified as `cg-recovery-conditions@1.5.0`.
+The default profile is stored at `methodology/recovery-profile-v1.6.0.json` and identified as `cg-recovery-conditions@1.6.0`.
 
-The weighted component calculation remains stable for longitudinal compatibility. v1.5.0 adds a learning layer around the existing condition map and recovery plan. That layer does not change the recovery score, infer personality, diagnose health, or predict future performance.
+The weighted component calculation remains stable for longitudinal compatibility. v1.6.0 adds a learning layer around the existing condition map and recovery plan. That layer does not change the recovery score, infer personality, diagnose health, or predict future performance.
 
 ## Learning-loop method
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the complete Catalyst Grit v1.5.0 release contract."""
+"""Run the complete Catalyst Grit v1.6.0 release contract."""
 from __future__ import annotations
 
 import json
@@ -64,13 +64,13 @@ def main() -> int:
 import json, tempfile
 from pathlib import Path
 import catalyst_grit
-assert catalyst_grit.__version__ == '1.5.0'
-assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4]
+assert catalyst_grit.__version__ == '1.6.0'
+assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4, 5]
 with tempfile.TemporaryDirectory() as d:
     with catalyst_grit.SQLiteWorkspaceRepository(Path(d)/'installed.sqlite3') as repo:
         project=repo.create_project('Installed wheel')
         assert project['visibility']=='private'
-        assert repo.health()['migrations']['current']==4
+        assert repo.health()['migrations']['current']==5
         saved=repo.save_record(project['project_id'], json.loads({example_payload!r}))
         record_id=saved['record']['record_id']
         assert repo.list_actions(record_id)
@@ -82,6 +82,11 @@ with tempfile.TemporaryDirectory() as d:
         assert review['evidence']
         change=repo.create_system_change(project['project_id'], 'Installed learning change', 'Use one review channel.', source_record_ids=[record_id], decision='piloting')
         assert change['sources'][0]['record_id']==record_id
+        facilitator=repo.add_team_member(project['project_id'], 'facilitator', 'Facilitator', role='facilitator', status='active', consent_status='granted')
+        session=repo.create_facilitated_session(project['project_id'], 'Installed facilitated review', facilitator_key='facilitator')
+        repo.add_team_perspective(project['project_id'], 'Shared pressure condition', perspective_type='pressure', member_key='facilitator', session_id=session['session_id'], actor_id='facilitator')
+        agreement=repo.create_facilitated_agreement(session['session_id'], 'Confirm shared owner', owner_key='facilitator', actor_id='facilitator')
+        assert repo.team_recovery_summary(project['project_id'], actor_id='facilitator')['agreement_count']==1
 print(catalyst_grit.__version__)
 """
         run("Import installed package and migrations", [sys.executable, "-c", code], cwd=Path(temp), env=wheel_env)
@@ -90,7 +95,7 @@ print(catalyst_grit.__version__)
     for generated in ROOT.glob("src/*.egg-info"):
         shutil.rmtree(generated, ignore_errors=True)
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    print("Catalyst Grit v1.5.0 release contract passed.")
+    print("Catalyst Grit v1.6.0 release contract passed.")
     return 0
 
 

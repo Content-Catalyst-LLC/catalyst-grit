@@ -1,17 +1,19 @@
 openapi: 3.1.0
 info:
   title: Catalyst Grit Recovery Record API
-  version: 1.5.0
+  version: 1.6.0
   summary: Canonical recovery-record validation and generation contract
   description: >-
-    Catalyst Grit v1.5.0 validates, migrates, and generates recovery records
+    Catalyst Grit v1.6.0 validates, migrates, and generates recovery records
     containing condition maps, executable recovery plans, structured retrospectives,
     source-linked adaptation-pattern candidates, uncertainty, and human review.
+    The private workspace contract also supports explicit team roles, consent-aware
+    facilitated reviews, scoped perspectives, and shared agreements with immutable history.
     Pattern candidates are descriptive and reviewable. They must not be used for
     diagnosis, character scoring, personality inference, employee ranking,
     automated eligibility, or performance evaluation. Persistent project pattern
-    aggregation and system-change workflows remain private local workspace and CLI
-    operations until the planned public API release.
+    aggregation, system-change, and facilitated-review workflows remain private local
+    workspace and CLI operations until the planned public API release.
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 paths:
   /api/grit/v1/records/validate:
@@ -66,7 +68,7 @@ paths:
               $ref: '#/components/schemas/LegacyRecoveryRequest'
       responses:
         '200':
-          description: Migrated v1.5.0 request with visible compatibility defaults
+          description: Migrated v1.6.0 request with visible compatibility defaults
           content:
             application/json:
               schema:

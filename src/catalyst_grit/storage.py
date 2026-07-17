@@ -12,6 +12,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 import hashlib
+import hmac
+import secrets
 from importlib import resources
 import json
 from pathlib import Path
@@ -2116,6 +2118,12 @@ class SQLiteWorkspaceRepository:
             "handoffs": self.list_handoffs(project_id),
             "monitoring_dashboard": self.project_monitoring_dashboard(project_id),
             "monitoring_reviews": self.list_monitoring_reviews(project_id),
+            "institutional_policies": self.list_institutional_policies(project_id=project_id),
+            "access_reviews": self.list_access_reviews(project_id),
+            "publication_artifacts": self.list_publication_artifacts(project_id, include_content=False),
+            "methodology_registry": self.list_methodologies(),
+            "schema_compatibility": self.schema_compatibility("catalyst_grit_record", SCHEMA_VERSION),
+            "institutional_diagnostics": self.institutional_diagnostics(),
         }
 
     def import_payload(self, payload: Mapping[str, Any], *, project_id: str | None = None, actor_id: str = "self") -> dict[str, Any]:
@@ -2512,6 +2520,21 @@ class SQLiteWorkspaceRepository:
             except WorkspaceError:
                 continue
 
+        imported_policies = 0
+        for policy in payload.get("institutional_policies") or []:
+            try:
+                self.set_institutional_policy(str(policy.get("policy_type") or "export_redaction"), policy.get("config") or {}, project_id=target_project if policy.get("project_id") else None, status=str(policy.get("status") or "active"), effective_at=policy.get("effective_at"), expires_at=policy.get("expires_at"), actor_id=actor_id)
+                imported_policies += 1
+            except WorkspaceError:
+                continue
+        imported_access_reviews = 0
+        for review in payload.get("access_reviews") or []:
+            try:
+                self.record_access_review(target_project, str(review.get("subject_type") or "project"), str(review.get("subject_id") or target_project), str(review.get("decision") or "approved"), reviewer_id=actor_id, scopes=review.get("scopes") or [], notes=str(review.get("notes") or "Imported access review"), reviewed_at=review.get("reviewed_at"), next_review_at=review.get("next_review_at"))
+                imported_access_reviews += 1
+            except WorkspaceError:
+                continue
+
         return {
             "project_id": target_project,
             "imported": imported,
@@ -2526,6 +2549,373 @@ class SQLiteWorkspaceRepository:
             "handoffs_imported": imported_handoffs,
             "monitoring_snapshots_imported": imported_monitoring_snapshots,
             "monitoring_reviews_imported": imported_monitoring_reviews,
+            "institutional_policies_imported": imported_policies,
+            "access_reviews_imported": imported_access_reviews,
+        }
+
+
+    @staticmethod
+    def new_identifier(prefix: str) -> str:
+        """Return a stable-prefix opaque identifier for external services."""
+        return _id(prefix)
+
+    @staticmethod
+    def _decode_policy(row: Mapping[str, Any]) -> dict[str, Any]:
+        item = dict(row)
+        item["config"] = json.loads(item.pop("config_json"))
+        return item
+
+    def set_institutional_policy(
+        self,
+        policy_type: str,
+        config: Mapping[str, Any],
+        *,
+        project_id: str | None = None,
+        status: str = "active",
+        effective_at: str | None = None,
+        expires_at: str | None = None,
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        allowed = {"retention", "export_redaction", "access_review", "methodology_governance", "schema_deprecation"}
+        if policy_type not in allowed:
+            raise WorkspaceError(f"unsupported institutional policy: {policy_type}")
+        if status not in {"draft", "active", "retired"}:
+            raise WorkspaceError(f"unsupported policy status: {status}")
+        if project_id:
+            self._require_project(project_id, include_deleted=True)
+        version = int(self.connection.execute(
+            "SELECT COALESCE(MAX(version),0)+1 FROM institutional_policies WHERE project_id IS ? AND policy_type=?",
+            (project_id, policy_type),
+        ).fetchone()[0])
+        policy_id = _id("cgpol")
+        now = _utc_now()
+        with self.connection:
+            if status == "active":
+                self.connection.execute(
+                    "UPDATE institutional_policies SET status='retired' WHERE project_id IS ? AND policy_type=? AND status='active'",
+                    (project_id, policy_type),
+                )
+            self.connection.execute(
+                "INSERT INTO institutional_policies(policy_id,project_id,policy_type,version,status,config_json,effective_at,expires_at,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (policy_id, project_id, policy_type, version, status, _json(dict(config)), effective_at or now, expires_at, actor_id, now),
+            )
+            self._audit("institutional_policy.created", "project" if project_id else "institution", project_id or "global", actor_id, {"policy_id": policy_id, "policy_type": policy_type, "version": version, "status": status})
+        return self.get_institutional_policy(policy_id)
+
+    def get_institutional_policy(self, policy_id: str) -> dict[str, Any]:
+        row = self.connection.execute("SELECT * FROM institutional_policies WHERE policy_id=?", (policy_id,)).fetchone()
+        if not row:
+            raise WorkspaceError(f"institutional policy not found: {policy_id}")
+        return self._decode_policy(row)
+
+    def list_institutional_policies(self, *, project_id: str | None = None, policy_type: str | None = None, status: str | None = None) -> list[dict[str, Any]]:
+        query = "SELECT * FROM institutional_policies WHERE 1=1"; params: list[Any] = []
+        if project_id is not None:
+            query += " AND (project_id=? OR project_id IS NULL)"; params.append(project_id)
+        if policy_type:
+            query += " AND policy_type=?"; params.append(policy_type)
+        if status:
+            query += " AND status=?"; params.append(status)
+        query += " ORDER BY policy_type,version,created_at"
+        return [self._decode_policy(row) for row in self.connection.execute(query, params)]
+
+    def record_access_review(
+        self,
+        project_id: str,
+        subject_type: str,
+        subject_id: str,
+        decision: str,
+        *,
+        reviewer_id: str,
+        scopes: Sequence[str] | None = None,
+        notes: str = "",
+        reviewed_at: str | None = None,
+        next_review_at: str | None = None,
+    ) -> dict[str, Any]:
+        self._require_project(project_id, include_deleted=True)
+        if subject_type not in {"member", "api_client", "publication", "project"}:
+            raise WorkspaceError(f"unsupported access-review subject: {subject_type}")
+        if decision not in {"approved", "changes_required", "revoked", "expired"}:
+            raise WorkspaceError(f"unsupported access-review decision: {decision}")
+        access_review_id = _id("cgar")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO access_reviews(access_review_id,project_id,subject_type,subject_id,decision,reviewer_id,scope_json,notes,reviewed_at,next_review_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (access_review_id, project_id, subject_type, subject_id, decision, reviewer_id, _json(list(scopes or [])), notes.strip(), reviewed_at or now, next_review_at, now),
+            )
+            self._audit("access.reviewed", subject_type, subject_id, reviewer_id, {"project_id": project_id, "decision": decision, "scopes": list(scopes or [])})
+        return self.get_access_review(access_review_id)
+
+    def get_access_review(self, access_review_id: str) -> dict[str, Any]:
+        row = self.connection.execute("SELECT * FROM access_reviews WHERE access_review_id=?", (access_review_id,)).fetchone()
+        if not row:
+            raise WorkspaceError(f"access review not found: {access_review_id}")
+        item = dict(row); item["scopes"] = json.loads(item.pop("scope_json")); return item
+
+    def list_access_reviews(self, project_id: str, *, subject_type: str | None = None, subject_id: str | None = None) -> list[dict[str, Any]]:
+        self._require_project(project_id, include_deleted=True)
+        query = "SELECT * FROM access_reviews WHERE project_id=?"; params: list[Any] = [project_id]
+        if subject_type:
+            query += " AND subject_type=?"; params.append(subject_type)
+        if subject_id:
+            query += " AND subject_id=?"; params.append(subject_id)
+        query += " ORDER BY reviewed_at,created_at,rowid"
+        result=[]
+        for row in self.connection.execute(query, params):
+            item=dict(row); item["scopes"]=json.loads(item.pop("scope_json")); result.append(item)
+        return result
+
+    def create_api_client(
+        self,
+        name: str,
+        *,
+        scopes: Sequence[str],
+        project_ids: Sequence[str] | None = None,
+        rate_limit_per_minute: int = 60,
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        if not name.strip():
+            raise WorkspaceError("API client name is required")
+        if not scopes:
+            raise WorkspaceError("at least one API scope is required")
+        if rate_limit_per_minute < 1 or rate_limit_per_minute > 10000:
+            raise WorkspaceError("rate limit must be between 1 and 10000")
+        for project_id in project_ids or []:
+            self._require_project(project_id, include_deleted=True)
+        client_id = _id("cgapi")
+        token = f"cg_live_{secrets.token_urlsafe(32)}"
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO api_clients(client_id,name,token_hash,scopes_json,project_ids_json,rate_limit_per_minute,status,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                (client_id, name.strip(), token_hash, _json(sorted(set(scopes))), _json(sorted(set(project_ids or []))), rate_limit_per_minute, "active", actor_id, now),
+            )
+            self._audit("api_client.created", "api_client", client_id, actor_id, {"scopes": sorted(set(scopes)), "project_ids": sorted(set(project_ids or [])), "rate_limit_per_minute": rate_limit_per_minute})
+        client = self.get_api_client(client_id)
+        client["token"] = token
+        client["token_displayed_once"] = True
+        return client
+
+    @staticmethod
+    def _decode_api_client(row: Mapping[str, Any], *, include_hash: bool = False) -> dict[str, Any]:
+        item = dict(row)
+        item["scopes"] = json.loads(item.pop("scopes_json"))
+        item["project_ids"] = json.loads(item.pop("project_ids_json"))
+        if not include_hash:
+            item.pop("token_hash", None)
+        return item
+
+    def get_api_client(self, client_id: str, *, include_hash: bool = False) -> dict[str, Any]:
+        row = self.connection.execute("SELECT * FROM api_clients WHERE client_id=?", (client_id,)).fetchone()
+        if not row:
+            raise WorkspaceError(f"API client not found: {client_id}")
+        return self._decode_api_client(row, include_hash=include_hash)
+
+    def list_api_clients(self, *, include_revoked: bool = False) -> list[dict[str, Any]]:
+        query = "SELECT * FROM api_clients" + ("" if include_revoked else " WHERE status='active'") + " ORDER BY created_at,rowid"
+        return [self._decode_api_client(row) for row in self.connection.execute(query)]
+
+    def revoke_api_client(self, client_id: str, *, actor_id: str = "self", reason: str = "") -> dict[str, Any]:
+        client = self.get_api_client(client_id)
+        if client["status"] == "revoked":
+            return client
+        with self.connection:
+            self.connection.execute("UPDATE api_clients SET status='revoked',revoked_at=? WHERE client_id=?", (_utc_now(), client_id))
+            self._audit("api_client.revoked", "api_client", client_id, actor_id, {"reason": reason})
+        return self.get_api_client(client_id)
+
+    def authenticate_api_token(self, token: str) -> dict[str, Any]:
+        if not token:
+            raise WorkspaceError("API token is required")
+        digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        rows = self.connection.execute("SELECT * FROM api_clients WHERE status='active'").fetchall()
+        for row in rows:
+            if hmac.compare_digest(str(row["token_hash"]), digest):
+                return self._decode_api_client(row)
+        raise WorkspaceError("invalid or revoked API token")
+
+    @staticmethod
+    def api_client_authorized(client: Mapping[str, Any], scope: str, *, project_id: str | None = None) -> bool:
+        scopes = set(client.get("scopes") or [])
+        scope_allowed = "*" in scopes or scope in scopes or (":" in scope and f"{scope.split(':')[0]}:*" in scopes)
+        if not scope_allowed:
+            return False
+        allowed_projects = set(client.get("project_ids") or [])
+        return not project_id or not allowed_projects or project_id in allowed_projects
+
+    def consume_api_rate_limit(self, client_id: str, *, now: datetime | None = None) -> tuple[bool, int]:
+        client = self.get_api_client(client_id)
+        moment = now or datetime.now(timezone.utc)
+        window = moment.replace(second=0, microsecond=0).isoformat().replace("+00:00", "Z")
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO api_rate_windows(client_id,window_start,request_count) VALUES(?,?,1) ON CONFLICT(client_id,window_start) DO UPDATE SET request_count=request_count+1",
+                (client_id, window),
+            )
+        count = int(self.connection.execute("SELECT request_count FROM api_rate_windows WHERE client_id=? AND window_start=?", (client_id, window)).fetchone()[0])
+        remaining = int(client["rate_limit_per_minute"]) - count
+        return count <= int(client["rate_limit_per_minute"]), remaining
+
+    def record_api_audit(
+        self,
+        client_id: str | None,
+        actor_id: str,
+        method: str,
+        route: str,
+        response_status: int,
+        request_hash: str,
+        detail: Mapping[str, Any] | None = None,
+        *,
+        project_id: str | None = None,
+    ) -> dict[str, Any]:
+        api_event_id = _id("cgaae")
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO api_audit_events(api_event_id,client_id,actor_id,method,route,project_id,response_status,request_hash,detail_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (api_event_id, client_id, actor_id, method, route, project_id, int(response_status), request_hash, _json(dict(detail or {})), _utc_now()),
+            )
+        return self.get_api_audit_event(api_event_id)
+
+    def get_api_audit_event(self, api_event_id: str) -> dict[str, Any]:
+        row = self.connection.execute("SELECT * FROM api_audit_events WHERE api_event_id=?", (api_event_id,)).fetchone()
+        if not row:
+            raise WorkspaceError(f"API audit event not found: {api_event_id}")
+        item=dict(row); item["detail"]=json.loads(item.pop("detail_json")); return item
+
+    def list_api_audit_events(self, *, client_id: str | None = None, project_id: str | None = None) -> list[dict[str, Any]]:
+        query="SELECT * FROM api_audit_events WHERE 1=1"; params: list[Any]=[]
+        if client_id:
+            query += " AND client_id=?"; params.append(client_id)
+        if project_id:
+            query += " AND project_id=?"; params.append(project_id)
+        query += " ORDER BY created_at,rowid"
+        result=[]
+        for row in self.connection.execute(query, params):
+            item=dict(row); item["detail"]=json.loads(item.pop("detail_json")); result.append(item)
+        return result
+
+    def create_publication_artifact(
+        self,
+        project_id: str,
+        *,
+        report_type: str,
+        export_format: str,
+        visibility: str,
+        redaction_policy: str,
+        content_hash: str,
+        content_text: str,
+        metadata: Mapping[str, Any] | None = None,
+        record_id: str | None = None,
+        actor_id: str = "self",
+        publication_id: str | None = None,
+    ) -> dict[str, Any]:
+        self._require_project(project_id, include_deleted=True)
+        if record_id:
+            record = self._require_record(record_id, include_deleted=True)
+            if record["project_id"] != project_id:
+                raise WorkspaceError("publication record does not belong to the project")
+        publication_id = publication_id or _id("cgpub")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO publication_artifacts(publication_id,project_id,record_id,report_type,format,visibility,redaction_policy,content_hash,content_text,metadata_json,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                (publication_id, project_id, record_id, report_type, export_format, visibility, redaction_policy, content_hash, content_text, _json(dict(metadata or {})), actor_id, now),
+            )
+            self.connection.execute(
+                "INSERT INTO publication_events(publication_event_id,publication_id,event_type,actor_id,notes,payload_json,created_at) VALUES(?,?,?,?,?,?,?)",
+                (_id("cgpe"), publication_id, "created", actor_id, "", _json({"content_hash": content_hash, "format": export_format}), now),
+            )
+            self._audit("publication.created", "publication", publication_id, actor_id, {"project_id": project_id, "record_id": record_id, "report_type": report_type, "format": export_format, "visibility": visibility})
+        return self.get_publication_artifact(publication_id)
+
+    @staticmethod
+    def _decode_publication(row: Mapping[str, Any], *, include_content: bool = True) -> dict[str, Any]:
+        item=dict(row); item["metadata"]=json.loads(item.pop("metadata_json"))
+        if not include_content:
+            item.pop("content_text", None)
+        return item
+
+    def get_publication_artifact(self, publication_id: str, *, include_content: bool = True) -> dict[str, Any]:
+        row=self.connection.execute("SELECT * FROM publication_artifacts WHERE publication_id=?", (publication_id,)).fetchone()
+        if not row:
+            raise WorkspaceError(f"publication not found: {publication_id}")
+        item=self._decode_publication(row, include_content=include_content)
+        item["events"]=[self._decode_publication_event(event) for event in self.connection.execute("SELECT * FROM publication_events WHERE publication_id=? ORDER BY created_at,rowid", (publication_id,))]
+        return item
+
+    @staticmethod
+    def _decode_publication_event(row: Mapping[str, Any]) -> dict[str, Any]:
+        item=dict(row); item["payload"]=json.loads(item.pop("payload_json")); return item
+
+    def list_publication_artifacts(self, project_id: str, *, report_type: str | None = None, visibility: str | None = None, include_content: bool = False) -> list[dict[str, Any]]:
+        self._require_project(project_id, include_deleted=True)
+        query="SELECT * FROM publication_artifacts WHERE project_id=?"; params: list[Any]=[project_id]
+        if report_type:
+            query += " AND report_type=?"; params.append(report_type)
+        if visibility:
+            query += " AND visibility=?"; params.append(visibility)
+        query += " ORDER BY created_at,rowid"
+        return [self._decode_publication(row, include_content=include_content) for row in self.connection.execute(query, params)]
+
+    def add_publication_event(self, publication_id: str, event_type: str, *, actor_id: str = "self", notes: str = "", payload: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        self.get_publication_artifact(publication_id, include_content=False)
+        if event_type not in {"reviewed", "approved", "published", "withdrawn", "exported"}:
+            raise WorkspaceError(f"unsupported publication event: {event_type}")
+        event_id=_id("cgpe")
+        with self.connection:
+            self.connection.execute("INSERT INTO publication_events(publication_event_id,publication_id,event_type,actor_id,notes,payload_json,created_at) VALUES(?,?,?,?,?,?,?)", (event_id,publication_id,event_type,actor_id,notes.strip(),_json(dict(payload or {})),_utc_now()))
+            self._audit(f"publication.{event_type}", "publication", publication_id, actor_id, dict(payload or {}))
+        return self._decode_publication_event(self.connection.execute("SELECT * FROM publication_events WHERE publication_event_id=?", (event_id,)).fetchone())
+
+    def register_methodology(self, profile_name: str, profile_version: str, content: Mapping[str, Any], *, status: str = "draft", approved_by: str | None = None, effective_at: str | None = None, notes: str = "") -> dict[str, Any]:
+        if status not in {"draft", "approved", "deprecated"}:
+            raise WorkspaceError(f"unsupported methodology status: {status}")
+        methodology_id=_id("cgmeth"); content_hash=_sha(content); now=_utc_now()
+        with self.connection:
+            self.connection.execute("INSERT INTO methodology_registry(methodology_id,profile_name,profile_version,content_hash,status,approved_by,effective_at,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?)", (methodology_id,profile_name,profile_version,content_hash,status,approved_by,effective_at,notes,now))
+            self._audit("methodology.registered", "methodology", methodology_id, approved_by or "self", {"profile_name":profile_name,"profile_version":profile_version,"status":status,"content_hash":content_hash})
+        return dict(self.connection.execute("SELECT * FROM methodology_registry WHERE methodology_id=?", (methodology_id,)).fetchone())
+
+    def list_methodologies(self) -> list[dict[str, Any]]:
+        return [dict(row) for row in self.connection.execute("SELECT * FROM methodology_registry ORDER BY profile_name,profile_version")]
+
+    def declare_schema_deprecation(self, schema_name: str, schema_version: str, *, replacement_version: str | None = None, status: str = "announced", announced_at: str | None = None, sunset_at: str | None = None, migration_notes: str = "", actor_id: str = "self") -> dict[str, Any]:
+        if status not in {"announced","deprecated","retired"}:
+            raise WorkspaceError(f"unsupported schema deprecation status: {status}")
+        deprecation_id=_id("cgsd"); now=_utc_now()
+        with self.connection:
+            self.connection.execute("INSERT INTO schema_deprecations(deprecation_id,schema_name,schema_version,replacement_version,status,announced_at,sunset_at,migration_notes,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)", (deprecation_id,schema_name,schema_version,replacement_version,status,announced_at or now,sunset_at,migration_notes,actor_id,now))
+            self._audit("schema.deprecation_declared", "schema", f"{schema_name}@{schema_version}", actor_id, {"status":status,"replacement_version":replacement_version,"sunset_at":sunset_at})
+        return dict(self.connection.execute("SELECT * FROM schema_deprecations WHERE deprecation_id=?", (deprecation_id,)).fetchone())
+
+    def schema_compatibility(self, schema_name: str, schema_version: str) -> dict[str, Any]:
+        row=self.connection.execute("SELECT * FROM schema_deprecations WHERE schema_name=? AND schema_version=?", (schema_name,schema_version)).fetchone()
+        if not row:
+            return {"schema_name":schema_name,"schema_version":schema_version,"status":"supported","replacement_version":None,"migration_required":False}
+        item=dict(row)
+        item["migration_required"] = item["status"] in {"deprecated","retired"}
+        item["supported"] = item["status"] != "retired"
+        return item
+
+    def institutional_diagnostics(self) -> dict[str, Any]:
+        health=self.health()
+        active_policies=int(self.connection.execute("SELECT COUNT(*) FROM institutional_policies WHERE status='active'").fetchone()[0])
+        active_clients=int(self.connection.execute("SELECT COUNT(*) FROM api_clients WHERE status='active'").fetchone()[0])
+        publications=int(self.connection.execute("SELECT COUNT(*) FROM publication_artifacts").fetchone()[0])
+        overdue_access_reviews=int(self.connection.execute("SELECT COUNT(*) FROM access_reviews WHERE next_review_at IS NOT NULL AND next_review_at < ?", (_utc_now(),)).fetchone()[0])
+        return {
+            "product_version": __version__,
+            "database_integrity": health["integrity"],
+            "migration_status": health["migrations"],
+            "active_policy_count": active_policies,
+            "active_api_client_count": active_clients,
+            "publication_count": publications,
+            "overdue_access_review_count": overdue_access_reviews,
+            "private_by_default": True,
+            "api_authentication_required": True,
+            "audit_append_only": True,
         }
 
     def write_export(self, payload: Mapping[str, Any], path: str | Path) -> Path:
@@ -2537,7 +2927,7 @@ class SQLiteWorkspaceRepository:
     def health(self) -> dict[str, Any]:
         integrity = self.connection.execute("PRAGMA integrity_check").fetchone()[0]
         counts = {}
-        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events", "monitoring_snapshots", "monitoring_snapshot_events", "monitoring_reviews", "checkpoints", "reviews", "status_history", "audit_events"):
+        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events", "monitoring_snapshots", "monitoring_snapshot_events", "monitoring_reviews", "institutional_policies", "access_reviews", "api_clients", "api_rate_windows", "api_audit_events", "publication_artifacts", "publication_events", "methodology_registry", "schema_deprecations", "checkpoints", "reviews", "status_history", "audit_events"):
             try:
                 counts[table] = self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             except sqlite3.OperationalError:

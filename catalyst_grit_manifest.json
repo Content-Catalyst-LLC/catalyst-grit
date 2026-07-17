@@ -1,12 +1,12 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.8.0",
-  "schema_version": "1.8.0",
-  "engine_version": "1.8.0",
-  "release": "Monitoring, Trends, and Resilience Signals",
+  "version": "1.9.0",
+  "schema_version": "1.9.0",
+  "engine_version": "1.9.0",
+  "release": "Publication, Export, API, and Institutional Integration",
   "canonical_product_model": "recovery-record",
-  "methodology_profile": "cg-recovery-conditions@1.7.0",
+  "methodology_profile": "cg-recovery-conditions@1.9.0",
   "workspace_format": "catalyst-grit-workspace/1.0",
   "storage": "SQLite private workspace with ordered packaged migrations",
   "migrations": [
@@ -15,7 +15,9 @@
     "003_recovery_plans_actions_reassessment",
     "004_learning_loops_adaptation_patterns",
     "005_team_recovery_facilitated_review",
-    "006_evidence_assumptions_handoffs"
+    "006_evidence_assumptions_handoffs",
+    "007_monitoring_trends_resilience_signals",
+    "008_publication_api_institutional_governance"
   ],
   "persistent_entities": [
     "projects",
@@ -45,7 +47,19 @@
     "assumptions",
     "assumption_events",
     "handoff_artifacts",
-    "handoff_events"
+    "handoff_events",
+    "monitoring_snapshots",
+    "monitoring_snapshot_events",
+    "monitoring_reviews",
+    "institutional_policies",
+    "access_reviews",
+    "api_clients",
+    "api_rate_windows",
+    "api_audit_events",
+    "publication_artifacts",
+    "publication_events",
+    "methodology_registry",
+    "schema_deprecations"
   ],
   "shortcodes": [
     "[catalyst_grit_demo]",
@@ -246,9 +260,89 @@
     "decision_packet": "sustainable-catalyst-decision-handoff/1.0"
   },
   "capabilities": [
+    "governed_publication",
+    "multi_format_export",
+    "linked_data_export",
+    "deterministic_publication_bundles",
+    "institutional_api",
+    "scoped_authentication",
+    "rate_limiting",
+    "api_audit",
+    "versioned_policies",
+    "access_reviews",
+    "methodology_governance",
+    "schema_deprecation",
+    "administrative_diagnostics",
     "longitudinal_monitoring",
     "privacy_thresholded_dashboards",
     "signal_governance",
     "traceable_trends"
-  ]
+  ],
+  "api_contract": "catalyst-grit-api/1.0",
+  "publication_contract": {
+    "report_types": [
+      "recovery_brief",
+      "facilitated_review_brief",
+      "action_plan",
+      "learning_loop_report",
+      "adaptation_proposal",
+      "monitoring_summary",
+      "decision_studio_handoff"
+    ],
+    "formats": [
+      "json",
+      "jsonld",
+      "markdown",
+      "html",
+      "csv",
+      "pdf_request",
+      "bundle"
+    ],
+    "redaction_policies": [
+      "none",
+      "internal",
+      "public"
+    ],
+    "history": "append-only publication lifecycle events",
+    "pdf": "rendered through the Sustainable Catalyst publication layer"
+  },
+  "publication_bundle_format": "catalyst-grit-publication-bundle/1.0",
+  "institutional_api_contract": {
+    "contract": "catalyst-grit-api/1.0",
+    "authentication": "opaque bearer tokens stored only as SHA-256 hashes",
+    "authorization": "scopes plus optional project allowlists",
+    "rate_limit": "per-client fixed one-minute windows",
+    "audit": "append-only request audit events",
+    "resources": [
+      "records",
+      "revisions",
+      "actions",
+      "checkpoints",
+      "reviews",
+      "evidence",
+      "patterns",
+      "monitoring",
+      "handoffs",
+      "audit",
+      "publications"
+    ]
+  },
+  "institutional_governance_contract": {
+    "policy_types": [
+      "retention",
+      "export_redaction",
+      "access_review",
+      "methodology_governance",
+      "schema_deprecation"
+    ],
+    "access_review_subjects": [
+      "member",
+      "api_client",
+      "publication",
+      "project"
+    ],
+    "methodology_registry": true,
+    "schema_deprecation_registry": true,
+    "administrative_diagnostics": true
+  }
 }

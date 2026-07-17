@@ -1,13 +1,19 @@
 # Changelog
 
+## 1.9.0 — Publication, Export, API, and Institutional Integration
+
+- Added seven governed publication report types.
+- Added JSON, JSON-LD, Markdown, HTML, CSV, platform PDF requests, and deterministic publication ZIP bundles.
+- Added private, internal, and public redaction policies with deterministic identifier masking.
+- Added a framework-neutral institutional API with hashed bearer tokens, scopes, project allowlists, rate limits, and append-only audits.
+- Added versioned institutional policies and append-only access reviews.
+- Added methodology registration, schema-deprecation declarations, compatibility checks, and administrative diagnostics.
+- Added migration 008 and preserved all v1.0.x through v1.8.0 workspace data.
+- Expanded CLI, WordPress workspace guidance, OpenAPI, schemas, release validation, and upgrade tooling.
+
 ## 1.8.0 — Monitoring, Trends, and Resilience Signals
 
-- Added immutable monitoring snapshots linked to exact record revisions and source hashes.
-- Added traceable score, component, pressure, support, clarity, energy, and capacity trends.
-- Added workflow outcome measures for actions, blockers, checkpoints, reopened setbacks, repeated friction, and system changes.
-- Added private record and project dashboards plus privacy-thresholded team/system aggregation.
-- Added explicit sparse-data confidence, aggregation privacy, no-ranking, no-prediction, and human-review governance.
-- Added migration 007, monitoring CLI workflows, WordPress workspace collections, export/import support, OpenAPI paths, tests, and release tooling.
+- Added immutable monitoring snapshots, traceable trends, privacy-thresholded dashboards, sparse-data handling, and human monitoring reviews.
 
 ## 1.7.0 — Evidence, Assumptions, and Decision Handoffs
 

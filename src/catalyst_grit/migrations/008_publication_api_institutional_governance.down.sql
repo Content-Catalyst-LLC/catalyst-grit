@@ -1,0 +1,15 @@
+DROP TRIGGER IF EXISTS publication_events_guard_delete;
+DROP TRIGGER IF EXISTS publication_events_no_update;
+DROP TRIGGER IF EXISTS api_audit_events_guard_delete;
+DROP TRIGGER IF EXISTS api_audit_events_no_update;
+DROP TRIGGER IF EXISTS access_reviews_guard_delete;
+DROP TRIGGER IF EXISTS access_reviews_no_update;
+DROP TABLE IF EXISTS schema_deprecations;
+DROP TABLE IF EXISTS methodology_registry;
+DROP TABLE IF EXISTS publication_events;
+DROP TABLE IF EXISTS publication_artifacts;
+DROP TABLE IF EXISTS api_audit_events;
+DROP TABLE IF EXISTS api_rate_windows;
+DROP TABLE IF EXISTS api_clients;
+DROP TABLE IF EXISTS access_reviews;
+DROP TABLE IF EXISTS institutional_policies;

@@ -1,15 +1,15 @@
 <?php
 /**
  * Plugin Name: Catalyst Grit Demo
- * Description: Canonical recovery-record demo and authenticated, consent-aware team recovery workspace. Provides [catalyst_grit_demo] and [catalyst_grit_workspace].
- * Version: 1.8.0
+ * Description: Canonical recovery-record demo plus an authenticated recovery, publication, evidence, and institutional-governance workspace. Provides [catalyst_grit_demo] and [catalyst_grit_workspace].
+ * Version: 1.9.0
  * Author: Content Catalyst LLC
  * License: MIT
  */
 
 if (!defined('ABSPATH')) { exit; }
 
-define('CATALYST_GRIT_DEMO_VERSION', '1.8.0');
+define('CATALYST_GRIT_DEMO_VERSION', '1.9.0');
 
 function catalyst_grit_demo_assets() {
     $base = plugin_dir_url(__FILE__);
@@ -129,7 +129,7 @@ Schedule a short stakeholder review</textarea></label>
 
         <div class="cg-demo__output" aria-live="polite">
           <div class="cg-demo__score"><span>Conditions score · component context required</span><strong data-cg-score>—</strong></div>
-          <div class="cg-demo__panel"><h4>Generated state</h4><p data-cg-state>Generate a record to view the recovery conditions.</p><p class="cg-demo__method">Method: <span data-cg-profile>cg-recovery-conditions v1.8.0</span></p><p><strong>Completeness:</strong> <span data-cg-completeness>—</span> · <strong>Confidence:</strong> <span data-cg-confidence>—</span></p></div>
+          <div class="cg-demo__panel"><h4>Generated state</h4><p data-cg-state>Generate a record to view the recovery conditions.</p><p class="cg-demo__method">Method: <span data-cg-profile>cg-recovery-conditions v1.9.0</span></p><p><strong>Completeness:</strong> <span data-cg-completeness>—</span> · <strong>Confidence:</strong> <span data-cg-confidence>—</span></p></div>
           <div class="cg-demo__panel"><h4>Pressure map</h4><ul data-cg-pressure-map><li>Generate a record to map pressure.</li></ul></div>
           <div class="cg-demo__panel"><h4>Constraint map</h4><ul data-cg-constraint-map><li>Generate a record to map constraints.</li></ul></div>
           <div class="cg-demo__panel"><h4>Support map</h4><ul data-cg-support-map><li>Generate a record to map supports.</li></ul></div>
@@ -173,7 +173,7 @@ function catalyst_grit_workspace_shortcode() {
     wp_enqueue_script('catalyst-grit-workspace', $base . 'assets/catalyst-grit-workspace.js', array(), CATALYST_GRIT_DEMO_VERSION, true);
     wp_localize_script('catalyst-grit-workspace', 'CatalystGritWorkspace', array(
         'ajaxUrl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('catalyst_grit_workspace_v180'),
+        'nonce' => wp_create_nonce('catalyst_grit_workspace_v190'),
         'version' => CATALYST_GRIT_DEMO_VERSION,
         'maxBytes' => 524288,
     ));
@@ -182,19 +182,21 @@ function catalyst_grit_workspace_shortcode() {
     <section class="cg-workspace" data-cg-workspace data-cg-visibility="private" aria-labelledby="cg-workspace-title">
       <header>
         <p class="cg-workspace__eyebrow">Catalyst Grit · Authenticated workspace v<?php echo esc_html(CATALYST_GRIT_DEMO_VERSION); ?></p>
-        <h3 id="cg-workspace-title">Private Evidence and Recovery Workspace</h3>
-        <p>Save private evidence, assumptions, product handoffs, project, team, facilitated-review, agreement, and recovery-record bundles to your own WordPress account. This workspace is not exposed by the public demo shortcode.</p>
+        <h3 id="cg-workspace-title">Private Recovery, Publication, and Governance Workspace</h3>
+        <p>Save private recovery records, evidence, assumptions, publication metadata, policies, access reviews, methodology entries, product handoffs, monitoring, and facilitated-review bundles to your own WordPress account. This workspace is not exposed by the public demo shortcode.</p>
       </header>
       <div class="cg-workspace__status" data-cg-workspace-status role="status" aria-live="polite">Workspace ready.</div>
       <label class="cg-workspace__field"><span>Workspace JSON</span>
         <textarea rows="18" data-cg-workspace-json spellcheck="false" aria-describedby="cg-workspace-help"></textarea>
       </label>
-      <p id="cg-workspace-help" class="cg-workspace__help">The stored object must use <code>catalyst-grit-workspace/1.0</code> and <code>visibility: private</code>. Use the Python workspace export for complete project, team-member, facilitated-session, consent, perspective, agreement, revision, action-event, blocker, checkpoint, reassessment, retrospective, pattern-review, system-change, evidence, assumption, product-handoff, monitoring-snapshot, monitoring-review, trend, review, and audit bundles.</p>
+      <p id="cg-workspace-help" class="cg-workspace__help">The stored object must use <code>catalyst-grit-workspace/1.0</code> and <code>visibility: private</code>. Use the Python workspace export for complete project, publication, policy, access-review, methodology, team-member, facilitated-session, consent, perspective, agreement, revision, action-event, blocker, checkpoint, reassessment, retrospective, pattern-review, system-change, evidence, assumption, product-handoff, monitoring-snapshot, monitoring-review, trend, review, and audit bundles.</p>
       <div class="cg-workspace__team" aria-label="Facilitated review boundaries">
         <article><h4>Explicit roles</h4><p>Owner, facilitator, contributor, reviewer, and observer access is recorded rather than inferred.</p></article>
         <article><h4>Consent-aware sharing</h4><p>Perspectives may be shared, facilitator-only, or private. Withdrawn contributions are excluded from normal views.</p></article>
         <article><h4>Traceable evidence</h4><p>Sources, files, observations, assumptions, conflicts, and cross-product handoffs preserve provenance and review history.</p></article>
         <article><h4>Governed monitoring</h4><p>Longitudinal snapshots preserve original engine versions, expose sparse-data states, and suppress team aggregates below the privacy threshold.</p></article>
+        <article><h4>Publication controls</h4><p>Publication artifacts record format, visibility, redaction policy, content hash, and append-only review or withdrawal history.</p></article>
+        <article><h4>Institutional integration</h4><p>Policies, access reviews, methodology versions, schema migration notes, and API audit metadata remain explicit and portable.</p></article>
       </div>
       <div class="cg-workspace__actions">
         <button type="button" data-cg-workspace-load>Load saved workspace</button>
@@ -212,17 +214,15 @@ function catalyst_grit_workspace_authorize() {
     if (!is_user_logged_in() || !current_user_can('read')) {
         wp_send_json_error(array('message' => 'Authentication and read access are required.'), 403);
     }
-    check_ajax_referer('catalyst_grit_workspace_v180', 'nonce');
+    check_ajax_referer('catalyst_grit_workspace_v190', 'nonce');
 }
 
 function catalyst_grit_workspace_load() {
     catalyst_grit_workspace_authorize();
-    $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v180', true);
-    if (!is_array($value)) {
-        $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v160', true);
-    }
-    if (!is_array($value)) {
-        $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v150', true);
+    $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v190', true);
+    foreach (array('_catalyst_grit_workspace_v180', '_catalyst_grit_workspace_v170', '_catalyst_grit_workspace_v160', '_catalyst_grit_workspace_v150') as $legacy_key) {
+        if (is_array($value)) { break; }
+        $value = get_user_meta(get_current_user_id(), $legacy_key, true);
     }
     if (!is_array($value)) {
         $value = array(
@@ -237,7 +237,14 @@ function catalyst_grit_workspace_load() {
             'handoffs' => array(),
             'monitoring_snapshots' => array(),
             'monitoring_reviews' => array(),
+            'institutional_policies' => array(),
+            'access_reviews' => array(),
+            'publication_artifacts' => array(),
+            'methodology_registry' => array(),
         );
+    }
+    foreach (array('institutional_policies', 'access_reviews', 'publication_artifacts', 'methodology_registry') as $collection) {
+        if (!isset($value[$collection]) || !is_array($value[$collection])) { $value[$collection] = array(); }
     }
     wp_send_json_success(array('workspace' => $value));
 }
@@ -259,7 +266,7 @@ function catalyst_grit_workspace_save() {
     if (isset($value['facilitated_sessions']) && !is_array($value['facilitated_sessions'])) {
         wp_send_json_error(array('message' => 'facilitated_sessions must be an array.'), 400);
     }
-    foreach (array('evidence_items', 'assumptions', 'handoffs', 'monitoring_snapshots', 'monitoring_reviews') as $collection) {
+    foreach (array('evidence_items', 'assumptions', 'handoffs', 'monitoring_snapshots', 'monitoring_reviews', 'institutional_policies', 'access_reviews', 'publication_artifacts', 'methodology_registry') as $collection) {
         if (isset($value[$collection]) && !is_array($value[$collection])) {
             wp_send_json_error(array('message' => $collection . ' must be an array.'), 400);
         }
@@ -270,13 +277,14 @@ function catalyst_grit_workspace_save() {
     $value['visibility'] = 'private';
     $value['product_version'] = CATALYST_GRIT_DEMO_VERSION;
     $value['saved_at'] = gmdate('c');
-    update_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v180', $value);
+    update_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v190', $value);
     wp_send_json_success(array('message' => 'Private workspace saved.', 'saved_at' => $value['saved_at']));
 }
 add_action('wp_ajax_catalyst_grit_workspace_save', 'catalyst_grit_workspace_save');
 
 function catalyst_grit_workspace_clear() {
     catalyst_grit_workspace_authorize();
+    delete_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v190');
     delete_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v180');
     delete_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v170');
     delete_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v160');
@@ -284,3 +292,40 @@ function catalyst_grit_workspace_clear() {
     wp_send_json_success(array('message' => 'Saved workspace deleted.'));
 }
 add_action('wp_ajax_catalyst_grit_workspace_clear', 'catalyst_grit_workspace_clear');
+
+
+function catalyst_grit_rest_private_permission() {
+    return is_user_logged_in() && current_user_can('read');
+}
+
+function catalyst_grit_rest_health() {
+    return rest_ensure_response(array(
+        'contract' => 'catalyst-grit-wordpress-integration/1.0',
+        'version' => CATALYST_GRIT_DEMO_VERSION,
+        'public_demo_persistence' => false,
+        'private_workspace' => 'authenticated-per-user',
+        'institutional_api' => 'provided by the Catalyst Grit Python service contract',
+    ));
+}
+
+function catalyst_grit_rest_workspace_get() {
+    $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v190', true);
+    if (!is_array($value)) {
+        $value = array('format' => 'catalyst-grit-workspace/1.0', 'product_version' => CATALYST_GRIT_DEMO_VERSION, 'visibility' => 'private');
+    }
+    return rest_ensure_response(array('workspace' => $value));
+}
+
+function catalyst_grit_register_rest_routes() {
+    register_rest_route('catalyst-grit/v1', '/health', array(
+        'methods' => WP_REST_Server::READABLE,
+        'callback' => 'catalyst_grit_rest_health',
+        'permission_callback' => '__return_true',
+    ));
+    register_rest_route('catalyst-grit/v1', '/workspace', array(
+        'methods' => WP_REST_Server::READABLE,
+        'callback' => 'catalyst_grit_rest_workspace_get',
+        'permission_callback' => 'catalyst_grit_rest_private_permission',
+    ));
+}
+add_action('rest_api_init', 'catalyst_grit_register_rest_routes');

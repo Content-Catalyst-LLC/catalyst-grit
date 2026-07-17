@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/publication/1.9.0",
+  "title": "Catalyst Grit Publication",
+  "x-catalyst-grit-version": "1.9.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "publication_id", "product", "product_version", "report_type", "project_id", "visibility", "redaction_policy", "governance", "report", "content_hash"],
+  "properties": {
+    "format": {"const": "catalyst-grit-publication/1.0"},
+    "publication_id": {"type": "string", "pattern": "^cgpub_[a-f0-9]+$"},
+    "product": {"const": "Catalyst Grit"},
+    "product_version": {"const": "1.9.0"},
+    "report_type": {"enum": ["recovery_brief", "facilitated_review_brief", "action_plan", "learning_loop_report", "adaptation_proposal", "monitoring_summary", "decision_studio_handoff"]},
+    "project_id": {"type": "string"},
+    "record_id": {"type": ["string", "null"]},
+    "visibility": {"enum": ["private", "internal", "public"]},
+    "redaction_policy": {"enum": ["none", "internal", "public"]},
+    "governance": {
+      "type": "object",
+      "required": ["human_review_required", "diagnosis_prohibited", "individual_ranking_prohibited", "automated_eligibility_prohibited"],
+      "properties": {
+        "human_review_required": {"type": "boolean"},
+        "diagnosis_prohibited": {"const": true},
+        "individual_ranking_prohibited": {"const": true},
+        "automated_eligibility_prohibited": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "report": {"type": "object"},
+    "content_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

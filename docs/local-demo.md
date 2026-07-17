@@ -37,4 +37,4 @@ Build the WordPress plugin and repository artifacts with:
 python3 scripts/build_release.py
 ```
 
-The plugin artifact is written to `dist/catalyst-grit-demo-v1.8.0.zip`.
+The plugin artifact is written to `dist/catalyst-grit-demo-v1.9.0.zip`.

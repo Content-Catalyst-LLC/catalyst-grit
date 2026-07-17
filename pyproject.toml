@@ -1,7 +1,7 @@
 [project]
 name = "catalyst-grit"
-version = "1.8.0"
-description = "Structured recovery records for setbacks, recovery conditions, actions, learning loops, and longitudinal monitoring"
+version = "1.9.0"
+description = "Governed recovery records, publication, institutional APIs, learning loops, and longitudinal monitoring"
 authors = [{name = "Tariq Ahmad", email = "tariq@thecontentcatalyst.net"}]
 readme = "README.md"
 requires-python = ">=3.9"
@@ -14,6 +14,7 @@ dev = [
   "build>=1,<2",
   "jsonschema>=4,<5",
   "pytest>=8,<9",
+  "PyYAML>=6,<7",
 ]
 
 [project.urls]

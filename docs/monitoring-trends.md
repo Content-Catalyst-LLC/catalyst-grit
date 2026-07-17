@@ -1,6 +1,6 @@
 # Monitoring, Trends, and Resilience Signals
 
-Catalyst Grit v1.8.0 stores immutable monitoring snapshots linked to the exact recovery-record revision, source hash, engine version, schema version, methodology profile, and JSON source paths.
+Catalyst Grit v1.9.0 stores immutable monitoring snapshots linked to the exact recovery-record revision, source hash, engine version, schema version, methodology profile, and JSON source paths.
 
 ## Dashboards
 

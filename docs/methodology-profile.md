@@ -1,8 +1,8 @@
-# Methodology Profile v1.8.0
+# Methodology Profile v1.9.0
 
-The default profile is stored at `methodology/recovery-profile-v1.8.0.json` and identified as `cg-recovery-conditions@1.8.0`.
+The default profile is stored at `methodology/recovery-profile-v1.9.0.json` and identified as `cg-recovery-conditions@1.9.0`.
 
-The weighted recovery-condition calculation remains unchanged for longitudinal compatibility. v1.8.0 adds a traceability layer in the private workspace; evidence strength, assumption confidence, and handoff validation do not alter the recovery score.
+The weighted recovery-condition calculation remains unchanged for longitudinal compatibility. v1.9.0 adds a traceability layer in the private workspace; evidence strength, assumption confidence, and handoff validation do not alter the recovery score.
 
 ## Evidence method
 

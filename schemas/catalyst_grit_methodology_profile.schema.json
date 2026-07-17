@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.8.0/methodology-profile.schema.json",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.9.0/methodology-profile.schema.json",
   "title": "Catalyst Grit Methodology Profile",
-  "x-catalyst-grit-version": "1.8.0",
+  "x-catalyst-grit-version": "1.9.0",
   "type": "object",
   "additionalProperties": false,
   "required": [

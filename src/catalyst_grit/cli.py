@@ -11,6 +11,8 @@ from typing import Any, Sequence
 
 from .core import DEFAULT_METHODOLOGY_PROFILE, GritValidationError, generate_record, migrate_v1_request, to_markdown, validate_request
 from .storage import SQLiteWorkspaceRepository, WorkspaceError
+from .publication import EXPORT_FORMATS, REPORT_TYPES, PublicationService
+from .api import InstitutionalAPI
 from .version import __version__
 
 
@@ -160,6 +162,28 @@ def build_parser() -> argparse.ArgumentParser:
     monitor_review = commands.add_parser("monitor-review", help="Record human review of a monitoring summary"); _db_argument(monitor_review); monitor_review.add_argument("project_id"); monitor_review.add_argument("summary_hash"); monitor_review.add_argument("--scope", required=True); monitor_review.add_argument("--status", required=True); monitor_review.add_argument("--record"); monitor_review.add_argument("--reviewer", default="self"); monitor_review.add_argument("--notes", default="")
     monitor_review_list = commands.add_parser("monitor-review-list", help="List append-only monitoring interpretation reviews"); _db_argument(monitor_review_list); monitor_review_list.add_argument("project_id"); monitor_review_list.add_argument("--scope"); monitor_review_list.add_argument("--record")
 
+    publication_generate = commands.add_parser("publication-generate", help="Generate a governed Catalyst Grit publication"); _db_argument(publication_generate); publication_generate.add_argument("project_id"); publication_generate.add_argument("report_type", choices=sorted(REPORT_TYPES)); publication_generate.add_argument("--record"); publication_generate.add_argument("--format", choices=sorted(EXPORT_FORMATS), default="json"); publication_generate.add_argument("--redaction", choices=("none","internal","public"), default="none"); publication_generate.add_argument("--visibility", choices=("private","internal","public")); publication_generate.add_argument("--actor", default="self"); publication_generate.add_argument("--output", type=Path)
+    publication_list = commands.add_parser("publication-list", help="List governed publication artifacts"); _db_argument(publication_list); publication_list.add_argument("project_id"); publication_list.add_argument("--report-type"); publication_list.add_argument("--visibility")
+    publication_show = commands.add_parser("publication-show", help="Show a publication and immutable event history"); _db_argument(publication_show); publication_show.add_argument("publication_id"); publication_show.add_argument("--without-content", action="store_true")
+    publication_event = commands.add_parser("publication-event", help="Append review, approval, publication, withdrawal, or export history"); _db_argument(publication_event); publication_event.add_argument("publication_id"); publication_event.add_argument("event_type", choices=("reviewed","approved","published","withdrawn","exported")); publication_event.add_argument("--notes", default=""); publication_event.add_argument("--actor", default="self")
+
+    policy_set = commands.add_parser("policy-set", help="Create a versioned institutional policy"); _db_argument(policy_set); policy_set.add_argument("policy_type", choices=("retention","export_redaction","access_review","methodology_governance","schema_deprecation")); policy_set.add_argument("config", type=Path); policy_set.add_argument("--project"); policy_set.add_argument("--status", choices=("draft","active","retired"), default="active"); policy_set.add_argument("--effective-at"); policy_set.add_argument("--expires-at"); policy_set.add_argument("--actor", default="self")
+    policy_list = commands.add_parser("policy-list", help="List versioned institutional policies"); _db_argument(policy_list); policy_list.add_argument("--project"); policy_list.add_argument("--type", dest="policy_type"); policy_list.add_argument("--status")
+    access_review = commands.add_parser("access-review", help="Record an append-only institutional access review"); _db_argument(access_review); access_review.add_argument("project_id"); access_review.add_argument("subject_type", choices=("member","api_client","publication","project")); access_review.add_argument("subject_id"); access_review.add_argument("decision", choices=("approved","changes_required","revoked","expired")); access_review.add_argument("--reviewer", default="self"); access_review.add_argument("--scope", action="append", default=[]); access_review.add_argument("--notes", default=""); access_review.add_argument("--next-review-at")
+    access_review_list = commands.add_parser("access-review-list", help="List append-only access reviews"); _db_argument(access_review_list); access_review_list.add_argument("project_id"); access_review_list.add_argument("--subject-type"); access_review_list.add_argument("--subject-id")
+
+    api_client_create = commands.add_parser("api-client-create", help="Create a scoped institutional API client and show its token once"); _db_argument(api_client_create); api_client_create.add_argument("--name", required=True); api_client_create.add_argument("--scope", action="append", required=True); api_client_create.add_argument("--project", action="append", default=[]); api_client_create.add_argument("--rate-limit", type=int, default=60); api_client_create.add_argument("--actor", default="self")
+    api_client_list = commands.add_parser("api-client-list", help="List institutional API clients without token hashes"); _db_argument(api_client_list); api_client_list.add_argument("--all", action="store_true")
+    api_client_revoke = commands.add_parser("api-client-revoke", help="Revoke an institutional API client"); _db_argument(api_client_revoke); api_client_revoke.add_argument("client_id"); api_client_revoke.add_argument("--reason", default=""); api_client_revoke.add_argument("--actor", default="self")
+    api_request = commands.add_parser("api-request", help="Exercise the production API contract locally"); _db_argument(api_request); api_request.add_argument("method"); api_request.add_argument("path"); api_request.add_argument("--token"); api_request.add_argument("--body", type=Path); api_request.add_argument("--actor", default="cli")
+    api_audit = commands.add_parser("api-audit", help="List append-only API request audit events"); _db_argument(api_audit); api_audit.add_argument("--client"); api_audit.add_argument("--project")
+
+    methodology_register = commands.add_parser("methodology-register", help="Register a governed methodology profile"); _db_argument(methodology_register); methodology_register.add_argument("profile", type=Path); methodology_register.add_argument("--name", default="cg-recovery-conditions"); methodology_register.add_argument("--version", required=True); methodology_register.add_argument("--status", choices=("draft","approved","deprecated"), default="draft"); methodology_register.add_argument("--approved-by"); methodology_register.add_argument("--effective-at"); methodology_register.add_argument("--notes", default="")
+    methodology_list = commands.add_parser("methodology-list", help="List governed methodology versions"); _db_argument(methodology_list)
+    schema_deprecate = commands.add_parser("schema-deprecate", help="Declare schema deprecation and migration guidance"); _db_argument(schema_deprecate); schema_deprecate.add_argument("schema_name"); schema_deprecate.add_argument("schema_version"); schema_deprecate.add_argument("--replacement"); schema_deprecate.add_argument("--status", choices=("announced","deprecated","retired"), default="announced"); schema_deprecate.add_argument("--sunset-at"); schema_deprecate.add_argument("--migration-notes", default=""); schema_deprecate.add_argument("--actor", default="self")
+    schema_check = commands.add_parser("schema-check", help="Check schema compatibility and deprecation state"); _db_argument(schema_check); schema_check.add_argument("schema_name"); schema_check.add_argument("schema_version")
+    diagnostics = commands.add_parser("institution-diagnostics", help="Show institutional health, governance, API, and publication diagnostics"); _db_argument(diagnostics)
+
     export = commands.add_parser("workspace-export", help="Export a record or project bundle"); _db_argument(export); group = export.add_mutually_exclusive_group(required=True); group.add_argument("--record"); group.add_argument("--project"); export.add_argument("--output", type=Path, required=True)
     import_cmd = commands.add_parser("workspace-import", help="Import v1.0/v1.1 records or workspace bundles"); _db_argument(import_cmd); import_cmd.add_argument("input", type=Path); import_cmd.add_argument("--project")
     return parser
@@ -253,6 +277,32 @@ def _workspace_command(args: argparse.Namespace) -> Any:
         if args.command == "monitor-annotate": return repo.annotate_monitoring_snapshot(args.snapshot_id, args.notes, signal_key=args.signal_key, actor_id=args.actor)
         if args.command == "monitor-review": return repo.review_monitoring_summary(args.project_id, args.summary_hash, scope=args.scope, status=args.status, reviewer_id=args.reviewer, notes=args.notes, record_id=args.record)
         if args.command == "monitor-review-list": return repo.list_monitoring_reviews(args.project_id, scope=args.scope, record_id=args.record)
+        if args.command == "publication-generate":
+            service = PublicationService(repo)
+            result = service.generate(args.report_type, project_id=args.project_id, record_id=args.record, export_format=args.format, redaction_policy=args.redaction, visibility=args.visibility, actor_id=args.actor)
+            if args.output:
+                service.write(result, args.output, bundle=(args.format == "bundle"))
+                return {"output": str(args.output), "publication_id": result.publication["publication_id"], "content_hash": result.publication["content_hash"], "mime_type": result.mime_type}
+            return {"publication": result.publication, "content": result.content, "mime_type": result.mime_type}
+        if args.command == "publication-list": return repo.list_publication_artifacts(args.project_id, report_type=args.report_type, visibility=args.visibility)
+        if args.command == "publication-show": return repo.get_publication_artifact(args.publication_id, include_content=not args.without_content)
+        if args.command == "publication-event": return repo.add_publication_event(args.publication_id, args.event_type, actor_id=args.actor, notes=args.notes)
+        if args.command == "policy-set": return repo.set_institutional_policy(args.policy_type, _read_json(args.config), project_id=args.project, status=args.status, effective_at=args.effective_at, expires_at=args.expires_at, actor_id=args.actor)
+        if args.command == "policy-list": return repo.list_institutional_policies(project_id=args.project, policy_type=args.policy_type, status=args.status)
+        if args.command == "access-review": return repo.record_access_review(args.project_id, args.subject_type, args.subject_id, args.decision, reviewer_id=args.reviewer, scopes=args.scope, notes=args.notes, next_review_at=args.next_review_at)
+        if args.command == "access-review-list": return repo.list_access_reviews(args.project_id, subject_type=args.subject_type, subject_id=args.subject_id)
+        if args.command == "api-client-create": return repo.create_api_client(args.name, scopes=args.scope, project_ids=args.project, rate_limit_per_minute=args.rate_limit, actor_id=args.actor)
+        if args.command == "api-client-list": return repo.list_api_clients(include_revoked=args.all)
+        if args.command == "api-client-revoke": return repo.revoke_api_client(args.client_id, actor_id=args.actor, reason=args.reason)
+        if args.command == "api-request":
+            response = InstitutionalAPI(repo).handle(args.method, args.path, token=args.token, body=_read_json(args.body) if args.body else None, actor_id=args.actor)
+            return {"status": response.status, "headers": response.headers, "body": response.body}
+        if args.command == "api-audit": return repo.list_api_audit_events(client_id=args.client, project_id=args.project)
+        if args.command == "methodology-register": return repo.register_methodology(args.name, args.version, _read_json(args.profile), status=args.status, approved_by=args.approved_by, effective_at=args.effective_at, notes=args.notes)
+        if args.command == "methodology-list": return repo.list_methodologies()
+        if args.command == "schema-deprecate": return repo.declare_schema_deprecation(args.schema_name, args.schema_version, replacement_version=args.replacement, status=args.status, sunset_at=args.sunset_at, migration_notes=args.migration_notes, actor_id=args.actor)
+        if args.command == "schema-check": return repo.schema_compatibility(args.schema_name, args.schema_version)
+        if args.command == "institution-diagnostics": return repo.institutional_diagnostics()
         if args.command == "workspace-export":
             payload = repo.export_record(args.record) if args.record else repo.export_project(args.project)
             repo.write_export(payload, args.output)

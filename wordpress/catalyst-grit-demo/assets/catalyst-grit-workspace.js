@@ -6,7 +6,7 @@
   function defaultWorkspace() {
     return {
       format: "catalyst-grit-workspace/1.0",
-      product_version: config.version || "1.8.0",
+      product_version: config.version || "1.9.0",
       visibility: "private",
       projects: [],
       team_members: [],
@@ -15,7 +15,11 @@
       assumptions: [],
       handoffs: [],
       monitoring_snapshots: [],
-      monitoring_reviews: []
+      monitoring_reviews: [],
+      institutional_policies: [],
+      access_reviews: [],
+      publication_artifacts: [],
+      methodology_registry: []
     };
   }
 

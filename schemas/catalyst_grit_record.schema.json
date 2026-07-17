@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.8.0/recovery-record.schema.json",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.9.0/recovery-record.schema.json",
   "title": "Catalyst Grit Recovery Record",
   "description": "Generated canonical recovery record with separated input, findings, human review, retrospective, and adaptation patterns.",
-  "x-catalyst-grit-version": "1.8.0",
+  "x-catalyst-grit-version": "1.9.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -33,10 +33,10 @@
           "pattern": "^cgr_[0-9a-f]{32}$"
         },
         "schema_version": {
-          "const": "1.8.0"
+          "const": "1.9.0"
         },
         "engine_version": {
-          "const": "1.8.0"
+          "const": "1.9.0"
         },
         "created_at": {
           "type": "string",
@@ -2331,10 +2331,10 @@
           ],
           "properties": {
             "schema_version": {
-              "const": "1.8.0"
+              "const": "1.9.0"
             },
             "engine_version": {
-              "const": "1.8.0"
+              "const": "1.9.0"
             },
             "profile_id": {
               "type": "string"

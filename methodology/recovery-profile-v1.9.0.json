@@ -10,7 +10,7 @@
     "support_capacity": 15.0
   },
   "profile_id": "cg-recovery-conditions",
-  "profile_version": "1.8.0",
+  "profile_version": "1.9.0",
   "thresholds": {
     "focused_support": 55.0,
     "fragile": 35.0,

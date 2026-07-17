@@ -1,35 +1,24 @@
 # Catalyst Grit
 
-**Current release: v1.8.0 — Monitoring, Trends, and Resilience Signals**
+**Current release: v1.9.0 — Publication, Export, API, and Institutional Integration**
 
-Catalyst Grit is a private, structured human-systems recovery and learning environment. It records setbacks, conditions, actions, evidence, assumptions, learning, team review, and longitudinal change without diagnosing or ranking people.
+Catalyst Grit is a private, structured human-systems recovery and learning environment. It documents setbacks, conditions, actions, evidence, assumptions, team review, learning, monitoring, and institutional handoffs without diagnosing, ranking, or predicting people.
 
-## v1.8.0 capabilities
+## v1.9.0 capabilities
 
-- Immutable, revision-linked monitoring snapshots
-- Recovery score and component history with original engine provenance
-- Pressure, support, clarity, energy, and capacity trends
-- Action, blocker, checkpoint, reopened-setback, and system-change outcomes
-- Personal/private, project, and privacy-thresholded team/system dashboards
-- Explicit sparse-data, confidence, completeness, and human-review states
-- No predictive claims, hidden scoring, employee ranking, or individual comparison
+- Seven governed publication types: recovery brief, facilitated-review brief, action plan, learning-loop report, adaptation proposal, monitoring summary, and Decision Studio handoff packet
+- Canonical JSON, JSON-LD, Markdown, HTML, approved tabular CSV, platform PDF-render requests, and deterministic publication bundles
+- Private, internal, and public redaction policies with deterministic masking and human-review requirements
+- Framework-neutral institutional API with bearer-token hashing, scopes, project allowlists, rate limits, and append-only request audits
+- Read routes for records, revisions, actions, checkpoints, reviews, evidence, patterns, monitoring, handoffs, and audit history
+- Versioned retention, export/redaction, access-review, methodology-governance, and schema-deprecation policies
+- Append-only access reviews and publication lifecycle events
+- Methodology registry, schema compatibility checks, and administrative diagnostics
+- Migration 008 with complete compatibility for v1.0.x through v1.8.0 workspaces
 
-# Catalyst Grit
+## Governance boundaries
 
-**Current release: v1.7.0 — Evidence, Assumptions, and Decision Handoffs**
-
-Catalyst Grit is a private-by-default human-systems recovery and learning engine. It documents setbacks, the conditions shaping recovery, owned actions, checkpoints, reassessments, retrospectives, and proposed system changes without scoring character, diagnosing health, or ranking people.
-
-## v1.7.0 capabilities
-
-- Traceable evidence notes, source links, file references, quotes, observations, datasets, calculations, analyses, experiment results, methods, and reference documents
-- Evidence strength, review state, content hashes, provenance chains, source products and versions, and append-only review events
-- Explicit assumptions with uncertainty, confidence, owners, review dates, source paths, and lifecycle events
-- Evidence links that support, challenge, contextualize, derive from, or conflict with records, assumptions, actions, checkpoints, agreements, system changes, and handoffs
-- Stable cross-product handoff artifacts for Catalyst Canvas, Catalyst Data, Workbench, Sustainable Catalyst Lab, Decision Studio, Knowledge Library, and Research Librarian
-- Read-only snapshot and live-reference modes with import validation, stale-reference handling, conflict detection, and append-only events
-- Provenance-preserving Decision Studio packets carrying recovery context, actions, tradeoffs, evidence, assumptions, and review state
-- All v1.0 through v1.6 recovery, planning, learning, persistence, team, facilitation, privacy, retention, audit, and export capabilities
+Catalyst Grit is not mental-health advice, diagnosis, character scoring, personality inference, employee ranking, hidden performance evaluation, automated eligibility, or an outcome guarantee. Public and internal publication artifacts require human review.
 
 ## Quick validation
 
@@ -37,37 +26,33 @@ Catalyst Grit is a private-by-default human-systems recovery and learning engine
 python3 scripts/release_contract.py
 ```
 
-## CLI
+## CLI examples
 
 ```bash
-grit generate examples/grit_record_input.json
 grit init --database catalyst-grit.sqlite3
 grit project-create --database catalyst-grit.sqlite3 --title "Recovery project"
 grit record-save --database catalyst-grit.sqlite3 PROJECT_ID examples/grit_record_input.json
-grit retrospective-list --database catalyst-grit.sqlite3 RECORD_ID
-grit pattern-list --database catalyst-grit.sqlite3 PROJECT_ID --include-singletons
-grit pattern-review --database catalyst-grit.sqlite3 PROJECT_ID PATTERN_KEY --decision accept
-grit system-change-add --database catalyst-grit.sqlite3 PROJECT_ID \
-  --title "Revise handoff" --proposed-change "Add an explicit decision owner" \
-  --source-record RECORD_ID
-grit system-change-update --database catalyst-grit.sqlite3 SYSTEM_CHANGE_ID \
-  --decision piloting --pilot-start 2026-07-20 --pilot-end 2026-08-03
-grit team-member-add --database catalyst-grit.sqlite3 PROJECT_ID \
-  --member-key facilitator-1 --display-name "Facilitator One" \
-  --role facilitator --status active --consent-status granted
-grit session-create --database catalyst-grit.sqlite3 PROJECT_ID \
-  --title "Recovery review" --facilitator facilitator-1
-grit perspective-add --database catalyst-grit.sqlite3 PROJECT_ID \
-  --session SESSION_ID --member-key facilitator-1 --type constraint \
-  --content "Approval ownership is unclear" --actor facilitator-1
-grit agreement-add --database catalyst-grit.sqlite3 SESSION_ID \
-  --title "Name the decision owner" --owner-key facilitator-1 --actor facilitator-1
-grit evidence-add --database catalyst-grit.sqlite3 PROJECT_ID \
-  --record RECORD_ID --type dataset --title "Cycle-time observations" \
-  --source-product "Catalyst Data" --source-version 1.12.0 --artifact-id dataset-42
-grit assumption-add --database catalyst-grit.sqlite3 PROJECT_ID \
-  --record RECORD_ID --statement "The reviewer is available this week" --confidence 40
-grit decision-handoff --database catalyst-grit.sqlite3 RECORD_ID --output decision-handoff.json
+
+grit publication-generate --database catalyst-grit.sqlite3 \
+  PROJECT_ID recovery_brief --record RECORD_ID \
+  --format markdown --redaction internal --output recovery-brief.md
+
+grit api-client-create --database catalyst-grit.sqlite3 \
+  --name "Institutional reader" --scope records:read --project PROJECT_ID
+
+grit policy-set --database catalyst-grit.sqlite3 \
+  export_redaction policy.json --project PROJECT_ID
+
+grit institution-diagnostics --database catalyst-grit.sqlite3
 ```
 
-Catalyst Grit is educational and analytical infrastructure. It is not diagnosis, mental-health advice, employee evaluation, automated eligibility, a personality assessment, or an outcome guarantee.
+## WordPress
+
+- `[catalyst_grit_demo]` — non-persistent public recovery-record demo
+- `[catalyst_grit_workspace]` — authenticated per-user private workspace with publication and governance guidance
+
+## Architecture
+
+The installable Python package contains the canonical engine, persistence, publication, and API service contracts. SQLite is the portable private-workspace implementation. The institutional API is framework-neutral so deployments can attach it to an approved web layer without duplicating domain authorization.
+
+See `docs/` for the record contract, persistence, monitoring, publication, API, governance, migration, and integration specifications.

@@ -138,7 +138,7 @@ def test_decision_studio_packet_contains_traceable_evidence_assumptions_and_acti
         repo.link_evidence(evidence["evidence_id"], "assumption", assumption["assumption_id"], relation="supports")
         packet = repo.build_decision_handoff(record_id)
         assert packet["contract"] == "sustainable-catalyst-decision-handoff/1.0"
-        assert packet["source"]["version"] == "1.8.0"
+        assert packet["source"]["version"] == "1.9.0"
         assert packet["evidence"][0]["evidence_id"] == evidence["evidence_id"]
         assert packet["assumptions"][0]["assumption_id"] == assumption["assumption_id"]
         assert packet["actions"]
@@ -168,6 +168,6 @@ def test_project_export_import_round_trip_includes_evidence_assumptions_and_hand
 def test_health_reports_v17_tables(tmp_path: Path):
     with SQLiteWorkspaceRepository(tmp_path / "health.sqlite3") as repo:
         health = repo.health()
-        assert health["migrations"]["current"] == 7
+        assert health["migrations"]["current"] == 8
         for table in ("evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events"):
             assert health["counts"][table] == 0

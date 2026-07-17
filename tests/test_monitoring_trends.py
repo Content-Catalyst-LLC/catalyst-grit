@@ -24,7 +24,7 @@ def test_snapshot_is_traceable_append_only_and_reproducible(tmp_path: Path):
         project = repo.create_project("Monitoring")
         saved = repo.save_record(project["project_id"], _request(example_request))
         snapshot = repo.capture_monitoring_snapshot(saved["record"]["record_id"], observed_at="2026-07-02T12:00:00Z")
-        assert snapshot["engine_version"] == "1.8.0"
+        assert snapshot["engine_version"] == "1.9.0"
         assert snapshot["source_trace"]["revision_id"] == saved["revision"]["revision_id"]
         assert snapshot["source_revision_hash"] == saved["revision"]["content_sha256"]
         assert snapshot["condition_metrics"]["pressure"] == 8
@@ -107,4 +107,4 @@ def test_project_export_import_restores_monitoring(tmp_path: Path):
         result = repo.import_payload(bundle, actor_id="owner")
         assert result["monitoring_snapshots_imported"] == 1
         assert result["monitoring_reviews_imported"] == 1
-        assert repo.health()["migrations"]["current"] == 7
+        assert repo.health()["migrations"]["current"] == 8

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build deterministic Catalyst Grit v1.8.0 release artifacts."""
+"""Build deterministic Catalyst Grit v1.9.0 release artifacts."""
 from __future__ import annotations
 
 import hashlib
@@ -72,7 +72,7 @@ def main() -> int:
     manifest = {
         "product": "Catalyst Grit",
         "version": VERSION,
-        "release": "Monitoring, Trends, and Resilience Signals",
+        "release": "Publication, Export, API, and Institutional Integration",
         "installer_revision": "CHECKSUM_SYNC_STATE_SAFE_V1",
         "generated_at": "2026-07-17T00:00:00+00:00",
         "artifacts": artifacts,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Portable, dependency-free Catalyst Grit v1.8.0 smoke test."""
+"""Portable, dependency-free Catalyst Grit v1.9.0 smoke test."""
 from __future__ import annotations
 
 import json
@@ -20,6 +20,8 @@ import catalyst_grit as catalyst_grit_package  # noqa: E402
 from catalyst_grit import (  # noqa: E402
     DEFAULT_METHODOLOGY_PROFILE,
     MigrationManager,
+    InstitutionalAPI,
+    PublicationService,
     SQLiteWorkspaceRepository,
     WORKSPACE_FORMAT,
     __version__,
@@ -41,28 +43,30 @@ def main() -> int:
         f"local package import mismatch: imported {imported_file}; expected under {expected_package}",
     )
     check(
-        version == __version__ == "1.8.0",
+        version == __version__ == "1.9.0",
         f"version identity mismatch: VERSION={version!r}, imported={__version__!r}, module={imported_file}",
     )
     manifest = json.loads((ROOT / "catalyst_grit_manifest.json").read_text())
     check(manifest["version"] == manifest["schema_version"] == manifest["engine_version"] == version, "manifest version mismatch")
-    check(json.loads((ROOT / "methodology/recovery-profile-v1.8.0.json").read_text()) == DEFAULT_METHODOLOGY_PROFILE, "methodology profile mismatch")
+    check(json.loads((ROOT / "methodology/recovery-profile-v1.9.0.json").read_text()) == DEFAULT_METHODOLOGY_PROFILE, "methodology profile mismatch")
     schema_names = [
         "catalyst_grit_record.schema.json",
         "catalyst_grit_request.schema.json",
         "catalyst_grit_methodology_profile.schema.json",
         "catalyst_grit_project.schema.json",
         "catalyst_grit_workspace_bundle.schema.json",
+        "catalyst_grit_publication.schema.json",
+        "catalyst_grit_api_response.schema.json",
     ]
     for name in schema_names:
         schema = json.loads((ROOT / "schemas" / name).read_text())
         check(schema["x-catalyst-grit-version"] == version, f"schema version mismatch: {name}")
-    check([item.version for item in MigrationManager.available()] == [1, 2, 3, 4, 5, 6, 7], "packaged migration discovery failed")
+    check([item.version for item in MigrationManager.available()] == [1, 2, 3, 4, 5, 6, 7, 8], "packaged migration discovery failed")
 
     plugin = (ROOT / "wordpress/catalyst-grit-demo/catalyst-grit-demo.php").read_text()
     check(bool(re.search(r"Version:\s*" + re.escape(version), plugin)), "plugin version mismatch")
     check("wp_ajax_nopriv_catalyst_grit_workspace" not in plugin, "private workspace exposes an anonymous AJAX action")
-    check("check_ajax_referer('catalyst_grit_workspace_v180', 'nonce')" in plugin, "workspace nonce guard missing")
+    check("check_ajax_referer('catalyst_grit_workspace_v190', 'nonce')" in plugin, "workspace nonce guard missing")
 
     request = json.loads((ROOT / "examples/grit_record_input.json").read_text())
     expected = json.loads((ROOT / "examples/grit_record_output.json").read_text())
@@ -96,7 +100,7 @@ def main() -> int:
             check(len(repo.action_history(actions[0]["action_id"])) >= 2, "append-only action history missing")
             blocker = repo.add_blocker(record_id, "Portable smoke dependency", action_id=actions[0]["action_id"], actor_id="portable-smoke")
             check(blocker["status"] == "open", "blocker persistence failed")
-            check(repo.health()["migrations"]["current"] == 7, "workspace migration level mismatch")
+            check(repo.health()["migrations"]["current"] == 8, "workspace migration level mismatch")
             retrospectives = repo.list_retrospectives(record_id)
             check(retrospectives and retrospectives[0]["content"]["uncertainties"], "persistent retrospective missing")
             project_patterns = repo.detect_project_patterns(project["project_id"], minimum_occurrences=1, include_singletons=True)
@@ -147,6 +151,22 @@ def main() -> int:
             check(trends["trends"]["pressure"]["direction"] == "improving", "pressure trend direction mismatch")
             owner_dashboard = repo.team_conditions_dashboard(project["project_id"], actor_id="self")
             check(owner_dashboard["privacy"]["suppressed"] is True, "team privacy threshold was not enforced")
+            policy = repo.set_institutional_policy("export_redaction", {"default": "internal", "human_review": True}, project_id=project["project_id"], actor_id="portable-smoke")
+            check(policy["version"] == 1 and policy["status"] == "active", "institutional policy creation failed")
+            access_review = repo.record_access_review(project["project_id"], "project", project["project_id"], "approved", reviewer_id="portable-smoke", scopes=["records:read"])
+            check(access_review["decision"] == "approved", "access review creation failed")
+            publication = PublicationService(repo).generate("recovery_brief", project_id=project["project_id"], record_id=record_id, export_format="json", redaction_policy="internal", actor_id="portable-smoke")
+            check(publication.publication["format"] == "catalyst-grit-publication/1.0", "publication contract missing")
+            check(repo.get_publication_artifact(publication.publication["publication_id"])["content_hash"] == publication.publication["content_hash"], "publication persistence failed")
+            api_client = repo.create_api_client("Portable smoke client", scopes=["records:read"], project_ids=[project["project_id"]], rate_limit_per_minute=10, actor_id="portable-smoke")
+            api_response = InstitutionalAPI(repo).handle("GET", f"/v1/records/{record_id}", token=api_client["token"], actor_id="portable-smoke")
+            check(api_response.status == 200, "institutional API request failed")
+            check(repo.list_api_audit_events(client_id=api_client["client_id"]), "API audit event missing")
+            methodology = repo.register_methodology("cg-recovery-conditions", "1.9.0", DEFAULT_METHODOLOGY_PROFILE, status="approved", approved_by="portable-smoke")
+            check(methodology["status"] == "approved", "methodology registration failed")
+            deprecation = repo.declare_schema_deprecation("catalyst_grit_record", "1.7.0", replacement_version="1.9.0", status="deprecated", migration_notes="Use canonical migration.", actor_id="portable-smoke")
+            check(deprecation["replacement_version"] == "1.9.0", "schema deprecation declaration failed")
+            check(repo.institutional_diagnostics()["database_integrity"] == "ok", "institutional diagnostics failed")
             project_export = repo.export_project(project["project_id"])
             check(project_export["pattern_reviews"] and project_export["system_changes"], "learning-history export missing")
             check(project_export["team_members"] and project_export["facilitated_sessions"], "facilitated-review export missing")
@@ -155,6 +175,8 @@ def main() -> int:
             check(project_export["handoffs"], "handoff export missing")
             check(project_export["monitoring_dashboard"]["aggregate"]["snapshot_count"] == 2, "monitoring dashboard export missing")
             check(project_export["records"][0]["monitoring_snapshots"], "monitoring snapshot export missing")
+            check(project_export["institutional_policies"] and project_export["access_reviews"], "institutional governance export missing")
+            check(project_export["publication_artifacts"], "publication export metadata missing")
             check(repo.health()["integrity"] == "ok", "SQLite integrity failed")
         with SQLiteWorkspaceRepository(database) as reopened:
             check(reopened.get_record(record_id, include_canonical=True)["canonical"]["normalized_input"]["pressure"]["level"] == 5.0, "revised record did not survive restart")
@@ -182,7 +204,7 @@ def main() -> int:
         elif path.suffix in {".db", ".sqlite", ".sqlite3"} and not allow_local_state:
             forbidden.append(str(rel))
     check(not forbidden, "forbidden repository artifacts: " + ", ".join(forbidden))
-    print("Catalyst Grit v1.8.0 portable release smoke tests passed.")
+    print("Catalyst Grit v1.9.0 portable release smoke tests passed.")
     return 0
 
 

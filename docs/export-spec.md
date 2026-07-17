@@ -1,8 +1,8 @@
 # Export Specification
 
-Catalyst Grit exports are JSON records intended to be reviewable, portable, and easy to archive.
+Catalyst Grit v1.0.1 exports are JSON records intended to be reviewable, portable, and easy to archive. The canonical schema is `schemas/catalyst_grit_record.schema.json`.
 
-## Required fields
+## Required input fields
 
 - `challenge`
 - `domain`
@@ -22,5 +22,8 @@ Catalyst Grit exports are JSON records intended to be reviewable, portable, and 
 - `risk_flags`
 - `next_actions`
 - `decision_note`
+- `method_path`
+- `schema_version`
+- `engine_version`
 
-Exports should be treated as structured reflection records, not diagnostic data.
+Generated records must preserve the exact normalized inputs alongside findings and release provenance. Exports are structured reflection records, not diagnostic data, employee ratings, or predictions of future performance.

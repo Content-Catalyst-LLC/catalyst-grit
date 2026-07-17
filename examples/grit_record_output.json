@@ -38,5 +38,7 @@
     "recovery pattern",
     "next action",
     "review"
-  ]
+  ],
+  "schema_version": "1.0.1",
+  "engine_version": "1.0.1"
 }

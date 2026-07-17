@@ -1,0 +1,246 @@
+[
+  {
+    "name": "baseline",
+    "input": {
+      "challenge": "A sustainability reporting project lost momentum after conflicting stakeholder feedback and a missed internal deadline.",
+      "domain": "project",
+      "impact_severity": 7,
+      "pressure_level": 8,
+      "energy_level": 5,
+      "support_level": 6,
+      "clarity_level": 4,
+      "recovery_actions": [
+        "Clarify the next decision owner",
+        "Break the work into a 48-hour recovery task",
+        "Document unresolved assumptions",
+        "Schedule a short review with stakeholders"
+      ],
+      "time_horizon_days": 14,
+      "review_status": "draft"
+    },
+    "expected": {
+      "challenge": "A sustainability reporting project lost momentum after conflicting stakeholder feedback and a missed internal deadline.",
+      "domain": "project",
+      "impact_severity": 7.0,
+      "pressure_level": 8.0,
+      "energy_level": 5.0,
+      "support_level": 6.0,
+      "clarity_level": 4.0,
+      "recovery_actions": [
+        "Clarify the next decision owner",
+        "Break the work into a 48-hour recovery task",
+        "Document unresolved assumptions",
+        "Schedule a short review with stakeholders"
+      ],
+      "time_horizon_days": 14,
+      "review_status": "draft",
+      "recovery_score": 52.3,
+      "resilience_state": "fragile recovery conditions",
+      "risk_flags": [
+        "High pressure: clarify what can pause, wait, or be delegated."
+      ],
+      "next_actions": [
+        "Clarify the next decision owner",
+        "Break the work into a 48-hour recovery task",
+        "Document unresolved assumptions",
+        "Schedule a short review with stakeholders",
+        "Write a one-sentence definition of what recovery means for this situation.",
+        "Reduce the work to one near-term checkpoint instead of a full reset."
+      ],
+      "decision_note": "Recovery conditions are assessed as fragile recovery conditions with a score of 52.3/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
+      "method_path": [
+        "setback",
+        "context",
+        "impact",
+        "pressure",
+        "support",
+        "response",
+        "recovery pattern",
+        "next action",
+        "review"
+      ],
+      "schema_version": "1.0.1",
+      "engine_version": "1.0.1"
+    }
+  },
+  {
+    "name": "stable",
+    "input": {
+      "challenge": "A delayed workstream now has a clear owner and restored capacity.",
+      "domain": "work",
+      "impact_severity": 2,
+      "pressure_level": 2,
+      "energy_level": 9,
+      "support_level": 9,
+      "clarity_level": 9,
+      "recovery_actions": [
+        "Complete the next checkpoint",
+        "Confirm dependencies",
+        "Review lessons",
+        "Publish update"
+      ],
+      "time_horizon_days": 21,
+      "review_status": "reviewed"
+    },
+    "expected": {
+      "challenge": "A delayed workstream now has a clear owner and restored capacity.",
+      "domain": "work",
+      "impact_severity": 2.0,
+      "pressure_level": 2.0,
+      "energy_level": 9.0,
+      "support_level": 9.0,
+      "clarity_level": 9.0,
+      "recovery_actions": [
+        "Complete the next checkpoint",
+        "Confirm dependencies",
+        "Review lessons",
+        "Publish update"
+      ],
+      "time_horizon_days": 21,
+      "review_status": "reviewed",
+      "recovery_score": 96.9,
+      "resilience_state": "stable recovery conditions",
+      "risk_flags": [],
+      "next_actions": [
+        "Complete the next checkpoint",
+        "Confirm dependencies",
+        "Review lessons",
+        "Publish update"
+      ],
+      "decision_note": "Recovery conditions are assessed as stable recovery conditions with a score of 96.9/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
+      "method_path": [
+        "setback",
+        "context",
+        "impact",
+        "pressure",
+        "support",
+        "response",
+        "recovery pattern",
+        "next action",
+        "review"
+      ],
+      "schema_version": "1.0.1",
+      "engine_version": "1.0.1"
+    }
+  },
+  {
+    "name": "high-friction",
+    "input": {
+      "challenge": "A critical handoff failed under severe time pressure.",
+      "domain": "project",
+      "impact_severity": 10,
+      "pressure_level": 10,
+      "energy_level": 1,
+      "support_level": 1,
+      "clarity_level": 1,
+      "recovery_actions": [],
+      "time_horizon_days": 2,
+      "review_status": "needs_review"
+    },
+    "expected": {
+      "challenge": "A critical handoff failed under severe time pressure.",
+      "domain": "project",
+      "impact_severity": 10,
+      "pressure_level": 10,
+      "energy_level": 1,
+      "support_level": 1,
+      "clarity_level": 1,
+      "recovery_actions": [
+        "Name the smallest recoverable next step",
+        "Review support and constraints",
+        "Schedule a short follow-up review"
+      ],
+      "time_horizon_days": 2,
+      "review_status": "needs_review",
+      "recovery_score": 14.4,
+      "resilience_state": "high-friction recovery conditions",
+      "risk_flags": [
+        "High impact severity: reduce scope and protect recovery time.",
+        "High pressure: clarify what can pause, wait, or be delegated.",
+        "Low energy: avoid overloading the next action plan.",
+        "Low support: identify one concrete support channel before expanding work.",
+        "Low clarity: define the decision, owner, and next checkpoint.",
+        "Very short horizon: choose a recovery action that can be completed quickly."
+      ],
+      "next_actions": [
+        "Name the smallest recoverable next step",
+        "Review support and constraints",
+        "Schedule a short follow-up review",
+        "Write a one-sentence definition of what recovery means for this situation.",
+        "Ask for one specific form of support or remove one friction point.",
+        "Reduce the work to one near-term checkpoint instead of a full reset."
+      ],
+      "decision_note": "Recovery conditions are assessed as high-friction recovery conditions with a score of 14.4/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
+      "method_path": [
+        "setback",
+        "context",
+        "impact",
+        "pressure",
+        "support",
+        "response",
+        "recovery pattern",
+        "next action",
+        "review"
+      ],
+      "schema_version": "1.0.1",
+      "engine_version": "1.0.1"
+    }
+  },
+  {
+    "name": "defaults-and-clamping",
+    "input": {
+      "challenge": "",
+      "domain": "other",
+      "impact_severity": 99,
+      "pressure_level": -10,
+      "energy_level": 11,
+      "support_level": 0,
+      "clarity_level": 5,
+      "recovery_actions": "Pause\nAsk for context\n",
+      "time_horizon_days": 0,
+      "review_status": "draft"
+    },
+    "expected": {
+      "challenge": "Unspecified challenge",
+      "domain": "other",
+      "impact_severity": 10,
+      "pressure_level": 1,
+      "energy_level": 10,
+      "support_level": 1,
+      "clarity_level": 5.0,
+      "recovery_actions": [
+        "Pause",
+        "Ask for context"
+      ],
+      "time_horizon_days": 1,
+      "review_status": "draft",
+      "recovery_score": 53.9,
+      "resilience_state": "fragile recovery conditions",
+      "risk_flags": [
+        "High impact severity: reduce scope and protect recovery time.",
+        "Low support: identify one concrete support channel before expanding work.",
+        "Very short horizon: choose a recovery action that can be completed quickly."
+      ],
+      "next_actions": [
+        "Pause",
+        "Ask for context",
+        "Write a one-sentence definition of what recovery means for this situation.",
+        "Ask for one specific form of support or remove one friction point."
+      ],
+      "decision_note": "Recovery conditions are assessed as fragile recovery conditions with a score of 53.9/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
+      "method_path": [
+        "setback",
+        "context",
+        "impact",
+        "pressure",
+        "support",
+        "response",
+        "recovery pattern",
+        "next action",
+        "review"
+      ],
+      "schema_version": "1.0.1",
+      "engine_version": "1.0.1"
+    }
+  }
+]

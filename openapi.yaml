@@ -1,57 +1,83 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: Catalyst Grit API
-  version: 0.1.0
+  title: Catalyst Grit Recovery Record API
+  version: 1.0.1
+  description: >-
+    Contract for generating structured Catalyst Grit recovery records. The
+    repository does not ship a production web server in v1.0.1; this document
+    defines the canonical API surface for integrations.
 paths:
-  /api/grit/events:
-    get:
-      summary: List recent events
-      parameters:
-        - in: query
-          name: limit
-          schema: { type: integer, default: 50 }
-      responses: { '200': { description: OK } }
+  /api/grit/records/generate:
     post:
-      summary: Add event
+      summary: Generate a recovery record
+      operationId: generateGritRecoveryRecord
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [kind]
-              properties:
-                kind: { type: string, enum: [setback, recovery] }
-                note: { type: string }
-      responses: { '201': { description: Created } }
-  /api/grit/stats:
-    get:
-      summary: Perseverance & Resilience counts
-      responses: { '200': { description: OK } }
-  /api/grit/metrics/json:
-    post:
-      summary: Compute metrics from JSON arrays of blocks & topics
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                blocks:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      minutes: { type: number }
-                      deliberate: { type: boolean }
-                      note: { type: string }
-                topics:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      topic: { type: string }
-                      minutes: { type: number }
-      responses: { '200': { description: OK } }
-components: {}
+              $ref: '#/components/schemas/RecoveryRecordInput'
+      responses:
+        '200':
+          description: Generated recovery record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryRecordOutput'
+        '400':
+          description: Invalid recovery-record input
+components:
+  schemas:
+    RecoveryRecordInput:
+      type: object
+      required:
+        - challenge
+        - domain
+        - impact_severity
+        - pressure_level
+        - energy_level
+        - support_level
+        - clarity_level
+        - recovery_actions
+        - time_horizon_days
+        - review_status
+      properties:
+        challenge: {type: string, minLength: 1}
+        domain:
+          type: string
+          enum: [work, learning, health_wellbeing, relationship, project, career, other]
+        impact_severity: {type: number, minimum: 1, maximum: 10}
+        pressure_level: {type: number, minimum: 1, maximum: 10}
+        energy_level: {type: number, minimum: 1, maximum: 10}
+        support_level: {type: number, minimum: 1, maximum: 10}
+        clarity_level: {type: number, minimum: 1, maximum: 10}
+        recovery_actions:
+          type: array
+          minItems: 1
+          items: {type: string, minLength: 1}
+        time_horizon_days: {type: integer, minimum: 1}
+        review_status:
+          type: string
+          enum: [draft, needs_review, reviewed]
+    RecoveryRecordOutput:
+      allOf:
+        - $ref: '#/components/schemas/RecoveryRecordInput'
+        - type: object
+          required:
+            - recovery_score
+            - resilience_state
+            - risk_flags
+            - next_actions
+            - decision_note
+            - method_path
+            - schema_version
+            - engine_version
+          properties:
+            recovery_score: {type: number, minimum: 0, maximum: 100}
+            resilience_state: {type: string}
+            risk_flags: {type: array, items: {type: string}}
+            next_actions: {type: array, items: {type: string}}
+            decision_note: {type: string}
+            method_path: {type: array, items: {type: string}}
+            schema_version: {type: string, enum: ['1.0.1']}
+            engine_version: {type: string, enum: ['1.0.1']}

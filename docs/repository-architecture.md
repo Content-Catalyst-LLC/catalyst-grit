@@ -1,14 +1,29 @@
-# Repository Architecture
+# Repository architecture
 
-Catalyst Grit is organized as a small reproducible module.
+Catalyst Grit v1.0.1 uses the recovery-record engine as its only production domain model.
 
 ```text
-python/catalyst_grit_core.py       Core engine and CLI
-schemas/catalyst_grit_record.schema.json Export schema
-examples/                          Example input and output
-wordpress/catalyst-grit-demo/      Shortcode plugin
-docs/                              Methodology and implementation notes
-tests/                             Lightweight validation
+WordPress browser demo
+        ↓ parity fixtures
+Canonical recovery-record contract
+        ↓
+Python package engine and CLI
+        ↓
+JSON / Markdown exports and future API integrations
 ```
 
-The browser demo and Python engine use the same conceptual fields: challenge, domain, impact severity, pressure, energy, clarity, support, recovery actions, time horizon, and review status.
+## Canonical layers
+
+- `VERSION` is the release identity source.
+- `src/catalyst_grit/core.py` owns normalization, scoring, states, flags, next actions, and output generation.
+- `schemas/catalyst_grit_record.schema.json` defines portable records.
+- `tests/fixtures/parity_cases.json` verifies Python and JavaScript produce identical outputs.
+- `scripts/release_contract.py` guards repository and release integrity.
+
+## Browser boundary
+
+The WordPress demo remains client-side and non-persistent. Its calculation module is independently executable under Node so release validation can compare it with the Python engine.
+
+## Legacy boundary
+
+The old Flask event-count and trait-metrics prototype is under `legacy/flask-tracker`. It is not installed, imported by production code, included in the WordPress artifact, or represented by the current OpenAPI contract.

@@ -1,3 +1,0 @@
-Flask<4,>=3
-click>=8
-Flask-Cors>=4

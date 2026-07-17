@@ -1,10 +1,37 @@
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-dist/
-outputs/*.json
-outputs/*.md
+.coverage
+htmlcov/
+.venv/
+venv/
+build/
+*.egg-info/
+
+# Runtime state
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+instance/
 .env
+.env.*
+!.env.example
+
+# Generated output and release artifacts
+outputs/*
+!outputs/.gitkeep
+dist/
+release-artifacts/
+*.zip
+*.tar.gz
+SHA256SUMS
+
+# Editors and operating systems
 .DS_Store
+.idea/
+.vscode/
+*.swp

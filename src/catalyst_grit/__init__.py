@@ -1,12 +1,40 @@
-# src/catalyst_grit/__init__.py
-from .metrics import (
-    Block, TopicShare,
-    load_blocks_csv, load_topics_csv,
-    deliberate_practice_ratio, consistency_of_interests
+"""Public Catalyst Grit package API."""
+from .core import (
+    ALLOWED_DOMAINS,
+    ALLOWED_REVIEW_STATUSES,
+    DEFAULT_ACTIONS,
+    METHOD_PATH,
+    GritInput,
+    GritOutput,
+    GritValidationError,
+    build_flags,
+    build_next_actions,
+    calculate_recovery_score,
+    clean_actions,
+    generate_record,
+    normalize_input,
+    state_from_score,
+    to_markdown,
 )
+from .version import ENGINE_VERSION, SCHEMA_VERSION, __version__
 
 __all__ = [
-    "Block", "TopicShare",
-    "load_blocks_csv", "load_topics_csv",
-    "deliberate_practice_ratio", "consistency_of_interests",
+    "ALLOWED_DOMAINS",
+    "ALLOWED_REVIEW_STATUSES",
+    "DEFAULT_ACTIONS",
+    "ENGINE_VERSION",
+    "METHOD_PATH",
+    "SCHEMA_VERSION",
+    "GritInput",
+    "GritOutput",
+    "GritValidationError",
+    "build_flags",
+    "build_next_actions",
+    "calculate_recovery_score",
+    "clean_actions",
+    "generate_record",
+    "normalize_input",
+    "state_from_score",
+    "to_markdown",
+    "__version__",
 ]

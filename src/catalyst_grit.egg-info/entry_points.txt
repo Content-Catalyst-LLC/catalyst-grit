@@ -1,2 +1,0 @@
-[console_scripts]
-grit = catalyst_grit.cli:cli

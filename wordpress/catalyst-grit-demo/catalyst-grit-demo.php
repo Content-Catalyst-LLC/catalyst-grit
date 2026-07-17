@@ -2,26 +2,28 @@
 /**
  * Plugin Name: Catalyst Grit Demo
  * Description: Browser-based Sustainable Catalyst demo for creating a Catalyst Grit recovery record. Provides shortcode [catalyst_grit_demo].
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Content Catalyst LLC
  * License: MIT
  */
 
 if (!defined('ABSPATH')) { exit; }
 
+define('CATALYST_GRIT_DEMO_VERSION', '1.0.1');
+
 function catalyst_grit_demo_assets() {
     $base = plugin_dir_url(__FILE__);
-    wp_enqueue_style('catalyst-grit-demo', $base . 'assets/catalyst-grit-demo.css', array(), '1.0.0');
-    wp_enqueue_script('catalyst-grit-demo', $base . 'assets/catalyst-grit-demo.js', array(), '1.0.0', true);
+    wp_enqueue_style('catalyst-grit-demo', $base . 'assets/catalyst-grit-demo.css', array(), CATALYST_GRIT_DEMO_VERSION);
+    wp_enqueue_script('catalyst-grit-demo', $base . 'assets/catalyst-grit-demo.js', array(), CATALYST_GRIT_DEMO_VERSION, true);
 }
 add_action('wp_enqueue_scripts', 'catalyst_grit_demo_assets');
 
 function catalyst_grit_demo_shortcode() {
     ob_start();
     ?>
-    <section class="cg-demo" aria-labelledby="cg-demo-title">
+    <section class="cg-demo" aria-labelledby="cg-demo-title" data-cg-version="<?php echo esc_attr(CATALYST_GRIT_DEMO_VERSION); ?>">
       <div class="cg-demo__header">
-        <p class="cg-demo__eyebrow">Catalyst Grit Demo</p>
+        <p class="cg-demo__eyebrow">Catalyst Grit Demo · v<?php echo esc_html(CATALYST_GRIT_DEMO_VERSION); ?></p>
         <h3 id="cg-demo-title">Build a Recovery Record</h3>
         <p>Describe a setback, name the recovery conditions, and generate a reviewable record with a score, flags, next actions, decision note, and JSON export. This educational demo runs in the browser.</p>
       </div>
@@ -55,7 +57,7 @@ Schedule a short review</textarea></label>
           <details class="cg-demo__json"><summary>JSON export</summary><pre data-cg-json>{}</pre></details>
         </div>
       </div>
-      <p class="cg-demo__disclaimer">Educational demo only. Not mental-health advice, diagnosis, HR evaluation, professional coaching, or a guarantee of outcomes. Inputs stay in the browser unless you choose to export them.</p>
+      <p class="cg-demo__disclaimer">Educational demo only. Not mental-health advice, diagnosis, HR evaluation, employee ranking, professional coaching, or a guarantee of outcomes. Inputs stay in the browser unless you choose to export them.</p>
     </section>
     <?php
     return ob_get_clean();

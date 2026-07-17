@@ -1,6 +1,10 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
+  "version": "1.0.1",
+  "schema_version": "1.0.1",
+  "engine_version": "1.0.1",
+  "canonical_product_model": "recovery-record",
   "shortcode": "[catalyst_grit_demo]",
   "repository": "git@github.com:Content-Catalyst-LLC/catalyst-grit.git",
   "method_path": [
@@ -18,7 +22,8 @@
     "not mental-health advice",
     "not diagnosis",
     "not performance rating",
-    "not outcome guarantee"
+    "not outcome guarantee",
+    "not employee ranking"
   ],
   "outputs": [
     "recovery score",
@@ -27,5 +32,7 @@
     "next actions",
     "decision note",
     "JSON export"
-  ]
+  ],
+  "legacy_location": "legacy/flask-tracker",
+  "release_contract": "scripts/release_contract.py"
 }

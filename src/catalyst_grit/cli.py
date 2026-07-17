@@ -1,78 +1,68 @@
-# src/catalyst_grit/cli.py
-import os, json, sqlite3, click
-from .db import DB_PATH, init_db
-from .metrics import (
-    load_blocks_csv, load_topics_csv,
-    deliberate_practice_ratio, consistency_of_interests
-)
+"""Command-line interface for the canonical recovery-record engine."""
+from __future__ import annotations
 
-def _connect():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    init_db()
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    return con
+import argparse
+import json
+from pathlib import Path
+from typing import Sequence
 
-@click.group(help="Catalyst Grit CLI — events + metrics")
-def cli():
-    pass
+from .core import GritValidationError, generate_record, to_markdown
+from .version import __version__
 
-@cli.command("add")
-@click.option("--kind", type=click.Choice(["setback","recovery"]), required=True)
-@click.option("--note", default="")
-def add_event(kind, note):
-    note = (note or "").strip()[:500]
-    con = _connect()
-    with con:
-        con.execute("INSERT INTO events (kind, note) VALUES (?, ?)", (kind, note))
-    click.echo(f"✔ added {kind}: {note or '…'}")
 
-@cli.command("list")
-@click.option("--limit", default=25, show_default=True)
-def list_events(limit):
-    con = _connect()
-    rows = con.execute(
-        "SELECT id, kind, note, created_at FROM events ORDER BY created_at DESC LIMIT ?",
-        (limit,)).fetchall()
-    if not rows:
-        click.echo("No events yet."); return
-    for r in rows:
-        click.echo(f"[{r['id']:>3}] {r['kind']:8} {r['created_at']}  {r['note'] or '…'}")
+def _read_json(path: Path) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise GritValidationError(f"input file not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise GritValidationError(f"invalid JSON: {exc.msg}") from exc
+    if not isinstance(value, dict):
+        raise GritValidationError("input JSON must contain an object")
+    return value
 
-@cli.command("stats")
-def stats():
-    con = _connect()
-    rows = con.execute("SELECT kind, COUNT(*) c FROM events GROUP BY kind").fetchall()
-    counts = {"setback":0, "recovery":0}
-    for r in rows:
-        counts[r["kind"]] = r["c"]
-    click.echo(json.dumps({
-        "perseverance": counts["setback"],
-        "resilience": counts["recovery"],
-    }, indent=2))
 
-@cli.command("dp-ratio")
-@click.argument("blocks_csv")
-def dp_ratio(blocks_csv):
-    blocks = load_blocks_csv(blocks_csv)
-    click.echo(f"{deliberate_practice_ratio(blocks):.4f}")
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="grit", description="Generate and validate Catalyst Grit recovery records."
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-@cli.command("consistency")
-@click.argument("topics_csv")
-def consistency(topics_csv):
-    topics = load_topics_csv(topics_csv)
-    click.echo(f"{consistency_of_interests(topics):.4f}")
+    generate = subparsers.add_parser("generate", help="Generate a recovery record")
+    generate.add_argument("input", type=Path, help="Input JSON path")
+    generate.add_argument("--format", choices=("json", "markdown"), default="json")
+    generate.add_argument("--output", type=Path)
 
-@cli.command("demo")
-def demo():
-    b = os.path.join(os.path.dirname(__file__), "..", "sample_data", "sample_blocks.csv")
-    t = os.path.join(os.path.dirname(__file__), "..", "sample_data", "sample_topics.csv")
-    b = os.path.normpath(b); t = os.path.normpath(t)
-    if not (os.path.exists(b) and os.path.exists(t)):
-        click.echo("Missing sample CSVs"); return
-    from .metrics import deliberate_practice_ratio, consistency_of_interests, load_blocks_csv, load_topics_csv
-    blocks = load_blocks_csv(b); topics = load_topics_csv(t)
-    click.echo(json.dumps({
-        "deliberate_practice_ratio": round(deliberate_practice_ratio(blocks),4),
-        "consistency_of_interests": round(consistency_of_interests(topics),4),
-    }, indent=2))
+    validate = subparsers.add_parser("validate", help="Normalize and validate an input")
+    validate.add_argument("input", type=Path, help="Input JSON path")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        data = _read_json(args.input)
+        record = generate_record(data)
+        if args.command == "validate":
+            print("Catalyst Grit input is valid.")
+            return 0
+        rendered = (
+            json.dumps(record.to_dict(), indent=2)
+            if args.format == "json"
+            else to_markdown(record)
+        )
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(rendered.rstrip() + "\n", encoding="utf-8")
+        else:
+            print(rendered)
+        return 0
+    except GritValidationError as exc:
+        parser.error(str(exc))
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -31,3 +31,8 @@ Recovery conditions are assessed as fragile recovery conditions with a score of 
 ## Method path
 
 setback → context → impact → pressure → support → response → recovery pattern → next action → review
+
+## Release provenance
+
+- **Schema version:** 1.0.1
+- **Engine version:** 1.0.1

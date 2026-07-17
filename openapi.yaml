@@ -1,14 +1,16 @@
 openapi: 3.1.0
 info:
   title: Catalyst Grit Recovery Record API
-  version: 1.6.0
+  version: 1.7.0
   summary: Canonical recovery-record validation and generation contract
   description: >-
-    Catalyst Grit v1.6.0 validates, migrates, and generates recovery records
+    Catalyst Grit v1.7.0 validates, migrates, and generates recovery records
     containing condition maps, executable recovery plans, structured retrospectives,
     source-linked adaptation-pattern candidates, uncertainty, and human review.
     The private workspace contract also supports explicit team roles, consent-aware
     facilitated reviews, scoped perspectives, and shared agreements with immutable history.
+    Private workspace services add evidence ledgers, explicit assumption registers, and
+    cross-product artifact handoffs with stable IDs, provenance, hashes, and stale/conflict states.
     Pattern candidates are descriptive and reviewable. They must not be used for
     diagnosis, character scoring, personality inference, employee ranking,
     automated eligibility, or performance evaluation. Persistent project pattern
@@ -68,7 +70,7 @@ paths:
               $ref: '#/components/schemas/LegacyRecoveryRequest'
       responses:
         '200':
-          description: Migrated v1.6.0 request with visible compatibility defaults
+          description: Migrated v1.7.0 request with visible compatibility defaults
           content:
             application/json:
               schema:
@@ -86,6 +88,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MethodologyProfile'
+  /api/grit/v1/handoffs/decision-packet:
+    post:
+      summary: Validate a Catalyst Grit to Decision Studio handoff packet
+      operationId: validateGritDecisionHandoff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionHandoff'
+      responses:
+        '200':
+          description: Provenance-preserving Decision Studio context packet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionHandoff'
+        '400':
+          $ref: '#/components/responses/ValidationFailure'
 components:
   responses:
     ValidationFailure:
@@ -101,6 +122,25 @@ components:
       $ref: './schemas/catalyst_grit_record.schema.json'
     MethodologyProfile:
       $ref: './schemas/catalyst_grit_methodology_profile.schema.json'
+    EvidenceItem:
+      type: object
+      required: [evidence_id, evidence_type, title, content_hash, strength, review_state]
+      additionalProperties: true
+    Assumption:
+      type: object
+      required: [assumption_id, statement, status, confidence]
+      additionalProperties: true
+    HandoffArtifact:
+      type: object
+      required: [handoff_id, source_product, source_version, target_product, artifact_type, artifact_id, reference_mode, content_hash, validation_state]
+      additionalProperties: true
+    DecisionHandoff:
+      type: object
+      required: [contract, source, target, provenance, recovery_context, actions, evidence, assumptions, content_hash]
+      properties:
+        contract:
+          const: sustainable-catalyst-decision-handoff/1.0
+      additionalProperties: true
     ValidationError:
       type: object
       additionalProperties: false

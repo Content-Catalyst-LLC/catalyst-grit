@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0 — Evidence, Assumptions, and Decision Handoffs
+
+- Added traceable evidence items, review events, source links, files, quotes, observations, datasets, analyses, methods, and reference documents.
+- Added explicit assumption lifecycle records with uncertainty, confidence, owners, review dates, and append-only events.
+- Added cross-product handoff artifacts with stable IDs, product versions, provenance chains, content hashes, snapshot/live modes, and stale/conflict validation.
+- Added a Decision Studio handoff packet preserving actions, tradeoffs, evidence, assumptions, review state, and guardrails.
+- Added migration 006, CLI workflows, workspace export/import, WordPress private-workspace support, and release validation.
+
 ## 1.6.0 — Team Recovery and Facilitated Review
 
 - Added migration 005 with team memberships, facilitated sessions, session participants, append-only perspectives, shared agreements, and append-only agreement events.

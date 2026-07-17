@@ -1,1 +1,1 @@
-# Catalyst Grit v1.6.0 has no runtime dependencies.
+# Catalyst Grit v1.7.0 has no runtime dependencies.

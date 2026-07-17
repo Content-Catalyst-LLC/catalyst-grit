@@ -1,12 +1,7 @@
-# WordPress private workspace
+# WordPress Private Workspace
 
-Catalyst Grit provides two intentionally separate WordPress surfaces.
+`[catalyst_grit_workspace]` is an authenticated, per-user, private bundle editor. It is separate from the non-persistent public `[catalyst_grit_demo]` surface.
 
-- `[catalyst_grit_demo]` is public, browser-only, and non-persistent.
-- `[catalyst_grit_workspace]` requires an authenticated user with read access.
+The v1.7 template supports projects, team members, facilitated sessions, evidence items, assumptions, and handoffs. Saves require an authenticated account with `read` capability and a v1.7 nonce. Workspace visibility must remain `private`; listed collections must be arrays; anonymous AJAX actions are not registered.
 
-The private shortcode loads separate assets, signs every AJAX request with the v1.5 nonce, stores data only in the current user's metadata, limits payloads to 512 KB, and enforces `visibility: private`. No `wp_ajax_nopriv_*` handlers are registered.
-
-The browser demo now captures retrospective fields and renders the generated learning loop, evidence-linked pattern candidates, review status, and system-change guidance. It does not save submissions or aggregate patterns across visitors.
-
-The WordPress workspace is a compact account-level companion. Complete institutional persistence remains in the Python repository, where revisions, actions, checkpoints, retrospectives, pattern reviews, system changes, retention, and audit events are first-class entities.
+The loader reads the v1.7 user-meta key and falls back to v1.6 and v1.5 data. Clearing the workspace removes all three keys. The complete SQLite service remains the authoritative interface for revisions, append-only events, evidence links, handoff validation, and Decision Studio packets.

@@ -3,7 +3,7 @@
   "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit-workspace-v1.0.json",
   "title": "Catalyst Grit Workspace Bundle",
   "type": "object",
-  "x-catalyst-grit-version": "1.6.0",
+  "x-catalyst-grit-version": "1.7.0",
   "required": [
     "format",
     "product_version",
@@ -136,6 +136,38 @@
       "type": "object",
       "additionalProperties": true,
       "description": "Aggregate work-condition summary that must not contain individual scores or rankings."
+    },
+    "evidence_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "description": "Traceable evidence with provenance, strength, review state, events, and links."
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "description": "Explicit uncertainty-aware assumptions with lifecycle events and evidence links."
+    },
+    "handoffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "description": "Cross-product artifacts with source versions, hashes, provenance, validation state, and events."
+    },
+    "evidence_ledger": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "assumption_matrix": {
+      "type": "object",
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

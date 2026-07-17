@@ -1398,6 +1398,272 @@ class SQLiteWorkspaceRepository:
             "interpretation_limit": "Team summaries describe shared work conditions and agreements. They do not score, rank, diagnose, or compare individual participants.",
         }
 
+    @staticmethod
+    def _decode_evidence(row: Mapping[str, Any]) -> dict[str, Any]:
+        item = dict(row)
+        item["provenance"] = json.loads(item.pop("provenance_json"))
+        return item
+
+    def add_evidence(
+        self,
+        project_id: str,
+        title: str,
+        *,
+        evidence_type: str = "note",
+        content: str = "",
+        record_id: str | None = None,
+        revision_id: str | None = None,
+        source_uri: str = "",
+        source_artifact_id: str = "",
+        source_product: str = "",
+        source_version: str = "",
+        provenance: Sequence[Mapping[str, Any] | str] | None = None,
+        strength: str = "unknown",
+        review_state: str = "unreviewed",
+        observed_at: str | None = None,
+        actor_id: str = "self",
+        evidence_id: str | None = None,
+    ) -> dict[str, Any]:
+        self._require_project(project_id)
+        allowed_types = {"note", "source_link", "file_reference", "quote", "observation", "dataset", "calculation", "analysis", "experiment_result", "method", "reference_document"}
+        if evidence_type not in allowed_types:
+            raise WorkspaceError("unsupported evidence type")
+        if strength not in {"unknown", "weak", "moderate", "strong"}:
+            raise WorkspaceError("unsupported evidence strength")
+        if review_state not in {"unreviewed", "accepted", "questioned", "rejected"}:
+            raise WorkspaceError("unsupported evidence review state")
+        if not title.strip():
+            raise WorkspaceError("evidence title is required")
+        if evidence_type in {"source_link", "file_reference", "dataset", "reference_document"} and not (source_uri.strip() or source_artifact_id.strip()):
+            raise WorkspaceError("a source URI or artifact ID is required for referenced evidence")
+        if record_id:
+            record = self._require_record(record_id)
+            if record["project_id"] != project_id:
+                raise WorkspaceError("evidence record belongs to another project")
+        if revision_id:
+            revision = self.get_revision(revision_id)
+            if record_id and revision["record_id"] != record_id:
+                raise WorkspaceError("evidence revision does not belong to the selected record")
+        evidence_id = evidence_id or _id("cge")
+        now = _utc_now()
+        immutable = {
+            "title": title.strip(), "content": content.strip(), "source_uri": source_uri.strip(),
+            "source_artifact_id": source_artifact_id.strip(), "source_product": source_product.strip(),
+            "source_version": source_version.strip(), "provenance": list(provenance or []),
+        }
+        content_hash = _sha(immutable)
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO evidence_items(evidence_id,project_id,record_id,revision_id,evidence_type,title,content,source_uri,source_artifact_id,source_product,source_version,provenance_json,strength,review_state,observed_at,added_by,content_hash,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (evidence_id, project_id, record_id, revision_id, evidence_type, title.strip(), content.strip(), source_uri.strip(), source_artifact_id.strip(), source_product.strip(), source_version.strip(), _json(list(provenance or [])), strength, review_state, observed_at, actor_id, content_hash, now, now),
+            )
+            self.connection.execute(
+                "INSERT INTO evidence_events(event_id,evidence_id,event_type,from_state,to_state,actor_id,notes,payload_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                (_id("cgee"), evidence_id, "created", None, review_state, actor_id, "evidence recorded", _json({"strength": strength, "content_hash": content_hash}), now),
+            )
+            self._audit("evidence.created", "evidence", evidence_id, actor_id, {"project_id": project_id, "record_id": record_id, "evidence_type": evidence_type})
+        return self.get_evidence(evidence_id)
+
+    def get_evidence(self, evidence_id: str) -> dict[str, Any]:
+        row = self.connection.execute("SELECT * FROM evidence_items WHERE evidence_id=?", (evidence_id,)).fetchone()
+        if not row:
+            raise WorkspaceError(f"evidence not found: {evidence_id}")
+        item = self._decode_evidence(row)
+        item["events"] = []
+        for event in self.connection.execute("SELECT * FROM evidence_events WHERE evidence_id=? ORDER BY created_at,rowid", (evidence_id,)):
+            decoded = dict(event); decoded["payload"] = json.loads(decoded.pop("payload_json")); item["events"].append(decoded)
+        item["links"] = [dict(link) for link in self.connection.execute("SELECT * FROM evidence_links WHERE evidence_id=? ORDER BY created_at,rowid", (evidence_id,))]
+        return item
+
+    def list_evidence(self, project_id: str, *, record_id: str | None = None, evidence_type: str | None = None, review_state: str | None = None) -> list[dict[str, Any]]:
+        self._require_project(project_id)
+        clauses = ["project_id=?"]; params: list[Any] = [project_id]
+        if record_id is not None: clauses.append("record_id=?"); params.append(record_id)
+        if evidence_type is not None: clauses.append("evidence_type=?"); params.append(evidence_type)
+        if review_state is not None: clauses.append("review_state=?"); params.append(review_state)
+        ids = [row["evidence_id"] for row in self.connection.execute("SELECT evidence_id FROM evidence_items WHERE " + " AND ".join(clauses) + " ORDER BY created_at,rowid", params)]
+        return [self.get_evidence(item) for item in ids]
+
+    def review_evidence(self, evidence_id: str, *, review_state: str, strength: str | None = None, notes: str = "", actor_id: str = "self") -> dict[str, Any]:
+        if review_state not in {"unreviewed", "accepted", "questioned", "rejected"}:
+            raise WorkspaceError("unsupported evidence review state")
+        current = self.get_evidence(evidence_id)
+        next_strength = current["strength"] if strength is None else strength
+        if next_strength not in {"unknown", "weak", "moderate", "strong"}:
+            raise WorkspaceError("unsupported evidence strength")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute("UPDATE evidence_items SET review_state=?,strength=?,updated_at=? WHERE evidence_id=?", (review_state, next_strength, now, evidence_id))
+            self.connection.execute(
+                "INSERT INTO evidence_events(event_id,evidence_id,event_type,from_state,to_state,actor_id,notes,payload_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                (_id("cgee"), evidence_id, "reviewed", current["review_state"], review_state, actor_id, notes.strip(), _json({"from_strength": current["strength"], "to_strength": next_strength}), now),
+            )
+            self._history("evidence", evidence_id, current["review_state"], review_state, actor_id, notes or "evidence reviewed")
+            self._audit("evidence.reviewed", "evidence", evidence_id, actor_id, {"from_state": current["review_state"], "to_state": review_state, "strength": next_strength})
+        return self.get_evidence(evidence_id)
+
+    def link_evidence(self, evidence_id: str, target_type: str, target_id: str, *, relation: str = "supports", notes: str = "", actor_id: str = "self") -> dict[str, Any]:
+        self.get_evidence(evidence_id)
+        if target_type not in {"record", "revision", "assumption", "action", "checkpoint", "system_change", "agreement", "handoff"}:
+            raise WorkspaceError("unsupported evidence link target")
+        if relation not in {"supports", "challenges", "context", "derived_from", "conflicts_with"}:
+            raise WorkspaceError("unsupported evidence relation")
+        validators = {
+            "record": lambda: self._require_record(target_id),
+            "revision": lambda: self.get_revision(target_id),
+            "assumption": lambda: self.get_assumption(target_id),
+            "action": lambda: self.get_action(target_id),
+            "checkpoint": lambda: self.get_checkpoint(target_id),
+            "system_change": lambda: self.get_system_change(target_id),
+            "agreement": lambda: self.get_facilitated_agreement(target_id),
+            "handoff": lambda: self.get_handoff(target_id),
+        }
+        validators[target_type]()
+        link_id = _id("cgel")
+        with self.connection:
+            try:
+                self.connection.execute("INSERT INTO evidence_links(link_id,evidence_id,target_type,target_id,relation,notes,actor_id,created_at) VALUES(?,?,?,?,?,?,?,?)", (link_id, evidence_id, target_type, target_id, relation, notes.strip(), actor_id, _utc_now()))
+            except sqlite3.IntegrityError as exc:
+                raise WorkspaceError("this evidence link already exists") from exc
+            self._audit("evidence.linked", "evidence", evidence_id, actor_id, {"target_type": target_type, "target_id": target_id, "relation": relation})
+        return dict(self.connection.execute("SELECT * FROM evidence_links WHERE link_id=?", (link_id,)).fetchone())
+
+    def evidence_ledger(self, project_id: str, *, record_id: str | None = None) -> dict[str, Any]:
+        items = self.list_evidence(project_id, record_id=record_id)
+        by_type: dict[str, int] = {}; by_state: dict[str, int] = {}; by_strength: dict[str, int] = {}
+        for item in items:
+            by_type[item["evidence_type"]] = by_type.get(item["evidence_type"], 0) + 1
+            by_state[item["review_state"]] = by_state.get(item["review_state"], 0) + 1
+            by_strength[item["strength"]] = by_strength.get(item["strength"], 0) + 1
+        conflicts = [item for item in items if item["review_state"] == "questioned" or any(link["relation"] == "conflicts_with" for link in item["links"])]
+        return {"project_id": project_id, "record_id": record_id, "evidence_count": len(items), "by_type": by_type, "by_review_state": by_state, "by_strength": by_strength, "conflict_count": len(conflicts), "items": items}
+
+    def add_assumption(self, project_id: str, statement: str, *, record_id: str | None = None, uncertainty: str = "", confidence: int = 50, owner: str | None = None, review_due: str | None = None, source_paths: Sequence[str] | None = None, actor_id: str = "self", assumption_id: str | None = None) -> dict[str, Any]:
+        self._require_project(project_id)
+        if not statement.strip(): raise WorkspaceError("assumption statement is required")
+        if confidence < 0 or confidence > 100: raise WorkspaceError("confidence must be between 0 and 100")
+        if record_id:
+            record = self._require_record(record_id)
+            if record["project_id"] != project_id: raise WorkspaceError("assumption record belongs to another project")
+        assumption_id = assumption_id or _id("cga")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute("INSERT INTO assumptions(assumption_id,project_id,record_id,statement,status,uncertainty,confidence,owner,review_due,source_paths_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", (assumption_id, project_id, record_id, statement.strip(), "active", uncertainty.strip(), confidence, owner, review_due, _json(list(source_paths or [])), now, now))
+            self.connection.execute("INSERT INTO assumption_events(event_id,assumption_id,from_status,to_status,confidence,actor_id,reason,created_at) VALUES(?,?,?,?,?,?,?,?)", (_id("cgae"), assumption_id, None, "active", confidence, actor_id, "assumption recorded", now))
+            self._audit("assumption.created", "assumption", assumption_id, actor_id, {"project_id": project_id, "record_id": record_id})
+        return self.get_assumption(assumption_id)
+
+    def get_assumption(self, assumption_id: str) -> dict[str, Any]:
+        row = self.connection.execute("SELECT * FROM assumptions WHERE assumption_id=?", (assumption_id,)).fetchone()
+        if not row: raise WorkspaceError(f"assumption not found: {assumption_id}")
+        item = dict(row); item["source_paths"] = json.loads(item.pop("source_paths_json")); item["events"] = [dict(event) for event in self.connection.execute("SELECT * FROM assumption_events WHERE assumption_id=? ORDER BY created_at,rowid", (assumption_id,))]
+        item["evidence_links"] = [dict(link) for link in self.connection.execute("SELECT * FROM evidence_links WHERE target_type='assumption' AND target_id=? ORDER BY created_at,rowid", (assumption_id,))]
+        return item
+
+    def list_assumptions(self, project_id: str, *, record_id: str | None = None, status: str | None = None) -> list[dict[str, Any]]:
+        self._require_project(project_id); clauses=["project_id=?"]; params: list[Any]=[project_id]
+        if record_id is not None: clauses.append("record_id=?"); params.append(record_id)
+        if status is not None: clauses.append("status=?"); params.append(status)
+        ids=[row["assumption_id"] for row in self.connection.execute("SELECT assumption_id FROM assumptions WHERE " + " AND ".join(clauses) + " ORDER BY created_at,rowid", params)]
+        return [self.get_assumption(item) for item in ids]
+
+    def update_assumption(self, assumption_id: str, *, status: str, confidence: int | None = None, uncertainty: str | None = None, owner: str | None = None, review_due: str | None = None, reason: str = "assumption reviewed", actor_id: str = "self") -> dict[str, Any]:
+        if status not in {"active", "validated", "rejected", "retired"}: raise WorkspaceError("unsupported assumption status")
+        current=self.get_assumption(assumption_id); next_confidence=current["confidence"] if confidence is None else confidence
+        if next_confidence < 0 or next_confidence > 100: raise WorkspaceError("confidence must be between 0 and 100")
+        now=_utc_now()
+        with self.connection:
+            self.connection.execute("UPDATE assumptions SET status=?,confidence=?,uncertainty=?,owner=?,review_due=?,updated_at=? WHERE assumption_id=?", (status,next_confidence,current["uncertainty"] if uncertainty is None else uncertainty.strip(),current["owner"] if owner is None else owner,current["review_due"] if review_due is None else review_due,now,assumption_id))
+            self.connection.execute("INSERT INTO assumption_events(event_id,assumption_id,from_status,to_status,confidence,actor_id,reason,created_at) VALUES(?,?,?,?,?,?,?,?)", (_id("cgae"),assumption_id,current["status"],status,next_confidence,actor_id,reason.strip(),now))
+            self._history("assumption", assumption_id, current["status"], status, actor_id, reason)
+            self._audit("assumption.updated", "assumption", assumption_id, actor_id, {"from_status": current["status"], "to_status": status, "confidence": next_confidence})
+        return self.get_assumption(assumption_id)
+
+    def assumption_matrix(self, project_id: str, *, record_id: str | None = None) -> dict[str, Any]:
+        items=self.list_assumptions(project_id, record_id=record_id)
+        for item in items:
+            item["review_attention"] = bool(item["status"] == "active" and (item["confidence"] < 50 or item["review_due"]))
+        return {"project_id": project_id,"record_id": record_id,"assumption_count": len(items),"active_count": sum(item["status"]=="active" for item in items),"review_attention_count": sum(bool(item["review_attention"]) for item in items),"items": items}
+
+    @staticmethod
+    def _decode_handoff(row: Mapping[str, Any]) -> dict[str, Any]:
+        item=dict(row); item["payload"]=json.loads(item.pop("payload_json")); item["provenance"]=json.loads(item.pop("provenance_json")); return item
+
+    def create_handoff(self, project_id: str, *, source_product: str, source_version: str, target_product: str, artifact_type: str, artifact_id: str, payload: Mapping[str, Any] | None = None, record_id: str | None = None, direction: str = "inbound", reference_mode: str = "snapshot", source_uri: str = "", provenance: Sequence[Mapping[str, Any] | str] | None = None, stale_after: str | None = None, actor_id: str = "self", handoff_id: str | None = None) -> dict[str, Any]:
+        self._require_project(project_id)
+        known={"Catalyst Canvas","Catalyst Data","Workbench","Sustainable Catalyst Lab","Decision Studio","Knowledge Library","Research Librarian","Catalyst Grit","External"}
+        if source_product not in known or target_product not in known: raise WorkspaceError("unsupported handoff product")
+        if direction not in {"inbound","outbound"}: raise WorkspaceError("unsupported handoff direction")
+        if reference_mode not in {"snapshot","live_reference"}: raise WorkspaceError("unsupported reference mode")
+        if not source_version.strip() or not artifact_type.strip() or not artifact_id.strip(): raise WorkspaceError("source version, artifact type, and artifact ID are required")
+        if reference_mode == "live_reference" and not source_uri.strip(): raise WorkspaceError("live references require a source URI")
+        if record_id:
+            record=self._require_record(record_id)
+            if record["project_id"] != project_id: raise WorkspaceError("handoff record belongs to another project")
+        payload_dict=dict(payload or {}); content_hash=_sha(payload_dict); handoff_id=handoff_id or _id("cgh"); now=_utc_now()
+        with self.connection:
+            try:
+                self.connection.execute("INSERT INTO handoff_artifacts(handoff_id,project_id,record_id,direction,source_product,source_version,target_product,artifact_type,artifact_id,reference_mode,source_uri,payload_json,provenance_json,content_hash,validation_state,stale_after,last_checked_at,conflict_notes,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (handoff_id,project_id,record_id,direction,source_product,source_version,target_product,artifact_type.strip(),artifact_id.strip(),reference_mode,source_uri.strip(),_json(payload_dict),_json(list(provenance or [])),content_hash,"valid",stale_after,now,"",actor_id,now,now))
+            except sqlite3.IntegrityError as exc:
+                raise WorkspaceError("an identical handoff artifact already exists") from exc
+            self.connection.execute("INSERT INTO handoff_events(event_id,handoff_id,event_type,from_state,to_state,actor_id,notes,payload_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)", (_id("cghe"),handoff_id,"created",None,"valid",actor_id,"handoff created",_json({"content_hash":content_hash}),now))
+            self._audit("handoff.created", "handoff", handoff_id, actor_id, {"source_product":source_product,"target_product":target_product,"artifact_id":artifact_id})
+        return self.get_handoff(handoff_id)
+
+    def get_handoff(self, handoff_id: str) -> dict[str, Any]:
+        row=self.connection.execute("SELECT * FROM handoff_artifacts WHERE handoff_id=?",(handoff_id,)).fetchone()
+        if not row: raise WorkspaceError(f"handoff not found: {handoff_id}")
+        item=self._decode_handoff(row); item["events"]=[]
+        for event in self.connection.execute("SELECT * FROM handoff_events WHERE handoff_id=? ORDER BY created_at,rowid",(handoff_id,)):
+            decoded=dict(event); decoded["payload"]=json.loads(decoded.pop("payload_json")); item["events"].append(decoded)
+        item["evidence_links"]=[dict(link) for link in self.connection.execute("SELECT * FROM evidence_links WHERE target_type='handoff' AND target_id=? ORDER BY created_at,rowid",(handoff_id,))]
+        return item
+
+    def list_handoffs(self, project_id: str, *, record_id: str | None = None, target_product: str | None = None, validation_state: str | None = None) -> list[dict[str, Any]]:
+        self._require_project(project_id); clauses=["project_id=?"]; params: list[Any]=[project_id]
+        if record_id is not None: clauses.append("record_id=?"); params.append(record_id)
+        if target_product is not None: clauses.append("target_product=?"); params.append(target_product)
+        if validation_state is not None: clauses.append("validation_state=?"); params.append(validation_state)
+        ids=[row["handoff_id"] for row in self.connection.execute("SELECT handoff_id FROM handoff_artifacts WHERE "+" AND ".join(clauses)+" ORDER BY created_at,rowid",params)]
+        return [self.get_handoff(item) for item in ids]
+
+    def validate_handoff(self, handoff_id: str, *, payload: Mapping[str, Any] | None = None, state: str | None = None, conflict_notes: str = "", actor_id: str = "self") -> dict[str, Any]:
+        current=self.get_handoff(handoff_id); next_state=state
+        if next_state is None:
+            if payload is not None and _sha(dict(payload)) != current["content_hash"]: next_state="conflict"
+            elif current["stale_after"] and current["stale_after"] < _utc_now(): next_state="stale"
+            else: next_state="valid"
+        if next_state not in {"valid","invalid","stale","conflict"}: raise WorkspaceError("unsupported handoff validation state")
+        now=_utc_now(); event_type={"valid":"validated","invalid":"validated","stale":"marked_stale","conflict":"conflict_recorded"}[next_state]
+        with self.connection:
+            self.connection.execute("UPDATE handoff_artifacts SET validation_state=?,last_checked_at=?,conflict_notes=?,updated_at=? WHERE handoff_id=?",(next_state,now,conflict_notes.strip(),now,handoff_id))
+            self.connection.execute("INSERT INTO handoff_events(event_id,handoff_id,event_type,from_state,to_state,actor_id,notes,payload_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)",(_id("cghe"),handoff_id,event_type,current["validation_state"],next_state,actor_id,conflict_notes.strip(),_json({"supplied_content_hash":_sha(dict(payload)) if payload is not None else None}),now))
+            self._history("handoff",handoff_id,current["validation_state"],next_state,actor_id,conflict_notes or "handoff validated")
+            self._audit("handoff.validated","handoff",handoff_id,actor_id,{"from_state":current["validation_state"],"to_state":next_state})
+        return self.get_handoff(handoff_id)
+
+    def build_decision_handoff(self, record_id: str, *, actor_id: str = "self") -> dict[str, Any]:
+        record=self.get_record(record_id,include_canonical=True); project_id=record["project_id"]; canonical=record["canonical"]
+        evidence=self.list_evidence(project_id,record_id=record_id); assumptions=self.list_assumptions(project_id,record_id=record_id); actions=self.list_actions(record_id); reviews=self.list_reviews(record_id)
+        packet={
+            "contract":"sustainable-catalyst-decision-handoff/1.0",
+            "source":{"product":"Catalyst Grit","version":__version__,"record_id":record_id,"revision_id":record["current_revision_id"]},
+            "target":{"product":"Decision Studio","artifact_type":"decision_packet_context"},
+            "provenance":{"generated_at":_utc_now(),"canonical_hash":_sha(canonical),"evidence_ids":[item["evidence_id"] for item in evidence],"assumption_ids":[item["assumption_id"] for item in assumptions]},
+            "recovery_context":{"title":canonical["user_input"]["context"]["title"],"trigger":canonical["user_input"]["trigger"],"condition_map":canonical["findings"]["condition_map"],"interpretation":canonical["findings"]["interpretation"]},
+            "options_and_actions":canonical["findings"].get("recovery_plan",{}),
+            "actions":actions,
+            "evidence":[{key:item[key] for key in ("evidence_id","evidence_type","title","content","source_uri","source_product","source_version","strength","review_state","content_hash")} for item in evidence],
+            "assumptions":[{key:item[key] for key in ("assumption_id","statement","status","uncertainty","confidence","owner","review_due")} for item in assumptions],
+            "human_review":canonical.get("human_review",{}),
+            "review_history":reviews,
+            "decision_guardrails":["Preserve evidence provenance.","Keep unresolved assumptions explicit.","Do not convert recovery conditions into individual scores, rankings, diagnoses, or eligibility decisions."],
+        }
+        packet["content_hash"]=_sha(packet)
+        handoff=self.create_handoff(project_id,source_product="Catalyst Grit",source_version=__version__,target_product="Decision Studio",artifact_type="decision_packet_context",artifact_id=f"{record_id}:{record['current_revision_id']}",payload=packet,record_id=record_id,direction="outbound",reference_mode="snapshot",provenance=[{"record_id":record_id,"revision_id":record["current_revision_id"]}],actor_id=actor_id)
+        packet["handoff_id"]=handoff["handoff_id"]
+        return packet
+
     def status_history(self, entity_type: str, entity_id: str) -> list[dict[str, Any]]:
         return [dict(row) for row in self.connection.execute("SELECT * FROM status_history WHERE entity_type=? AND entity_id=? ORDER BY created_at, rowid", (entity_type, entity_id))]
 
@@ -1439,6 +1705,9 @@ class SQLiteWorkspaceRepository:
             "status_history": self.status_history("record", record_id),
             "audit_events": self.audit_log(entity_id=record_id),
             "team_perspectives": self.list_team_perspectives(project["project_id"], record_id=record_id, actor_id=project["owner_id"]),
+            "evidence_items": self.list_evidence(project["project_id"], record_id=record_id),
+            "assumptions": self.list_assumptions(project["project_id"], record_id=record_id),
+            "handoffs": self.list_handoffs(project["project_id"], record_id=record_id),
         }
 
     def export_project(self, project_id: str) -> dict[str, Any]:
@@ -1456,6 +1725,9 @@ class SQLiteWorkspaceRepository:
             "team_members": self.list_team_members(project_id, include_removed=True),
             "facilitated_sessions": self.list_facilitated_sessions(project_id, actor_id=project["owner_id"]),
             "team_recovery_summary": self.team_recovery_summary(project_id, actor_id=project["owner_id"]),
+            "evidence_ledger": self.evidence_ledger(project_id),
+            "assumption_matrix": self.assumption_matrix(project_id),
+            "handoffs": self.list_handoffs(project_id),
         }
 
     def import_payload(self, payload: Mapping[str, Any], *, project_id: str | None = None, actor_id: str = "self") -> dict[str, Any]:
@@ -1720,6 +1992,109 @@ class SQLiteWorkspaceRepository:
             if source_status != "planned" and source_status in {"in_progress", "completed", "cancelled"}:
                 self.update_facilitated_session(session["session_id"], status=source_status, actor_id=actor_id)
 
+        imported_evidence = 0
+        imported_assumptions = 0
+        imported_handoffs = 0
+        evidence_sources = list(payload.get("evidence_items") or [])
+        assumption_sources = list(payload.get("assumptions") or [])
+        handoff_sources = list(payload.get("handoffs") or [])
+        for bundle in bundles:
+            evidence_sources.extend(bundle.get("evidence_items") or [])
+            assumption_sources.extend(bundle.get("assumptions") or [])
+            handoff_sources.extend(bundle.get("handoffs") or [])
+        evidence_id_map: dict[str, str] = {}
+        for item in evidence_sources:
+            try:
+                record_id = item.get("record_id")
+                if record_id:
+                    try:
+                        record = self._require_record(str(record_id))
+                        if record["project_id"] != target_project:
+                            record_id = None
+                    except WorkspaceError:
+                        record_id = None
+                created = self.add_evidence(
+                    target_project,
+                    str(item.get("title") or "Imported evidence"),
+                    evidence_type=str(item.get("evidence_type") or "note"),
+                    content=str(item.get("content") or ""),
+                    record_id=record_id,
+                    source_uri=str(item.get("source_uri") or ""),
+                    source_artifact_id=str(item.get("source_artifact_id") or ""),
+                    source_product=str(item.get("source_product") or ""),
+                    source_version=str(item.get("source_version") or ""),
+                    provenance=item.get("provenance") or [],
+                    strength=str(item.get("strength") or "unknown"),
+                    review_state=str(item.get("review_state") or "unreviewed"),
+                    observed_at=item.get("observed_at"),
+                    actor_id=actor_id,
+                )
+                evidence_id_map[str(item.get("evidence_id") or "")] = created["evidence_id"]
+                imported_evidence += 1
+            except WorkspaceError:
+                continue
+        assumption_id_map: dict[str, str] = {}
+        for item in assumption_sources:
+            try:
+                record_id = item.get("record_id")
+                if record_id:
+                    try:
+                        record = self._require_record(str(record_id))
+                        if record["project_id"] != target_project:
+                            record_id = None
+                    except WorkspaceError:
+                        record_id = None
+                created = self.add_assumption(
+                    target_project,
+                    str(item.get("statement") or "Imported assumption"),
+                    record_id=record_id,
+                    uncertainty=str(item.get("uncertainty") or ""),
+                    confidence=int(item.get("confidence", 50)),
+                    owner=item.get("owner"),
+                    review_due=item.get("review_due"),
+                    source_paths=item.get("source_paths") or [],
+                    actor_id=actor_id,
+                )
+                target_status = str(item.get("status") or "active")
+                if target_status != "active" and target_status in {"validated", "rejected", "retired"}:
+                    created = self.update_assumption(created["assumption_id"], status=target_status, confidence=int(item.get("confidence", 50)), reason="workspace import", actor_id=actor_id)
+                assumption_id_map[str(item.get("assumption_id") or "")] = created["assumption_id"]
+                imported_assumptions += 1
+            except (WorkspaceError, ValueError, TypeError):
+                continue
+        for item in handoff_sources:
+            try:
+                record_id = item.get("record_id")
+                if record_id:
+                    try:
+                        record = self._require_record(str(record_id))
+                        if record["project_id"] != target_project:
+                            record_id = None
+                    except WorkspaceError:
+                        record_id = None
+                created = self.create_handoff(
+                    target_project,
+                    source_product=str(item.get("source_product") or "External"),
+                    source_version=str(item.get("source_version") or "unknown"),
+                    target_product=str(item.get("target_product") or "Catalyst Grit"),
+                    artifact_type=str(item.get("artifact_type") or "imported_artifact"),
+                    artifact_id=str(item.get("artifact_id") or _id("artifact")),
+                    payload=item.get("payload") or {},
+                    record_id=record_id,
+                    direction=str(item.get("direction") or "inbound"),
+                    reference_mode=str(item.get("reference_mode") or "snapshot"),
+                    source_uri=str(item.get("source_uri") or ""),
+                    provenance=item.get("provenance") or [],
+                    stale_after=item.get("stale_after"),
+                    actor_id=actor_id,
+                )
+                target_state = str(item.get("validation_state") or "valid")
+                if target_state != "valid" and target_state in {"invalid", "stale", "conflict"}:
+                    self.validate_handoff(created["handoff_id"], state=target_state, conflict_notes=str(item.get("conflict_notes") or ""), actor_id=actor_id)
+                imported_handoffs += 1
+            except WorkspaceError:
+                continue
+
         return {
             "project_id": target_project,
             "imported": imported,
@@ -1729,6 +2104,9 @@ class SQLiteWorkspaceRepository:
             "facilitated_sessions_imported": imported_sessions,
             "team_perspectives_imported": imported_perspectives,
             "facilitated_agreements_imported": imported_agreements,
+            "evidence_items_imported": imported_evidence,
+            "assumptions_imported": imported_assumptions,
+            "handoffs_imported": imported_handoffs,
         }
 
     def write_export(self, payload: Mapping[str, Any], path: str | Path) -> Path:
@@ -1740,7 +2118,7 @@ class SQLiteWorkspaceRepository:
     def health(self) -> dict[str, Any]:
         integrity = self.connection.execute("PRAGMA integrity_check").fetchone()[0]
         counts = {}
-        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "checkpoints", "reviews", "status_history", "audit_events"):
+        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events", "checkpoints", "reviews", "status_history", "audit_events"):
             try:
                 counts[table] = self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             except sqlite3.OperationalError:

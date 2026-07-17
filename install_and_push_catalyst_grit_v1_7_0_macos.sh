@@ -2,8 +2,8 @@
 set -euo pipefail
 
 PRODUCT="Catalyst Grit"
-VERSION="1.6.0"
-RELEASE_NAME="Team Recovery and Facilitated Review"
+VERSION="1.7.0"
+RELEASE_NAME="Evidence, Assumptions, and Decision Handoffs"
 INSTALLER_REVISION="CHECKSUM_SYNC_STATE_SAFE_V1"
 ARCHIVE_NAME="catalyst-grit-v${VERSION}-repository.zip"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -58,7 +58,7 @@ printf 'Release archive: %s\n' "$ARCHIVE"
 printf 'Git repository: %s\n' "$REPO"
 printf 'Remote: %s\n' "$(git -C "$REPO" remote get-url origin 2>/dev/null || echo '(none)')"
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/catalyst-grit-v160.XXXXXX")"
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/catalyst-grit-v170.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 unzip -q "$ARCHIVE" -d "$TMP"
 SOURCE="$TMP/catalyst-grit-v$VERSION"
@@ -69,6 +69,7 @@ SOURCE="$TMP/catalyst-grit-v$VERSION"
 [ -f "$SOURCE/src/catalyst_grit/migrations/003_recovery_plans_actions_reassessment.up.sql" ] || fail "Workspace migration 003 is missing."
 [ -f "$SOURCE/src/catalyst_grit/migrations/004_learning_loops_adaptation_patterns.up.sql" ] || fail "Workspace migration 004 is missing."
 [ -f "$SOURCE/src/catalyst_grit/migrations/005_team_recovery_facilitated_review.up.sql" ] || fail "Workspace migration 005 is missing."
+[ -f "$SOURCE/src/catalyst_grit/migrations/006_evidence_assumptions_handoffs.up.sql" ] || fail "Workspace migration 006 is missing."
 
 say "Creating safety backup"
 STAMP="$(date +%Y%m%d-%H%M%S)"

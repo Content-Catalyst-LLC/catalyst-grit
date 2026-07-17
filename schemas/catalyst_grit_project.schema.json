@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit-project-v1.6.0.json",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit-project-v1.7.0.json",
   "title": "Catalyst Grit Recovery Project",
   "type": "object",
-  "x-catalyst-grit-version": "1.6.0",
+  "x-catalyst-grit-version": "1.7.0",
   "additionalProperties": false,
   "required": [
     "project_id",

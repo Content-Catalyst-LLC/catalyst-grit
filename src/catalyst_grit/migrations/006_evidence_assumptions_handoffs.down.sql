@@ -1,0 +1,13 @@
+DROP TRIGGER IF EXISTS handoff_events_guard_delete;
+DROP TRIGGER IF EXISTS handoff_events_no_update;
+DROP TRIGGER IF EXISTS assumption_events_guard_delete;
+DROP TRIGGER IF EXISTS assumption_events_no_update;
+DROP TRIGGER IF EXISTS evidence_events_guard_delete;
+DROP TRIGGER IF EXISTS evidence_events_no_update;
+DROP TABLE IF EXISTS handoff_events;
+DROP TABLE IF EXISTS handoff_artifacts;
+DROP TABLE IF EXISTS evidence_links;
+DROP TABLE IF EXISTS assumption_events;
+DROP TABLE IF EXISTS assumptions;
+DROP TABLE IF EXISTS evidence_events;
+DROP TABLE IF EXISTS evidence_items;

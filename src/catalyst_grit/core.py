@@ -112,7 +112,7 @@ DEFAULT_ACTIONS = [
 
 DEFAULT_METHODOLOGY_PROFILE: dict[str, Any] = {
     "profile_id": "cg-recovery-conditions",
-    "profile_version": "1.6.0",
+    "profile_version": "1.7.0",
     "calculation_spec": "weighted-components-v1",
     "component_weights": {
         "impact_buffer": 15.0,

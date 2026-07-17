@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the complete Catalyst Grit v1.6.0 release contract."""
+"""Run the complete Catalyst Grit v1.7.0 release contract."""
 from __future__ import annotations
 
 import json
@@ -64,13 +64,13 @@ def main() -> int:
 import json, tempfile
 from pathlib import Path
 import catalyst_grit
-assert catalyst_grit.__version__ == '1.6.0'
-assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4, 5]
+assert catalyst_grit.__version__ == '1.7.0'
+assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4, 5, 6]
 with tempfile.TemporaryDirectory() as d:
     with catalyst_grit.SQLiteWorkspaceRepository(Path(d)/'installed.sqlite3') as repo:
         project=repo.create_project('Installed wheel')
         assert project['visibility']=='private'
-        assert repo.health()['migrations']['current']==5
+        assert repo.health()['migrations']['current']==6
         saved=repo.save_record(project['project_id'], json.loads({example_payload!r}))
         record_id=saved['record']['record_id']
         assert repo.list_actions(record_id)
@@ -87,6 +87,14 @@ with tempfile.TemporaryDirectory() as d:
         repo.add_team_perspective(project['project_id'], 'Shared pressure condition', perspective_type='pressure', member_key='facilitator', session_id=session['session_id'], actor_id='facilitator')
         agreement=repo.create_facilitated_agreement(session['session_id'], 'Confirm shared owner', owner_key='facilitator', actor_id='facilitator')
         assert repo.team_recovery_summary(project['project_id'], actor_id='facilitator')['agreement_count']==1
+        evidence=repo.add_evidence(project['project_id'], 'Installed dataset', evidence_type='dataset', record_id=record_id, source_artifact_id='dataset-installed', source_product='Catalyst Data', source_version='1.12.0', strength='moderate')
+        assumption=repo.add_assumption(project['project_id'], 'Installed assumption', record_id=record_id, confidence=45)
+        repo.link_evidence(evidence['evidence_id'], 'assumption', assumption['assumption_id'], relation='supports')
+        packet=repo.build_decision_handoff(record_id)
+        assert packet['contract']=='sustainable-catalyst-decision-handoff/1.0'
+        assert repo.evidence_ledger(project['project_id'])['evidence_count']==1
+        assert repo.assumption_matrix(project['project_id'])['assumption_count']==1
+        assert repo.list_handoffs(project['project_id'], target_product='Decision Studio')
 print(catalyst_grit.__version__)
 """
         run("Import installed package and migrations", [sys.executable, "-c", code], cwd=Path(temp), env=wheel_env)
@@ -95,7 +103,7 @@ print(catalyst_grit.__version__)
     for generated in ROOT.glob("src/*.egg-info"):
         shutil.rmtree(generated, ignore_errors=True)
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    print("Catalyst Grit v1.6.0 release contract passed.")
+    print("Catalyst Grit v1.7.0 release contract passed.")
     return 0
 
 

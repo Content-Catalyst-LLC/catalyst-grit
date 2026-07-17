@@ -1,12 +1,12 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.6.0",
-  "schema_version": "1.6.0",
-  "engine_version": "1.6.0",
-  "release": "Team Recovery and Facilitated Review",
+  "version": "1.7.0",
+  "schema_version": "1.7.0",
+  "engine_version": "1.7.0",
+  "release": "Evidence, Assumptions, and Decision Handoffs",
   "canonical_product_model": "recovery-record",
-  "methodology_profile": "cg-recovery-conditions@1.6.0",
+  "methodology_profile": "cg-recovery-conditions@1.7.0",
   "workspace_format": "catalyst-grit-workspace/1.0",
   "storage": "SQLite private workspace with ordered packaged migrations",
   "migrations": [
@@ -14,7 +14,8 @@
     "002_checkpoints_reviews_audit",
     "003_recovery_plans_actions_reassessment",
     "004_learning_loops_adaptation_patterns",
-    "005_team_recovery_facilitated_review"
+    "005_team_recovery_facilitated_review",
+    "006_evidence_assumptions_handoffs"
   ],
   "persistent_entities": [
     "projects",
@@ -37,7 +38,14 @@
     "session_participants",
     "team_perspectives",
     "facilitated_agreements",
-    "facilitated_agreement_events"
+    "facilitated_agreement_events",
+    "evidence_items",
+    "evidence_events",
+    "evidence_links",
+    "assumptions",
+    "assumption_events",
+    "handoff_artifacts",
+    "handoff_events"
   ],
   "shortcodes": [
     "[catalyst_grit_demo]",
@@ -159,5 +167,82 @@
       "retired"
     ],
     "safeguard": "team summaries describe shared work conditions and agreements; individual scoring, ranking, diagnosis, personality inference, and hidden evaluation are prohibited"
+  },
+  "evidence_contract": {
+    "types": [
+      "note",
+      "source_link",
+      "file_reference",
+      "quote",
+      "observation",
+      "dataset",
+      "calculation",
+      "analysis",
+      "experiment_result",
+      "method",
+      "reference_document"
+    ],
+    "strengths": [
+      "unknown",
+      "weak",
+      "moderate",
+      "strong"
+    ],
+    "review_states": [
+      "unreviewed",
+      "accepted",
+      "questioned",
+      "rejected"
+    ],
+    "relations": [
+      "supports",
+      "challenges",
+      "context",
+      "derived_from",
+      "conflicts_with"
+    ],
+    "history": "append-only evidence review events and source-preserving links"
+  },
+  "assumption_contract": {
+    "statuses": [
+      "active",
+      "validated",
+      "rejected",
+      "retired"
+    ],
+    "confidence_range": [
+      0,
+      100
+    ],
+    "history": "append-only lifecycle events",
+    "boundary": "confidence describes support for a recorded statement, not a person or predicted outcome"
+  },
+  "handoff_contract": {
+    "products": [
+      "Catalyst Canvas",
+      "Catalyst Data",
+      "Workbench",
+      "Sustainable Catalyst Lab",
+      "Decision Studio",
+      "Knowledge Library",
+      "Research Librarian",
+      "Catalyst Grit",
+      "External"
+    ],
+    "directions": [
+      "inbound",
+      "outbound"
+    ],
+    "reference_modes": [
+      "snapshot",
+      "live_reference"
+    ],
+    "validation_states": [
+      "valid",
+      "invalid",
+      "stale",
+      "conflict"
+    ],
+    "decision_packet": "sustainable-catalyst-decision-handoff/1.0"
   }
 }

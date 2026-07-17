@@ -1,6 +1,6 @@
 # Team Recovery and Facilitated Review
 
-Catalyst Grit v1.6.0 adds a private, consent-aware team recovery layer around the existing canonical recovery record. It is designed for facilitated reflection on shared work conditions, not evaluation of individuals.
+Catalyst Grit v1.7.0 adds a private, consent-aware team recovery layer around the existing canonical recovery record. It is designed for facilitated reflection on shared work conditions, not evaluation of individuals.
 
 ## Team roles
 

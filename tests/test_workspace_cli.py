@@ -13,7 +13,7 @@ def parsed(capsys):
 def test_cli_init_and_status(tmp_path, capsys):
     db = tmp_path / "cli.sqlite3"
     assert main(["init", "--database", str(db)]) == 0
-    assert parsed(capsys)["migrations"]["current"] == 5
+    assert parsed(capsys)["migrations"]["current"] == 6
     assert main(["status", "--database", str(db)]) == 0
     assert parsed(capsys)["integrity"] == "ok"
 
@@ -56,3 +56,33 @@ def test_cli_purge_without_confirmation_fails(tmp_path, capsys):
     assert main(["record-purge", "--database", str(db), record["record_id"]]) == 3
     error = json.loads(capsys.readouterr().err)
     assert "confirm=True" in error["message"]
+
+
+def test_cli_evidence_assumption_and_decision_handoff(tmp_path, capsys):
+    db = tmp_path / "evidence-cli.sqlite3"
+    output = tmp_path / "decision-handoff.json"
+    main(["project-create", "--database", str(db), "--title", "Evidence CLI"]); project = parsed(capsys)
+    main(["record-save", "--database", str(db), project["project_id"], str(ROOT / "examples/grit_record_input.json")]); record = parsed(capsys)["record"]
+    assert main(["evidence-add", "--database", str(db), project["project_id"], "--record", record["record_id"], "--type", "dataset", "--title", "CLI dataset", "--artifact-id", "dataset-cli", "--source-product", "Catalyst Data", "--source-version", "1.12.0"]) == 0
+    evidence = parsed(capsys)
+    assert evidence["evidence_type"] == "dataset"
+    assert main(["assumption-add", "--database", str(db), project["project_id"], "--record", record["record_id"], "--statement", "CLI assumption", "--confidence", "45"]) == 0
+    assumption = parsed(capsys)
+    assert main(["evidence-link", "--database", str(db), evidence["evidence_id"], "assumption", assumption["assumption_id"], "--relation", "supports"]) == 0
+    assert parsed(capsys)["relation"] == "supports"
+    assert main(["decision-handoff", "--database", str(db), record["record_id"], "--output", str(output)]) == 0
+    result = parsed(capsys)
+    assert output.is_file() and result["handoff_id"]
+    packet = json.loads(output.read_text())
+    assert packet["contract"] == "sustainable-catalyst-decision-handoff/1.0"
+
+
+def test_cli_handoff_conflict_validation(tmp_path, capsys):
+    db = tmp_path / "handoff-cli.sqlite3"
+    payload = tmp_path / "payload.json"; payload.write_text(json.dumps({"value": 1}))
+    changed = tmp_path / "changed.json"; changed.write_text(json.dumps({"value": 2}))
+    main(["project-create", "--database", str(db), "--title", "Handoff CLI"]); project = parsed(capsys)
+    assert main(["handoff-create", "--database", str(db), project["project_id"], "--source-product", "Catalyst Canvas", "--source-version", "2.0.0", "--target-product", "Catalyst Grit", "--artifact-type", "stakeholder_context", "--artifact-id", "canvas-cli", "--payload", str(payload)]) == 0
+    handoff = parsed(capsys)
+    assert main(["handoff-validate", "--database", str(db), handoff["handoff_id"], "--payload", str(changed), "--notes", "Changed source"] ) == 0
+    assert parsed(capsys)["validation_state"] == "conflict"

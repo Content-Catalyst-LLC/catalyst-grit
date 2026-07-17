@@ -1,23 +1,21 @@
-# Methodology Profile v1.6.0
+# Methodology Profile v1.7.0
 
-The default profile is stored at `methodology/recovery-profile-v1.6.0.json` and identified as `cg-recovery-conditions@1.6.0`.
+The default profile is stored at `methodology/recovery-profile-v1.7.0.json` and identified as `cg-recovery-conditions@1.7.0`.
 
-The weighted component calculation remains stable for longitudinal compatibility. v1.6.0 adds a learning layer around the existing condition map and recovery plan. That layer does not change the recovery score, infer personality, diagnose health, or predict future performance.
+The weighted recovery-condition calculation remains unchanged for longitudinal compatibility. v1.7.0 adds a traceability layer in the private workspace; evidence strength, assumption confidence, and handoff validation do not alter the recovery score.
 
-## Learning-loop method
+## Evidence method
 
-The engine:
+The workspace records evidence exactly as supplied, assigns a content hash to the immutable source snapshot, and preserves source product, source version, URI or artifact ID, provenance chain, strength, review state, and append-only events. Evidence may support, challenge, contextualize, derive from, or conflict with another artifact. A conflict is surfaced for review rather than automatically resolved.
 
-1. normalizes the user-authored retrospective;
-2. reports retrospective completion without inventing missing content;
-3. derives candidate patterns only from explicit recorded values;
-4. attaches every pattern to exact JSON source paths and evidence values;
-5. exposes an adaptation candidate as a proposal, not a command;
-6. applies user review decisions to accept, reject, or correct candidates; and
-7. preserves uncertainty and interpretation limits in the canonical record.
+## Assumption method
 
-Project-level pattern aggregation occurs only in the private persistence layer. It counts recurring source-linked observations across records and retains the contributing record and revision IDs. A repeated condition remains a reviewable project observation; it is never converted into a trait or employee rating.
+Assumptions remain explicit statements with uncertainty, a user-supplied confidence value, an owner, review date, source paths, and active, validated, rejected, or retired state. Confidence is a statement-support indicator, not a probability forecast, performance score, or measure of a person.
 
-## System-change method
+## Handoff method
 
-A system-change record must link to at least one source recovery record. It captures the proposed change, owner, expected benefit, pilot dates, review result, and decision history. Decisions are `proposed`, `piloting`, `adopt`, `revise`, `defer`, or `retire`. Events are append-only so a later decision does not rewrite the original proposal or evidence.
+Cross-product handoffs preserve stable artifact IDs, source and target products, source version, provenance, snapshot or live-reference mode, payload content hash, and valid, invalid, stale, or conflict state. Validation events are append-only. Live references require a URI and remain visible when stale.
+
+## Decision handoff method
+
+The Decision Studio packet combines only recorded recovery context, condition maps, actions, evidence, assumptions, and human-review state. It preserves unresolved assumptions and conflicting evidence and prohibits conversion into individual ranking, diagnosis, eligibility, or hidden evaluation.

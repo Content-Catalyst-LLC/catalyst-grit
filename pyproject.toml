@@ -1,6 +1,6 @@
 [project]
 name = "catalyst-grit"
-version = "1.0.1"
+version = "1.2.0"
 description = "Structured recovery records for setbacks, recovery conditions, actions, and learning loops"
 authors = [{name = "Tariq Ahmad", email = "tariq@thecontentcatalyst.net"}]
 readme = "README.md"
@@ -29,7 +29,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["catalyst_grit"]
+packages = ["catalyst_grit", "catalyst_grit.migrations"]
+
+[tool.setuptools.package-data]
+"catalyst_grit.migrations" = ["*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

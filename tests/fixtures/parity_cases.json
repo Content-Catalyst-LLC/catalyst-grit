@@ -2,245 +2,2049 @@
   {
     "name": "baseline",
     "input": {
-      "challenge": "A sustainability reporting project lost momentum after conflicting stakeholder feedback and a missed internal deadline.",
-      "domain": "project",
-      "impact_severity": 7,
-      "pressure_level": 8,
-      "energy_level": 5,
-      "support_level": 6,
-      "clarity_level": 4,
-      "recovery_actions": [
-        "Clarify the next decision owner",
-        "Break the work into a 48-hour recovery task",
-        "Document unresolved assumptions",
-        "Schedule a short review with stakeholders"
-      ],
-      "time_horizon_days": 14,
-      "review_status": "draft"
+      "metadata": {
+        "record_id": "cgr_11111111111111111111111111111111",
+        "schema_version": "1.2.0",
+        "created_at": "2026-07-17T12:00:00Z",
+        "updated_at": "2026-07-17T12:00:00Z",
+        "status": "draft",
+        "provenance": {
+          "created_by": "example-user",
+          "source": "direct_entry",
+          "source_schema_version": "1.2.0",
+          "source_record_id": null,
+          "notes": "Canonical recovery-record example."
+        }
+      },
+      "input": {
+        "context": {
+          "title": "Sustainability reporting project recovery",
+          "domain": "project",
+          "description": "The workstream lost momentum after conflicting stakeholder feedback and a missed internal checkpoint.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 7,
+          "scope": "project",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 8,
+          "sources": [
+            "publication deadline",
+            "stakeholder disagreement"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "Final approval dependency",
+              "type": "dependency",
+              "controllability": "influence"
+            },
+            {
+              "label": "Limited review window",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 6,
+          "available": [
+            {
+              "label": "Project lead",
+              "type": "person",
+              "reliability": 8
+            },
+            {
+              "label": "Decision log",
+              "type": "process",
+              "reliability": 7
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 5,
+          "clarity_level": 4,
+          "available_time_hours": 12,
+          "time_horizon_days": 14
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Clarify the next decision owner",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Break the work into a 48-hour recovery task",
+              "status": "in_progress",
+              "owner": "reporting team",
+              "target_date": "2026-07-19"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Document unresolved assumptions",
+              "status": "planned",
+              "owner": "reporting team",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Schedule a short stakeholder review",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "human_review": {
+        "review_status": "not_reviewed",
+        "reviewer": null,
+        "reviewed_at": null,
+        "notes": "",
+        "accepted_findings": [],
+        "rejected_findings": [],
+        "override_state": null
+      },
+      "extensions": {}
     },
     "expected": {
-      "challenge": "A sustainability reporting project lost momentum after conflicting stakeholder feedback and a missed internal deadline.",
-      "domain": "project",
-      "impact_severity": 7.0,
-      "pressure_level": 8.0,
-      "energy_level": 5.0,
-      "support_level": 6.0,
-      "clarity_level": 4.0,
-      "recovery_actions": [
-        "Clarify the next decision owner",
-        "Break the work into a 48-hour recovery task",
-        "Document unresolved assumptions",
-        "Schedule a short review with stakeholders"
-      ],
-      "time_horizon_days": 14,
-      "review_status": "draft",
-      "recovery_score": 52.3,
-      "resilience_state": "fragile recovery conditions",
-      "risk_flags": [
-        "High pressure: clarify what can pause, wait, or be delegated."
-      ],
-      "next_actions": [
-        "Clarify the next decision owner",
-        "Break the work into a 48-hour recovery task",
-        "Document unresolved assumptions",
-        "Schedule a short review with stakeholders",
-        "Write a one-sentence definition of what recovery means for this situation.",
-        "Reduce the work to one near-term checkpoint instead of a full reset."
-      ],
-      "decision_note": "Recovery conditions are assessed as fragile recovery conditions with a score of 52.3/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
-      "method_path": [
-        "setback",
-        "context",
-        "impact",
-        "pressure",
-        "support",
-        "response",
-        "recovery pattern",
-        "next action",
-        "review"
-      ],
-      "schema_version": "1.0.1",
-      "engine_version": "1.0.1"
+      "metadata": {
+        "record_id": "cgr_11111111111111111111111111111111",
+        "schema_version": "1.2.0",
+        "engine_version": "1.2.0",
+        "created_at": "2026-07-17T12:00:00Z",
+        "updated_at": "2026-07-17T12:00:00Z",
+        "status": "draft",
+        "provenance": {
+          "created_by": "example-user",
+          "source": "direct_entry",
+          "source_schema_version": "1.2.0",
+          "source_record_id": null,
+          "notes": "Canonical recovery-record example."
+        }
+      },
+      "user_input": {
+        "context": {
+          "title": "Sustainability reporting project recovery",
+          "domain": "project",
+          "description": "The workstream lost momentum after conflicting stakeholder feedback and a missed internal checkpoint.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 7,
+          "scope": "project",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 8,
+          "sources": [
+            "publication deadline",
+            "stakeholder disagreement"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "Final approval dependency",
+              "type": "dependency",
+              "controllability": "influence"
+            },
+            {
+              "label": "Limited review window",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 6,
+          "available": [
+            {
+              "label": "Project lead",
+              "type": "person",
+              "reliability": 8
+            },
+            {
+              "label": "Decision log",
+              "type": "process",
+              "reliability": 7
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 5,
+          "clarity_level": 4,
+          "available_time_hours": 12,
+          "time_horizon_days": 14
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Clarify the next decision owner",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Break the work into a 48-hour recovery task",
+              "status": "in_progress",
+              "owner": "reporting team",
+              "target_date": "2026-07-19"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Document unresolved assumptions",
+              "status": "planned",
+              "owner": "reporting team",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Schedule a short stakeholder review",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "normalized_input": {
+        "context": {
+          "title": "Sustainability reporting project recovery",
+          "domain": "project",
+          "description": "The workstream lost momentum after conflicting stakeholder feedback and a missed internal checkpoint.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 7.0,
+          "scope": "project",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 8.0,
+          "sources": [
+            "publication deadline",
+            "stakeholder disagreement"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "Final approval dependency",
+              "type": "dependency",
+              "controllability": "influence"
+            },
+            {
+              "label": "Limited review window",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 6.0,
+          "available": [
+            {
+              "label": "Project lead",
+              "type": "person",
+              "reliability": 8.0
+            },
+            {
+              "label": "Decision log",
+              "type": "process",
+              "reliability": 7.0
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 5.0,
+          "clarity_level": 4.0,
+          "available_time_hours": 12.0,
+          "time_horizon_days": 14
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Clarify the next decision owner",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Break the work into a 48-hour recovery task",
+              "status": "in_progress",
+              "owner": "reporting team",
+              "target_date": "2026-07-19"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Document unresolved assumptions",
+              "status": "planned",
+              "owner": "reporting team",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Schedule a short stakeholder review",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "findings": {
+        "methodology": {
+          "profile_id": "cg-recovery-conditions",
+          "profile_version": "1.2.0",
+          "calculation_spec": "weighted-components-v1",
+          "component_weights": {
+            "impact_buffer": 15.0,
+            "pressure_buffer": 15.0,
+            "energy_capacity": 15.0,
+            "support_capacity": 15.0,
+            "clarity_capacity": 15.0,
+            "action_readiness": 15.0,
+            "constraint_manageability": 10.0
+          },
+          "thresholds": {
+            "stable": 75.0,
+            "focused_support": 55.0,
+            "fragile": 35.0
+          }
+        },
+        "component_scores": {
+          "impact_buffer": {
+            "input_value": 7.0,
+            "normalized_value": 0.3333,
+            "weight": 15.0,
+            "weighted_score": 5.0,
+            "explanation": "Lower recorded impact leaves more near-term recovery room; severity remains visible separately."
+          },
+          "pressure_buffer": {
+            "input_value": 8.0,
+            "normalized_value": 0.2222,
+            "weight": 15.0,
+            "weighted_score": 3.3,
+            "explanation": "Lower recorded pressure increases the room available for deliberate recovery action."
+          },
+          "energy_capacity": {
+            "input_value": 5.0,
+            "normalized_value": 0.4444,
+            "weight": 15.0,
+            "weighted_score": 6.7,
+            "explanation": "Recorded energy is treated as available capacity, not motivation or character."
+          },
+          "support_capacity": {
+            "input_value": 6.0,
+            "normalized_value": 0.5556,
+            "weight": 15.0,
+            "weighted_score": 8.3,
+            "explanation": "Recorded access to support increases recovery capacity."
+          },
+          "clarity_capacity": {
+            "input_value": 4.0,
+            "normalized_value": 0.3333,
+            "weight": 15.0,
+            "weighted_score": 5.0,
+            "explanation": "Recorded clarity supports prioritization and a bounded next step."
+          },
+          "action_readiness": {
+            "input_value": 4,
+            "normalized_value": 1.0,
+            "weight": 15.0,
+            "weighted_score": 15.0,
+            "explanation": "Readiness increases with up to four distinct response or next-step actions."
+          },
+          "constraint_manageability": {
+            "input_value": 2,
+            "normalized_value": 0.45,
+            "weight": 10.0,
+            "weighted_score": 4.5,
+            "explanation": "Manageability reflects the recorded controllability of constraints; no listed constraints defaults to full manageability."
+          }
+        },
+        "recovery_score": 47.8,
+        "generated_state": "fragile recovery conditions",
+        "effective_state": "fragile recovery conditions",
+        "human_override_applied": false,
+        "flags": [
+          {
+            "code": "high_pressure",
+            "severity": "high",
+            "section": "pressure",
+            "message": "Clarify what can pause, wait, or be delegated.",
+            "rationale": "Pressure is recorded at 8 or above."
+          }
+        ],
+        "recommended_actions": [
+          {
+            "code": "user_action_1",
+            "title": "Document unresolved assumptions",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "high"
+          },
+          {
+            "code": "user_action_2",
+            "title": "Schedule a short stakeholder review",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "user_action_3",
+            "title": "Clarify the next decision owner",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "user_action_4",
+            "title": "Break the work into a 48-hour recovery task",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "define_recovery",
+            "title": "Write a one-sentence definition of recovery for this situation.",
+            "rationale": "Clarity is at or below the midpoint.",
+            "source": "engine",
+            "priority": "high"
+          },
+          {
+            "code": "bound_checkpoint",
+            "title": "Reduce the work to one near-term checkpoint instead of a full reset.",
+            "rationale": "Pressure is elevated.",
+            "source": "engine",
+            "priority": "high"
+          }
+        ],
+        "decision_note": "Recorded recovery conditions are assessed as fragile recovery conditions with a conditions score of 47.8/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
+        "method_path": [
+          "context",
+          "trigger",
+          "impact",
+          "pressure",
+          "constraints",
+          "supports",
+          "capacity",
+          "response",
+          "learning",
+          "next steps",
+          "human review"
+        ],
+        "interpretation_limits": [
+          "Describes recorded recovery conditions, not a person's character.",
+          "Does not diagnose mental health, predict outcomes, or replace professional support.",
+          "Must not be used for employee ranking, automated eligibility, or performance evaluation.",
+          "Generated findings require human review when used for consequential decisions."
+        ],
+        "calculation_provenance": {
+          "schema_version": "1.2.0",
+          "engine_version": "1.2.0",
+          "profile_id": "cg-recovery-conditions",
+          "profile_version": "1.2.0",
+          "calculated_at": "2026-07-17T12:00:00Z"
+        }
+      },
+      "human_review": {
+        "review_status": "not_reviewed",
+        "reviewer": null,
+        "reviewed_at": null,
+        "notes": "",
+        "accepted_findings": [],
+        "rejected_findings": [],
+        "override_state": null
+      },
+      "extensions": {}
     }
   },
   {
-    "name": "stable",
+    "name": "stable-reviewed",
     "input": {
-      "challenge": "A delayed workstream now has a clear owner and restored capacity.",
-      "domain": "work",
-      "impact_severity": 2,
-      "pressure_level": 2,
-      "energy_level": 9,
-      "support_level": 9,
-      "clarity_level": 9,
-      "recovery_actions": [
-        "Complete the next checkpoint",
-        "Confirm dependencies",
-        "Review lessons",
-        "Publish update"
-      ],
-      "time_horizon_days": 21,
-      "review_status": "reviewed"
+      "metadata": {
+        "record_id": "cgr_22222222222222222222222222222222",
+        "schema_version": "1.2.0",
+        "created_at": "2026-07-10T10:00:00Z",
+        "updated_at": "2026-07-17T13:00:00Z",
+        "status": "reviewed",
+        "provenance": {
+          "created_by": "example-user",
+          "source": "direct_entry",
+          "source_schema_version": "1.2.0",
+          "source_record_id": null,
+          "notes": "Canonical recovery-record example."
+        }
+      },
+      "input": {
+        "context": {
+          "title": "Recovered workstream",
+          "domain": "work",
+          "description": "Ownership and capacity were restored.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "A delayed handoff was resolved.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 2,
+          "scope": "workstream",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 2,
+          "sources": []
+        },
+        "constraints": {
+          "items": []
+        },
+        "supports": {
+          "level": 9,
+          "available": [
+            {
+              "label": "Delivery team",
+              "type": "team",
+              "reliability": 9
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 9,
+          "clarity_level": 9,
+          "available_time_hours": 30,
+          "time_horizon_days": 21
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Complete next checkpoint",
+              "status": "in_progress",
+              "owner": "team",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Confirm dependencies",
+              "status": "completed",
+              "owner": "lead",
+              "target_date": "2026-07-16"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Publish update",
+              "status": "planned",
+              "owner": "lead",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Review lessons",
+              "status": "planned",
+              "owner": "team",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "human_review": {
+        "review_status": "reviewed",
+        "reviewer": "facilitator",
+        "reviewed_at": "2026-07-17T13:00:00Z",
+        "notes": "",
+        "accepted_findings": [
+          "generated_state"
+        ],
+        "rejected_findings": [],
+        "override_state": null
+      },
+      "extensions": {}
     },
     "expected": {
-      "challenge": "A delayed workstream now has a clear owner and restored capacity.",
-      "domain": "work",
-      "impact_severity": 2.0,
-      "pressure_level": 2.0,
-      "energy_level": 9.0,
-      "support_level": 9.0,
-      "clarity_level": 9.0,
-      "recovery_actions": [
-        "Complete the next checkpoint",
-        "Confirm dependencies",
-        "Review lessons",
-        "Publish update"
-      ],
-      "time_horizon_days": 21,
-      "review_status": "reviewed",
-      "recovery_score": 96.9,
-      "resilience_state": "stable recovery conditions",
-      "risk_flags": [],
-      "next_actions": [
-        "Complete the next checkpoint",
-        "Confirm dependencies",
-        "Review lessons",
-        "Publish update"
-      ],
-      "decision_note": "Recovery conditions are assessed as stable recovery conditions with a score of 96.9/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
-      "method_path": [
-        "setback",
-        "context",
-        "impact",
-        "pressure",
-        "support",
-        "response",
-        "recovery pattern",
-        "next action",
-        "review"
-      ],
-      "schema_version": "1.0.1",
-      "engine_version": "1.0.1"
+      "metadata": {
+        "record_id": "cgr_22222222222222222222222222222222",
+        "schema_version": "1.2.0",
+        "engine_version": "1.2.0",
+        "created_at": "2026-07-10T10:00:00Z",
+        "updated_at": "2026-07-17T13:00:00Z",
+        "status": "reviewed",
+        "provenance": {
+          "created_by": "example-user",
+          "source": "direct_entry",
+          "source_schema_version": "1.2.0",
+          "source_record_id": null,
+          "notes": "Canonical recovery-record example."
+        }
+      },
+      "user_input": {
+        "context": {
+          "title": "Recovered workstream",
+          "domain": "work",
+          "description": "Ownership and capacity were restored.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "A delayed handoff was resolved.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 2,
+          "scope": "workstream",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 2,
+          "sources": []
+        },
+        "constraints": {
+          "items": []
+        },
+        "supports": {
+          "level": 9,
+          "available": [
+            {
+              "label": "Delivery team",
+              "type": "team",
+              "reliability": 9
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 9,
+          "clarity_level": 9,
+          "available_time_hours": 30,
+          "time_horizon_days": 21
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Complete next checkpoint",
+              "status": "in_progress",
+              "owner": "team",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Confirm dependencies",
+              "status": "completed",
+              "owner": "lead",
+              "target_date": "2026-07-16"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Publish update",
+              "status": "planned",
+              "owner": "lead",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Review lessons",
+              "status": "planned",
+              "owner": "team",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "normalized_input": {
+        "context": {
+          "title": "Recovered workstream",
+          "domain": "work",
+          "description": "Ownership and capacity were restored.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "A delayed handoff was resolved.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 2.0,
+          "scope": "workstream",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 2.0,
+          "sources": []
+        },
+        "constraints": {
+          "items": []
+        },
+        "supports": {
+          "level": 9.0,
+          "available": [
+            {
+              "label": "Delivery team",
+              "type": "team",
+              "reliability": 9.0
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 9.0,
+          "clarity_level": 9.0,
+          "available_time_hours": 30.0,
+          "time_horizon_days": 21
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Complete next checkpoint",
+              "status": "in_progress",
+              "owner": "team",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Confirm dependencies",
+              "status": "completed",
+              "owner": "lead",
+              "target_date": "2026-07-16"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Publish update",
+              "status": "planned",
+              "owner": "lead",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Review lessons",
+              "status": "planned",
+              "owner": "team",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "findings": {
+        "methodology": {
+          "profile_id": "cg-recovery-conditions",
+          "profile_version": "1.2.0",
+          "calculation_spec": "weighted-components-v1",
+          "component_weights": {
+            "impact_buffer": 15.0,
+            "pressure_buffer": 15.0,
+            "energy_capacity": 15.0,
+            "support_capacity": 15.0,
+            "clarity_capacity": 15.0,
+            "action_readiness": 15.0,
+            "constraint_manageability": 10.0
+          },
+          "thresholds": {
+            "stable": 75.0,
+            "focused_support": 55.0,
+            "fragile": 35.0
+          }
+        },
+        "component_scores": {
+          "impact_buffer": {
+            "input_value": 2.0,
+            "normalized_value": 0.8889,
+            "weight": 15.0,
+            "weighted_score": 13.3,
+            "explanation": "Lower recorded impact leaves more near-term recovery room; severity remains visible separately."
+          },
+          "pressure_buffer": {
+            "input_value": 2.0,
+            "normalized_value": 0.8889,
+            "weight": 15.0,
+            "weighted_score": 13.3,
+            "explanation": "Lower recorded pressure increases the room available for deliberate recovery action."
+          },
+          "energy_capacity": {
+            "input_value": 9.0,
+            "normalized_value": 0.8889,
+            "weight": 15.0,
+            "weighted_score": 13.3,
+            "explanation": "Recorded energy is treated as available capacity, not motivation or character."
+          },
+          "support_capacity": {
+            "input_value": 9.0,
+            "normalized_value": 0.8889,
+            "weight": 15.0,
+            "weighted_score": 13.3,
+            "explanation": "Recorded access to support increases recovery capacity."
+          },
+          "clarity_capacity": {
+            "input_value": 9.0,
+            "normalized_value": 0.8889,
+            "weight": 15.0,
+            "weighted_score": 13.3,
+            "explanation": "Recorded clarity supports prioritization and a bounded next step."
+          },
+          "action_readiness": {
+            "input_value": 4,
+            "normalized_value": 1.0,
+            "weight": 15.0,
+            "weighted_score": 15.0,
+            "explanation": "Readiness increases with up to four distinct response or next-step actions."
+          },
+          "constraint_manageability": {
+            "input_value": 0,
+            "normalized_value": 1.0,
+            "weight": 10.0,
+            "weighted_score": 10.0,
+            "explanation": "Manageability reflects the recorded controllability of constraints; no listed constraints defaults to full manageability."
+          }
+        },
+        "recovery_score": 91.7,
+        "generated_state": "stable recovery conditions",
+        "effective_state": "stable recovery conditions",
+        "human_override_applied": false,
+        "flags": [],
+        "recommended_actions": [
+          {
+            "code": "user_action_1",
+            "title": "Publish update",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "high"
+          },
+          {
+            "code": "user_action_2",
+            "title": "Review lessons",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "user_action_3",
+            "title": "Complete next checkpoint",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "user_action_4",
+            "title": "Confirm dependencies",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          }
+        ],
+        "decision_note": "Recorded recovery conditions are assessed as stable recovery conditions with a conditions score of 91.7/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
+        "method_path": [
+          "context",
+          "trigger",
+          "impact",
+          "pressure",
+          "constraints",
+          "supports",
+          "capacity",
+          "response",
+          "learning",
+          "next steps",
+          "human review"
+        ],
+        "interpretation_limits": [
+          "Describes recorded recovery conditions, not a person's character.",
+          "Does not diagnose mental health, predict outcomes, or replace professional support.",
+          "Must not be used for employee ranking, automated eligibility, or performance evaluation.",
+          "Generated findings require human review when used for consequential decisions."
+        ],
+        "calculation_provenance": {
+          "schema_version": "1.2.0",
+          "engine_version": "1.2.0",
+          "profile_id": "cg-recovery-conditions",
+          "profile_version": "1.2.0",
+          "calculated_at": "2026-07-17T13:00:00Z"
+        }
+      },
+      "human_review": {
+        "review_status": "reviewed",
+        "reviewer": "facilitator",
+        "reviewed_at": "2026-07-17T13:00:00Z",
+        "notes": "",
+        "accepted_findings": [
+          "generated_state"
+        ],
+        "rejected_findings": [],
+        "override_state": null
+      },
+      "extensions": {}
     }
   },
   {
     "name": "high-friction",
     "input": {
-      "challenge": "A critical handoff failed under severe time pressure.",
-      "domain": "project",
-      "impact_severity": 10,
-      "pressure_level": 10,
-      "energy_level": 1,
-      "support_level": 1,
-      "clarity_level": 1,
-      "recovery_actions": [],
-      "time_horizon_days": 2,
-      "review_status": "needs_review"
+      "metadata": {
+        "record_id": "cgr_33333333333333333333333333333333",
+        "schema_version": "1.2.0",
+        "created_at": "2026-07-17T08:00:00Z",
+        "updated_at": "2026-07-17T08:00:00Z",
+        "status": "under_review",
+        "provenance": {
+          "created_by": "example-user",
+          "source": "direct_entry",
+          "source_schema_version": "1.2.0",
+          "source_record_id": null,
+          "notes": "Canonical recovery-record example."
+        }
+      },
+      "input": {
+        "context": {
+          "title": "Critical handoff recovery",
+          "domain": "project",
+          "description": "A critical handoff failed under severe time pressure.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "The handoff failed before a fixed deadline.",
+          "type": "setback",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 10,
+          "scope": "multi_system",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 10,
+          "sources": [
+            "fixed deadline",
+            "unresolved dependency"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "External approval",
+              "type": "dependency",
+              "controllability": "limited"
+            },
+            {
+              "label": "Fixed deadline",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 1,
+          "available": []
+        },
+        "capacity": {
+          "energy_level": 1,
+          "clarity_level": 1,
+          "available_time_hours": 1,
+          "time_horizon_days": 2
+        },
+        "response": {
+          "actions": [],
+          "current_strategy": ""
+        },
+        "learning": {
+          "observations": [],
+          "assumptions": [],
+          "adaptations": []
+        },
+        "next_steps": {
+          "actions": [],
+          "checkpoint_date": null,
+          "success_signal": ""
+        }
+      },
+      "human_review": {
+        "review_status": "needs_review",
+        "reviewer": null,
+        "reviewed_at": null,
+        "notes": "",
+        "accepted_findings": [],
+        "rejected_findings": [],
+        "override_state": null
+      },
+      "extensions": {}
     },
     "expected": {
-      "challenge": "A critical handoff failed under severe time pressure.",
-      "domain": "project",
-      "impact_severity": 10,
-      "pressure_level": 10,
-      "energy_level": 1,
-      "support_level": 1,
-      "clarity_level": 1,
-      "recovery_actions": [
-        "Name the smallest recoverable next step",
-        "Review support and constraints",
-        "Schedule a short follow-up review"
-      ],
-      "time_horizon_days": 2,
-      "review_status": "needs_review",
-      "recovery_score": 14.4,
-      "resilience_state": "high-friction recovery conditions",
-      "risk_flags": [
-        "High impact severity: reduce scope and protect recovery time.",
-        "High pressure: clarify what can pause, wait, or be delegated.",
-        "Low energy: avoid overloading the next action plan.",
-        "Low support: identify one concrete support channel before expanding work.",
-        "Low clarity: define the decision, owner, and next checkpoint.",
-        "Very short horizon: choose a recovery action that can be completed quickly."
-      ],
-      "next_actions": [
-        "Name the smallest recoverable next step",
-        "Review support and constraints",
-        "Schedule a short follow-up review",
-        "Write a one-sentence definition of what recovery means for this situation.",
-        "Ask for one specific form of support or remove one friction point.",
-        "Reduce the work to one near-term checkpoint instead of a full reset."
-      ],
-      "decision_note": "Recovery conditions are assessed as high-friction recovery conditions with a score of 14.4/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
-      "method_path": [
-        "setback",
-        "context",
-        "impact",
-        "pressure",
-        "support",
-        "response",
-        "recovery pattern",
-        "next action",
-        "review"
-      ],
-      "schema_version": "1.0.1",
-      "engine_version": "1.0.1"
+      "metadata": {
+        "record_id": "cgr_33333333333333333333333333333333",
+        "schema_version": "1.2.0",
+        "engine_version": "1.2.0",
+        "created_at": "2026-07-17T08:00:00Z",
+        "updated_at": "2026-07-17T08:00:00Z",
+        "status": "under_review",
+        "provenance": {
+          "created_by": "example-user",
+          "source": "direct_entry",
+          "source_schema_version": "1.2.0",
+          "source_record_id": null,
+          "notes": "Canonical recovery-record example."
+        }
+      },
+      "user_input": {
+        "context": {
+          "title": "Critical handoff recovery",
+          "domain": "project",
+          "description": "A critical handoff failed under severe time pressure.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "The handoff failed before a fixed deadline.",
+          "type": "setback",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 10,
+          "scope": "multi_system",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 10,
+          "sources": [
+            "fixed deadline",
+            "unresolved dependency"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "External approval",
+              "type": "dependency",
+              "controllability": "limited"
+            },
+            {
+              "label": "Fixed deadline",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 1,
+          "available": []
+        },
+        "capacity": {
+          "energy_level": 1,
+          "clarity_level": 1,
+          "available_time_hours": 1,
+          "time_horizon_days": 2
+        },
+        "response": {
+          "actions": [],
+          "current_strategy": ""
+        },
+        "learning": {
+          "observations": [],
+          "assumptions": [],
+          "adaptations": []
+        },
+        "next_steps": {
+          "actions": [],
+          "checkpoint_date": null,
+          "success_signal": ""
+        }
+      },
+      "normalized_input": {
+        "context": {
+          "title": "Critical handoff recovery",
+          "domain": "project",
+          "description": "A critical handoff failed under severe time pressure.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "The handoff failed before a fixed deadline.",
+          "type": "setback",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 10,
+          "scope": "multi_system",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 10,
+          "sources": [
+            "fixed deadline",
+            "unresolved dependency"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "External approval",
+              "type": "dependency",
+              "controllability": "limited"
+            },
+            {
+              "label": "Fixed deadline",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 1,
+          "available": []
+        },
+        "capacity": {
+          "energy_level": 1,
+          "clarity_level": 1,
+          "available_time_hours": 1.0,
+          "time_horizon_days": 2
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Name the smallest recoverable next step",
+              "status": "planned",
+              "owner": null,
+              "target_date": null
+            },
+            {
+              "title": "Review support and constraints",
+              "status": "planned",
+              "owner": null,
+              "target_date": null
+            },
+            {
+              "title": "Schedule a short follow-up review",
+              "status": "planned",
+              "owner": null,
+              "target_date": null
+            }
+          ],
+          "current_strategy": ""
+        },
+        "learning": {
+          "observations": [],
+          "assumptions": [],
+          "adaptations": []
+        },
+        "next_steps": {
+          "actions": [],
+          "checkpoint_date": null,
+          "success_signal": ""
+        }
+      },
+      "findings": {
+        "methodology": {
+          "profile_id": "cg-recovery-conditions",
+          "profile_version": "1.2.0",
+          "calculation_spec": "weighted-components-v1",
+          "component_weights": {
+            "impact_buffer": 15.0,
+            "pressure_buffer": 15.0,
+            "energy_capacity": 15.0,
+            "support_capacity": 15.0,
+            "clarity_capacity": 15.0,
+            "action_readiness": 15.0,
+            "constraint_manageability": 10.0
+          },
+          "thresholds": {
+            "stable": 75.0,
+            "focused_support": 55.0,
+            "fragile": 35.0
+          }
+        },
+        "component_scores": {
+          "impact_buffer": {
+            "input_value": 10,
+            "normalized_value": 0.0,
+            "weight": 15.0,
+            "weighted_score": 0.0,
+            "explanation": "Lower recorded impact leaves more near-term recovery room; severity remains visible separately."
+          },
+          "pressure_buffer": {
+            "input_value": 10,
+            "normalized_value": 0.0,
+            "weight": 15.0,
+            "weighted_score": 0.0,
+            "explanation": "Lower recorded pressure increases the room available for deliberate recovery action."
+          },
+          "energy_capacity": {
+            "input_value": 1,
+            "normalized_value": 0.0,
+            "weight": 15.0,
+            "weighted_score": 0.0,
+            "explanation": "Recorded energy is treated as available capacity, not motivation or character."
+          },
+          "support_capacity": {
+            "input_value": 1,
+            "normalized_value": 0.0,
+            "weight": 15.0,
+            "weighted_score": 0.0,
+            "explanation": "Recorded access to support increases recovery capacity."
+          },
+          "clarity_capacity": {
+            "input_value": 1,
+            "normalized_value": 0.0,
+            "weight": 15.0,
+            "weighted_score": 0.0,
+            "explanation": "Recorded clarity supports prioritization and a bounded next step."
+          },
+          "action_readiness": {
+            "input_value": 3,
+            "normalized_value": 0.75,
+            "weight": 15.0,
+            "weighted_score": 11.3,
+            "explanation": "Readiness increases with up to four distinct response or next-step actions."
+          },
+          "constraint_manageability": {
+            "input_value": 2,
+            "normalized_value": 0.25,
+            "weight": 10.0,
+            "weighted_score": 2.5,
+            "explanation": "Manageability reflects the recorded controllability of constraints; no listed constraints defaults to full manageability."
+          }
+        },
+        "recovery_score": 13.8,
+        "generated_state": "high-friction recovery conditions",
+        "effective_state": "high-friction recovery conditions",
+        "human_override_applied": false,
+        "flags": [
+          {
+            "code": "high_impact",
+            "severity": "high",
+            "section": "impact",
+            "message": "Reduce scope and protect recovery time.",
+            "rationale": "Impact severity is recorded at 8 or above."
+          },
+          {
+            "code": "high_pressure",
+            "severity": "high",
+            "section": "pressure",
+            "message": "Clarify what can pause, wait, or be delegated.",
+            "rationale": "Pressure is recorded at 8 or above."
+          },
+          {
+            "code": "low_energy_capacity",
+            "severity": "high",
+            "section": "capacity",
+            "message": "Avoid overloading the next action plan.",
+            "rationale": "Energy capacity is recorded at 3 or below."
+          },
+          {
+            "code": "low_support_capacity",
+            "severity": "high",
+            "section": "supports",
+            "message": "Identify one concrete support channel before expanding work.",
+            "rationale": "Support capacity is recorded at 3 or below."
+          },
+          {
+            "code": "low_clarity_capacity",
+            "severity": "high",
+            "section": "capacity",
+            "message": "Define the decision, owner, and next checkpoint.",
+            "rationale": "Clarity is recorded at 3 or below."
+          },
+          {
+            "code": "short_horizon",
+            "severity": "medium",
+            "section": "capacity",
+            "message": "Choose a recovery action that can be completed quickly.",
+            "rationale": "The time horizon is three days or less."
+          },
+          {
+            "code": "limited_constraints",
+            "severity": "medium",
+            "section": "constraints",
+            "message": "Separate controllable work from constraints that require escalation or accommodation.",
+            "rationale": "Two or more constraints are recorded as having limited controllability."
+          }
+        ],
+        "recommended_actions": [
+          {
+            "code": "user_action_1",
+            "title": "Name the smallest recoverable next step",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "high"
+          },
+          {
+            "code": "user_action_2",
+            "title": "Review support and constraints",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "user_action_3",
+            "title": "Schedule a short follow-up review",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "define_recovery",
+            "title": "Write a one-sentence definition of recovery for this situation.",
+            "rationale": "Clarity is at or below the midpoint.",
+            "source": "engine",
+            "priority": "high"
+          },
+          {
+            "code": "request_support",
+            "title": "Ask for one specific form of support or remove one friction point.",
+            "rationale": "Support is at or below the midpoint.",
+            "source": "engine",
+            "priority": "high"
+          },
+          {
+            "code": "bound_checkpoint",
+            "title": "Reduce the work to one near-term checkpoint instead of a full reset.",
+            "rationale": "Pressure is elevated.",
+            "source": "engine",
+            "priority": "high"
+          }
+        ],
+        "decision_note": "Recorded recovery conditions are assessed as high-friction recovery conditions with a conditions score of 13.8/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
+        "method_path": [
+          "context",
+          "trigger",
+          "impact",
+          "pressure",
+          "constraints",
+          "supports",
+          "capacity",
+          "response",
+          "learning",
+          "next steps",
+          "human review"
+        ],
+        "interpretation_limits": [
+          "Describes recorded recovery conditions, not a person's character.",
+          "Does not diagnose mental health, predict outcomes, or replace professional support.",
+          "Must not be used for employee ranking, automated eligibility, or performance evaluation.",
+          "Generated findings require human review when used for consequential decisions."
+        ],
+        "calculation_provenance": {
+          "schema_version": "1.2.0",
+          "engine_version": "1.2.0",
+          "profile_id": "cg-recovery-conditions",
+          "profile_version": "1.2.0",
+          "calculated_at": "2026-07-17T08:00:00Z"
+        }
+      },
+      "human_review": {
+        "review_status": "needs_review",
+        "reviewer": null,
+        "reviewed_at": null,
+        "notes": "",
+        "accepted_findings": [],
+        "rejected_findings": [],
+        "override_state": null
+      },
+      "extensions": {}
     }
   },
   {
-    "name": "defaults-and-clamping",
+    "name": "custom-profile-and-extension",
     "input": {
-      "challenge": "",
-      "domain": "other",
-      "impact_severity": 99,
-      "pressure_level": -10,
-      "energy_level": 11,
-      "support_level": 0,
-      "clarity_level": 5,
-      "recovery_actions": "Pause\nAsk for context\n",
-      "time_horizon_days": 0,
-      "review_status": "draft"
+      "metadata": {
+        "record_id": "cgr_44444444444444444444444444444444",
+        "schema_version": "1.2.0",
+        "created_at": "2026-07-17T14:00:00Z",
+        "updated_at": "2026-07-17T14:00:00Z",
+        "status": "active",
+        "provenance": {
+          "created_by": "example-user",
+          "source": "direct_entry",
+          "source_schema_version": "1.2.0",
+          "source_record_id": null,
+          "notes": "Canonical recovery-record example."
+        }
+      },
+      "input": {
+        "context": {
+          "title": "Sustainability reporting project recovery",
+          "domain": "project",
+          "description": "The workstream lost momentum after conflicting stakeholder feedback and a missed internal checkpoint.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 7,
+          "scope": "project",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 8,
+          "sources": [
+            "publication deadline",
+            "stakeholder disagreement"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "Final approval dependency",
+              "type": "dependency",
+              "controllability": "influence"
+            },
+            {
+              "label": "Limited review window",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 6,
+          "available": [
+            {
+              "label": "Project lead",
+              "type": "person",
+              "reliability": 8
+            },
+            {
+              "label": "Decision log",
+              "type": "process",
+              "reliability": 7
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 5,
+          "clarity_level": 4,
+          "available_time_hours": 12,
+          "time_horizon_days": 14
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Clarify the next decision owner",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Break the work into a 48-hour recovery task",
+              "status": "in_progress",
+              "owner": "reporting team",
+              "target_date": "2026-07-19"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Document unresolved assumptions",
+              "status": "planned",
+              "owner": "reporting team",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Schedule a short stakeholder review",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "human_review": {
+        "review_status": "not_reviewed",
+        "reviewer": null,
+        "reviewed_at": null,
+        "notes": "",
+        "accepted_findings": [],
+        "rejected_findings": [],
+        "override_state": null
+      },
+      "extensions": {
+        "org.sustainablecatalyst.case-label": "pilot"
+      },
+      "methodology_profile": {
+        "profile_id": "cg-pilot-thresholds",
+        "profile_version": "1.2.0-pilot",
+        "calculation_spec": "weighted-components-v1",
+        "component_weights": {
+          "impact_buffer": 10,
+          "pressure_buffer": 10,
+          "energy_capacity": 15,
+          "support_capacity": 20,
+          "clarity_capacity": 20,
+          "action_readiness": 15,
+          "constraint_manageability": 10
+        },
+        "thresholds": {
+          "stable": 45,
+          "focused_support": 30,
+          "fragile": 15
+        }
+      }
     },
     "expected": {
-      "challenge": "Unspecified challenge",
-      "domain": "other",
-      "impact_severity": 10,
-      "pressure_level": 1,
-      "energy_level": 10,
-      "support_level": 1,
-      "clarity_level": 5.0,
-      "recovery_actions": [
-        "Pause",
-        "Ask for context"
-      ],
-      "time_horizon_days": 1,
-      "review_status": "draft",
-      "recovery_score": 53.9,
-      "resilience_state": "fragile recovery conditions",
-      "risk_flags": [
-        "High impact severity: reduce scope and protect recovery time.",
-        "Low support: identify one concrete support channel before expanding work.",
-        "Very short horizon: choose a recovery action that can be completed quickly."
-      ],
-      "next_actions": [
-        "Pause",
-        "Ask for context",
-        "Write a one-sentence definition of what recovery means for this situation.",
-        "Ask for one specific form of support or remove one friction point."
-      ],
-      "decision_note": "Recovery conditions are assessed as fragile recovery conditions with a score of 53.9/100. Use this as a structured reflection record: clarify the next action, protect recovery capacity, review support, and update the plan after the next checkpoint.",
-      "method_path": [
-        "setback",
-        "context",
-        "impact",
-        "pressure",
-        "support",
-        "response",
-        "recovery pattern",
-        "next action",
-        "review"
-      ],
-      "schema_version": "1.0.1",
-      "engine_version": "1.0.1"
+      "metadata": {
+        "record_id": "cgr_44444444444444444444444444444444",
+        "schema_version": "1.2.0",
+        "engine_version": "1.2.0",
+        "created_at": "2026-07-17T14:00:00Z",
+        "updated_at": "2026-07-17T14:00:00Z",
+        "status": "active",
+        "provenance": {
+          "created_by": "example-user",
+          "source": "direct_entry",
+          "source_schema_version": "1.2.0",
+          "source_record_id": null,
+          "notes": "Canonical recovery-record example."
+        }
+      },
+      "user_input": {
+        "context": {
+          "title": "Sustainability reporting project recovery",
+          "domain": "project",
+          "description": "The workstream lost momentum after conflicting stakeholder feedback and a missed internal checkpoint.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 7,
+          "scope": "project",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 8,
+          "sources": [
+            "publication deadline",
+            "stakeholder disagreement"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "Final approval dependency",
+              "type": "dependency",
+              "controllability": "influence"
+            },
+            {
+              "label": "Limited review window",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 6,
+          "available": [
+            {
+              "label": "Project lead",
+              "type": "person",
+              "reliability": 8
+            },
+            {
+              "label": "Decision log",
+              "type": "process",
+              "reliability": 7
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 5,
+          "clarity_level": 4,
+          "available_time_hours": 12,
+          "time_horizon_days": 14
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Clarify the next decision owner",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Break the work into a 48-hour recovery task",
+              "status": "in_progress",
+              "owner": "reporting team",
+              "target_date": "2026-07-19"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Document unresolved assumptions",
+              "status": "planned",
+              "owner": "reporting team",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Schedule a short stakeholder review",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "normalized_input": {
+        "context": {
+          "title": "Sustainability reporting project recovery",
+          "domain": "project",
+          "description": "The workstream lost momentum after conflicting stakeholder feedback and a missed internal checkpoint.",
+          "stakeholders": [
+            "project lead",
+            "reporting team",
+            "reviewers"
+          ]
+        },
+        "trigger": {
+          "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
+          "type": "delay",
+          "occurred_at": "2026-07-15T15:00:00Z"
+        },
+        "impact": {
+          "severity": 7.0,
+          "scope": "project",
+          "description": "The publication timeline moved and ownership became unclear."
+        },
+        "pressure": {
+          "level": 8.0,
+          "sources": [
+            "publication deadline",
+            "stakeholder disagreement"
+          ]
+        },
+        "constraints": {
+          "items": [
+            {
+              "label": "Final approval dependency",
+              "type": "dependency",
+              "controllability": "influence"
+            },
+            {
+              "label": "Limited review window",
+              "type": "time",
+              "controllability": "limited"
+            }
+          ]
+        },
+        "supports": {
+          "level": 6.0,
+          "available": [
+            {
+              "label": "Project lead",
+              "type": "person",
+              "reliability": 8.0
+            },
+            {
+              "label": "Decision log",
+              "type": "process",
+              "reliability": 7.0
+            }
+          ]
+        },
+        "capacity": {
+          "energy_level": 5.0,
+          "clarity_level": 4.0,
+          "available_time_hours": 12.0,
+          "time_horizon_days": 14
+        },
+        "response": {
+          "actions": [
+            {
+              "title": "Clarify the next decision owner",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-20"
+            },
+            {
+              "title": "Break the work into a 48-hour recovery task",
+              "status": "in_progress",
+              "owner": "reporting team",
+              "target_date": "2026-07-19"
+            }
+          ],
+          "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+        },
+        "learning": {
+          "observations": [
+            "Feedback arrived through multiple channels."
+          ],
+          "assumptions": [
+            "The final decision owner was understood by everyone."
+          ],
+          "adaptations": [
+            "Record the decision owner before the next review cycle."
+          ]
+        },
+        "next_steps": {
+          "actions": [
+            {
+              "title": "Document unresolved assumptions",
+              "status": "planned",
+              "owner": "reporting team",
+              "target_date": "2026-07-21"
+            },
+            {
+              "title": "Schedule a short stakeholder review",
+              "status": "planned",
+              "owner": "project lead",
+              "target_date": "2026-07-22"
+            }
+          ],
+          "checkpoint_date": "2026-07-24",
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+        }
+      },
+      "findings": {
+        "methodology": {
+          "profile_id": "cg-pilot-thresholds",
+          "profile_version": "1.2.0-pilot",
+          "calculation_spec": "weighted-components-v1",
+          "component_weights": {
+            "impact_buffer": 10.0,
+            "pressure_buffer": 10.0,
+            "energy_capacity": 15.0,
+            "support_capacity": 20.0,
+            "clarity_capacity": 20.0,
+            "action_readiness": 15.0,
+            "constraint_manageability": 10.0
+          },
+          "thresholds": {
+            "stable": 45.0,
+            "focused_support": 30.0,
+            "fragile": 15.0
+          }
+        },
+        "component_scores": {
+          "impact_buffer": {
+            "input_value": 7.0,
+            "normalized_value": 0.3333,
+            "weight": 10.0,
+            "weighted_score": 3.3,
+            "explanation": "Lower recorded impact leaves more near-term recovery room; severity remains visible separately."
+          },
+          "pressure_buffer": {
+            "input_value": 8.0,
+            "normalized_value": 0.2222,
+            "weight": 10.0,
+            "weighted_score": 2.2,
+            "explanation": "Lower recorded pressure increases the room available for deliberate recovery action."
+          },
+          "energy_capacity": {
+            "input_value": 5.0,
+            "normalized_value": 0.4444,
+            "weight": 15.0,
+            "weighted_score": 6.7,
+            "explanation": "Recorded energy is treated as available capacity, not motivation or character."
+          },
+          "support_capacity": {
+            "input_value": 6.0,
+            "normalized_value": 0.5556,
+            "weight": 20.0,
+            "weighted_score": 11.1,
+            "explanation": "Recorded access to support increases recovery capacity."
+          },
+          "clarity_capacity": {
+            "input_value": 4.0,
+            "normalized_value": 0.3333,
+            "weight": 20.0,
+            "weighted_score": 6.7,
+            "explanation": "Recorded clarity supports prioritization and a bounded next step."
+          },
+          "action_readiness": {
+            "input_value": 4,
+            "normalized_value": 1.0,
+            "weight": 15.0,
+            "weighted_score": 15.0,
+            "explanation": "Readiness increases with up to four distinct response or next-step actions."
+          },
+          "constraint_manageability": {
+            "input_value": 2,
+            "normalized_value": 0.45,
+            "weight": 10.0,
+            "weighted_score": 4.5,
+            "explanation": "Manageability reflects the recorded controllability of constraints; no listed constraints defaults to full manageability."
+          }
+        },
+        "recovery_score": 49.5,
+        "generated_state": "stable recovery conditions",
+        "effective_state": "stable recovery conditions",
+        "human_override_applied": false,
+        "flags": [
+          {
+            "code": "high_pressure",
+            "severity": "high",
+            "section": "pressure",
+            "message": "Clarify what can pause, wait, or be delegated.",
+            "rationale": "Pressure is recorded at 8 or above."
+          }
+        ],
+        "recommended_actions": [
+          {
+            "code": "user_action_1",
+            "title": "Document unresolved assumptions",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "high"
+          },
+          {
+            "code": "user_action_2",
+            "title": "Schedule a short stakeholder review",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "user_action_3",
+            "title": "Clarify the next decision owner",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "user_action_4",
+            "title": "Break the work into a 48-hour recovery task",
+            "rationale": "Preserved from the recorded response or next-step plan.",
+            "source": "user",
+            "priority": "medium"
+          },
+          {
+            "code": "define_recovery",
+            "title": "Write a one-sentence definition of recovery for this situation.",
+            "rationale": "Clarity is at or below the midpoint.",
+            "source": "engine",
+            "priority": "high"
+          },
+          {
+            "code": "bound_checkpoint",
+            "title": "Reduce the work to one near-term checkpoint instead of a full reset.",
+            "rationale": "Pressure is elevated.",
+            "source": "engine",
+            "priority": "high"
+          }
+        ],
+        "decision_note": "Recorded recovery conditions are assessed as stable recovery conditions with a conditions score of 49.5/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
+        "method_path": [
+          "context",
+          "trigger",
+          "impact",
+          "pressure",
+          "constraints",
+          "supports",
+          "capacity",
+          "response",
+          "learning",
+          "next steps",
+          "human review"
+        ],
+        "interpretation_limits": [
+          "Describes recorded recovery conditions, not a person's character.",
+          "Does not diagnose mental health, predict outcomes, or replace professional support.",
+          "Must not be used for employee ranking, automated eligibility, or performance evaluation.",
+          "Generated findings require human review when used for consequential decisions."
+        ],
+        "calculation_provenance": {
+          "schema_version": "1.2.0",
+          "engine_version": "1.2.0",
+          "profile_id": "cg-pilot-thresholds",
+          "profile_version": "1.2.0-pilot",
+          "calculated_at": "2026-07-17T14:00:00Z"
+        }
+      },
+      "human_review": {
+        "review_status": "not_reviewed",
+        "reviewer": null,
+        "reviewed_at": null,
+        "notes": "",
+        "accepted_findings": [],
+        "rejected_findings": [],
+        "override_state": null
+      },
+      "extensions": {
+        "org.sustainablecatalyst.case-label": "pilot"
+      }
     }
   }
 ]

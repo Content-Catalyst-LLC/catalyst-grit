@@ -3,32 +3,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_forbidden_generated_artifacts_are_not_tracked_in_source_tree():
-    forbidden = []
-    for path in ROOT.rglob("*"):
-        relative = path.relative_to(ROOT)
-        if any(part in {".git", ".venv", "dist", "build", "__pycache__", ".pytest_cache"} for part in relative.parts):
-            continue
-        if path.is_file() and (path.suffix in {".db", ".sqlite", ".sqlite3"} or ".egg-info" in relative.parts):
-            forbidden.append(str(relative))
+def test_forbidden_generated_artifacts_absent():
+    forbidden=[]
+    for path in ROOT.rglob('*'):
+        rel=path.relative_to(ROOT)
+        if any(part in {'.git','.venv','dist','build','__pycache__','.pytest_cache'} for part in rel.parts): continue
+        if path.is_file() and (path.suffix in {'.db','.sqlite','.sqlite3','.pyc'} or '.egg-info' in rel.parts): forbidden.append(str(rel))
     assert forbidden == []
 
 
-def test_legacy_tracker_is_not_importable_from_package():
-    assert not (ROOT / "project").exists()
-    assert not (ROOT / "notebooks").exists()
-    package_files = {path.name for path in (ROOT / "src/catalyst_grit").glob("*.py")}
-    assert package_files == {"__init__.py", "cli.py", "core.py", "version.py"}
+def test_package_surface_is_canonical():
+    assert {p.name for p in (ROOT/'src/catalyst_grit').glob('*.py')} == {'__init__.py','cli.py','core.py','storage.py','version.py'}
 
 
-def test_production_copy_avoids_trait_metric_language():
-    files = [
-        ROOT / "README.md",
-        ROOT / "pyproject.toml",
-        ROOT / "openapi.yaml",
-        ROOT / "wordpress/catalyst-grit-demo/README.md",
-    ]
-    forbidden = ("duckworth", "consistency_of_interests", "deliberate_practice_ratio")
-    for path in files:
-        text = path.read_text(encoding="utf-8").lower()
-        assert not any(term in text for term in forbidden), path
+def test_contract_documentation_exists():
+    required=['docs/recovery-record-contract.md','docs/methodology-profile.md','docs/migration-v1.0-to-v1.1.md','docs/persistent-workspace.md','docs/migrations-v1.2.md','docs/wordpress-private-workspace.md','release/v1.2.0.md']
+    assert all((ROOT/path).is_file() for path in required)

@@ -1,17 +1,87 @@
 {
-  "challenge": "A sustainability reporting project lost momentum after conflicting stakeholder feedback and a missed internal deadline.",
-  "domain": "project",
-  "impact_severity": 7,
-  "pressure_level": 8,
-  "energy_level": 5,
-  "support_level": 6,
-  "clarity_level": 4,
-  "recovery_actions": [
-    "Clarify the next decision owner",
-    "Break the work into a 48-hour recovery task",
-    "Document unresolved assumptions",
-    "Schedule a short review with stakeholders"
-  ],
-  "time_horizon_days": 14,
-  "review_status": "draft"
+  "metadata": {
+    "record_id": "cgr_11111111111111111111111111111111",
+    "schema_version": "1.2.0",
+    "created_at": "2026-07-17T12:00:00Z",
+    "updated_at": "2026-07-17T12:00:00Z",
+    "status": "draft",
+    "provenance": {
+      "created_by": "example-user",
+      "source": "direct_entry",
+      "source_schema_version": "1.2.0",
+      "source_record_id": null,
+      "notes": "Canonical recovery-record example."
+    }
+  },
+  "input": {
+    "context": {
+      "title": "Sustainability reporting project recovery",
+      "domain": "project",
+      "description": "The workstream lost momentum after conflicting stakeholder feedback and a missed internal checkpoint.",
+      "stakeholders": ["project lead", "reporting team", "reviewers"]
+    },
+    "trigger": {
+      "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
+      "type": "delay",
+      "occurred_at": "2026-07-15T15:00:00Z"
+    },
+    "impact": {
+      "severity": 7,
+      "scope": "project",
+      "description": "The publication timeline moved and ownership became unclear."
+    },
+    "pressure": {
+      "level": 8,
+      "sources": ["publication deadline", "stakeholder disagreement"]
+    },
+    "constraints": {
+      "items": [
+        {"label": "Final approval dependency", "type": "dependency", "controllability": "influence"},
+        {"label": "Limited review window", "type": "time", "controllability": "limited"}
+      ]
+    },
+    "supports": {
+      "level": 6,
+      "available": [
+        {"label": "Project lead", "type": "person", "reliability": 8},
+        {"label": "Decision log", "type": "process", "reliability": 7}
+      ]
+    },
+    "capacity": {
+      "energy_level": 5,
+      "clarity_level": 4,
+      "available_time_hours": 12,
+      "time_horizon_days": 14
+    },
+    "response": {
+      "actions": [
+        {"title": "Clarify the next decision owner", "status": "planned", "owner": "project lead", "target_date": "2026-07-20"},
+        {"title": "Break the work into a 48-hour recovery task", "status": "in_progress", "owner": "reporting team", "target_date": "2026-07-19"}
+      ],
+      "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
+    },
+    "learning": {
+      "observations": ["Feedback arrived through multiple channels."],
+      "assumptions": ["The final decision owner was understood by everyone."],
+      "adaptations": ["Record the decision owner before the next review cycle."]
+    },
+    "next_steps": {
+      "actions": [
+        {"title": "Document unresolved assumptions", "status": "planned", "owner": "reporting team", "target_date": "2026-07-21"},
+        {"title": "Schedule a short stakeholder review", "status": "planned", "owner": "project lead", "target_date": "2026-07-22"}
+      ],
+      "checkpoint_date": "2026-07-24",
+      "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+    }
+  },
+  "human_review": {
+    "review_status": "not_reviewed",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "",
+    "accepted_findings": [],
+    "rejected_findings": [],
+    "override_state": null
+  },
+  "extensions": {}
 }

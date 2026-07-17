@@ -1,0 +1,12 @@
+{
+  "challenge": "A project stalled after feedback changed.",
+  "domain": "project",
+  "impact_severity": 7,
+  "pressure_level": 8,
+  "energy_level": 5,
+  "support_level": 6,
+  "clarity_level": 4,
+  "recovery_actions": ["Clarify owner", "Set checkpoint"],
+  "time_horizon_days": 14,
+  "review_status": "draft"
+}

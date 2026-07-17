@@ -29,6 +29,7 @@ jobs:
         run: |
           node scripts/check_js_parity.js
           node --check wordpress/catalyst-grit-demo/assets/catalyst-grit-demo.js
+          node --check wordpress/catalyst-grit-demo/assets/catalyst-grit-workspace.js
       - name: Run PHP syntax when available
         run: |
           if command -v php >/dev/null 2>&1; then
@@ -38,14 +39,14 @@ jobs:
           fi
       - name: Generate and compare committed examples
         run: |
-          python python/catalyst_grit_core.py examples/grit_record_input.json --format json --output outputs/grit_record_output.json
-          python python/catalyst_grit_core.py examples/grit_record_input.json --format markdown --output outputs/grit_record_brief.md
+          python python/catalyst_grit_core.py generate examples/grit_record_input.json --format json --output outputs/grit_record_output.json
+          python python/catalyst_grit_core.py generate examples/grit_record_input.json --format markdown --output outputs/grit_record_brief.md
           diff -u examples/grit_record_output.json outputs/grit_record_output.json
           diff -u examples/grit_record_brief.md outputs/grit_record_brief.md
       - name: Build and inspect package
         run: |
           python -m build --no-isolation
           python -m pip install --force-reinstall --no-deps dist/catalyst_grit-*.whl
-          python -c "import catalyst_grit; assert catalyst_grit.__version__ == '1.0.1'"
+          python -c "import catalyst_grit; assert catalyst_grit.__version__ == '1.2.0'; assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2]"
       - name: Portable smoke test
         run: python scripts/smoke_test.py

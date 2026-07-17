@@ -1,83 +1,456 @@
 openapi: 3.0.3
 info:
   title: Catalyst Grit Recovery Record API
-  version: 1.0.1
+  version: 1.2.0
   description: >-
-    Contract for generating structured Catalyst Grit recovery records. The
-    repository does not ship a production web server in v1.0.1; this document
-    defines the canonical API surface for integrations.
+    Canonical contract for validating, migrating, and generating Catalyst Grit
+    recovery records. Findings describe recorded recovery conditions and must
+    not be used for diagnosis, character scoring, employee ranking, automated
+    eligibility, or performance evaluation. Persistent workspace operations are private, local-first, and exposed through the repository and CLI rather than this pre-v1.9 public API contract.
 paths:
-  /api/grit/records/generate:
+  /api/grit/v1/records/validate:
     post:
-      summary: Generate a recovery record
+      summary: Validate and normalize a recovery-record request
+      operationId: validateGritRecoveryRecord
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoveryRecordRequest'
+      responses:
+        '200':
+          description: Canonical normalized request
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/ValidationFailure'
+  /api/grit/v1/records/generate:
+    post:
+      summary: Generate a canonical recovery record
       operationId: generateGritRecoveryRecord
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RecoveryRecordInput'
+              $ref: '#/components/schemas/RecoveryRecordRequest'
       responses:
         '200':
           description: Generated recovery record
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecoveryRecordOutput'
+                $ref: '#/components/schemas/RecoveryRecord'
         '400':
-          description: Invalid recovery-record input
+          $ref: '#/components/responses/ValidationFailure'
+  /api/grit/v1/migrations/v1.0:
+    post:
+      summary: Migrate a v1.0.x flat request to the current request contract
+      operationId: migrateGritV1Request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegacyRecoveryRequest'
+      responses:
+        '200':
+          description: Migrated current request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryRecordRequest'
+        '400':
+          $ref: '#/components/responses/ValidationFailure'
+  /api/grit/v1/methodology/default:
+    get:
+      summary: Read the default versioned methodology profile
+      operationId: getDefaultGritMethodology
+      responses:
+        '200':
+          description: Default methodology profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MethodologyProfile'
 components:
+  responses:
+    ValidationFailure:
+      description: Structured validation failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
   schemas:
-    RecoveryRecordInput:
+    RecoveryRecordRequest:
       type: object
-      required:
-        - challenge
-        - domain
-        - impact_severity
-        - pressure_level
-        - energy_level
-        - support_level
-        - clarity_level
-        - recovery_actions
-        - time_horizon_days
-        - review_status
+      additionalProperties: false
+      required: [input]
       properties:
-        challenge: {type: string, minLength: 1}
+        metadata:
+          $ref: '#/components/schemas/RequestMetadata'
+        input:
+          $ref: '#/components/schemas/RecoveryInput'
+        human_review:
+          $ref: '#/components/schemas/HumanReview'
+        extensions:
+          type: object
+          description: Namespaced extension keys only, such as org.example.field.
+          additionalProperties: true
+        methodology_profile:
+          $ref: '#/components/schemas/MethodologyProfile'
+    RecoveryRecord:
+      type: object
+      additionalProperties: false
+      required: [metadata, user_input, normalized_input, findings, human_review, extensions]
+      properties:
+        metadata:
+          $ref: '#/components/schemas/RecordMetadata'
+        user_input:
+          $ref: '#/components/schemas/RecoveryInput'
+        normalized_input:
+          $ref: '#/components/schemas/RecoveryInput'
+        findings:
+          $ref: '#/components/schemas/Findings'
+        human_review:
+          $ref: '#/components/schemas/HumanReview'
+        extensions:
+          type: object
+          additionalProperties: true
+    RequestMetadata:
+      type: object
+      additionalProperties: false
+      properties:
+        record_id:
+          type: string
+          pattern: '^cgr_[0-9a-f]{32}$'
+        schema_version:
+          type: string
+          enum: ['1.0.1', '1.2.0']
+        engine_version:
+          type: string
+          enum: ['1.2.0']
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, active, under_review, reviewed, archived]
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    RecordMetadata:
+      allOf:
+        - $ref: '#/components/schemas/RequestMetadata'
+        - type: object
+          required: [record_id, schema_version, engine_version, created_at, updated_at, status, provenance]
+    Provenance:
+      type: object
+      additionalProperties: false
+      required: [created_by, source, source_schema_version, source_record_id, notes]
+      properties:
+        created_by: {type: string}
+        source:
+          type: string
+          enum: [direct_entry, browser, cli, api, import, migration]
+        source_schema_version: {type: string}
+        source_record_id: {type: string, nullable: true}
+        notes: {type: string}
+    RecoveryInput:
+      type: object
+      additionalProperties: false
+      required: [context, trigger, impact, pressure, constraints, supports, capacity, response, learning, next_steps]
+      properties:
+        context:
+          $ref: '#/components/schemas/ContextSection'
+        trigger:
+          $ref: '#/components/schemas/TriggerSection'
+        impact:
+          $ref: '#/components/schemas/ImpactSection'
+        pressure:
+          $ref: '#/components/schemas/PressureSection'
+        constraints:
+          $ref: '#/components/schemas/ConstraintsSection'
+        supports:
+          $ref: '#/components/schemas/SupportsSection'
+        capacity:
+          $ref: '#/components/schemas/CapacitySection'
+        response:
+          $ref: '#/components/schemas/ResponseSection'
+        learning:
+          $ref: '#/components/schemas/LearningSection'
+        next_steps:
+          $ref: '#/components/schemas/NextStepsSection'
+    ContextSection:
+      type: object
+      additionalProperties: false
+      required: [title, domain, description, stakeholders]
+      properties:
+        title: {type: string, minLength: 1}
         domain:
           type: string
-          enum: [work, learning, health_wellbeing, relationship, project, career, other]
-        impact_severity: {type: number, minimum: 1, maximum: 10}
-        pressure_level: {type: number, minimum: 1, maximum: 10}
-        energy_level: {type: number, minimum: 1, maximum: 10}
-        support_level: {type: number, minimum: 1, maximum: 10}
-        clarity_level: {type: number, minimum: 1, maximum: 10}
-        recovery_actions:
+          enum: [work, learning, health_wellbeing, relationship, project, career, community, organization, other]
+        description: {type: string}
+        stakeholders:
           type: array
-          minItems: 1
-          items: {type: string, minLength: 1}
+          items: {type: string}
+    TriggerSection:
+      type: object
+      additionalProperties: false
+      required: [summary, type, occurred_at]
+      properties:
+        summary: {type: string, minLength: 1}
+        type:
+          type: string
+          enum: [setback, delay, conflict, constraint_change, capacity_change, external_event, other]
+        occurred_at: {type: string, format: date-time, nullable: true}
+    ImpactSection:
+      type: object
+      additionalProperties: false
+      required: [severity, scope, description]
+      properties:
+        severity: {type: number, minimum: 1, maximum: 10}
+        scope:
+          type: string
+          enum: [task, workstream, project, team, organization, personal, multi_system, other]
+        description: {type: string}
+    PressureSection:
+      type: object
+      additionalProperties: false
+      required: [level, sources]
+      properties:
+        level: {type: number, minimum: 1, maximum: 10}
+        sources:
+          type: array
+          items: {type: string}
+    ConstraintsSection:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Constraint'
+    Constraint:
+      type: object
+      additionalProperties: false
+      required: [label, type, controllability]
+      properties:
+        label: {type: string}
+        type:
+          type: string
+          enum: [time, resource, dependency, information, coordination, policy, capacity, other]
+        controllability:
+          type: string
+          enum: [controllable, influence, limited, unknown]
+    SupportsSection:
+      type: object
+      additionalProperties: false
+      required: [level, available]
+      properties:
+        level: {type: number, minimum: 1, maximum: 10}
+        available:
+          type: array
+          items:
+            $ref: '#/components/schemas/Support'
+    Support:
+      type: object
+      additionalProperties: false
+      required: [label, type, reliability]
+      properties:
+        label: {type: string}
+        type:
+          type: string
+          enum: [person, team, tool, process, time, funding, information, other]
+        reliability: {type: number, minimum: 1, maximum: 10}
+    CapacitySection:
+      type: object
+      additionalProperties: false
+      required: [energy_level, clarity_level, available_time_hours, time_horizon_days]
+      properties:
+        energy_level: {type: number, minimum: 1, maximum: 10}
+        clarity_level: {type: number, minimum: 1, maximum: 10}
+        available_time_hours: {type: number, minimum: 0, nullable: true}
         time_horizon_days: {type: integer, minimum: 1}
+    Action:
+      type: object
+      additionalProperties: false
+      required: [title, status, owner, target_date]
+      properties:
+        title: {type: string}
+        status:
+          type: string
+          enum: [planned, in_progress, completed, paused]
+        owner: {type: string, nullable: true}
+        target_date: {type: string, format: date, nullable: true}
+    ResponseSection:
+      type: object
+      additionalProperties: false
+      required: [actions, current_strategy]
+      properties:
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Action'
+        current_strategy: {type: string}
+    LearningSection:
+      type: object
+      additionalProperties: false
+      required: [observations, assumptions, adaptations]
+      properties:
+        observations: {type: array, items: {type: string}}
+        assumptions: {type: array, items: {type: string}}
+        adaptations: {type: array, items: {type: string}}
+    NextStepsSection:
+      type: object
+      additionalProperties: false
+      required: [actions, checkpoint_date, success_signal]
+      properties:
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Action'
+        checkpoint_date: {type: string, format: date, nullable: true}
+        success_signal: {type: string}
+    HumanReview:
+      type: object
+      additionalProperties: false
+      required: [review_status, reviewer, reviewed_at, notes, accepted_findings, rejected_findings, override_state]
+      properties:
         review_status:
           type: string
-          enum: [draft, needs_review, reviewed]
-    RecoveryRecordOutput:
-      allOf:
-        - $ref: '#/components/schemas/RecoveryRecordInput'
-        - type: object
-          required:
-            - recovery_score
-            - resilience_state
-            - risk_flags
-            - next_actions
-            - decision_note
-            - method_path
-            - schema_version
-            - engine_version
+          enum: [not_reviewed, needs_review, in_review, reviewed, changes_requested]
+        reviewer: {type: string, nullable: true}
+        reviewed_at: {type: string, format: date-time, nullable: true}
+        notes: {type: string}
+        accepted_findings: {type: array, items: {type: string}}
+        rejected_findings: {type: array, items: {type: string}}
+        override_state: {type: string, nullable: true}
+    MethodologyProfile:
+      type: object
+      additionalProperties: false
+      required: [profile_id, profile_version, calculation_spec, component_weights, thresholds]
+      properties:
+        profile_id: {type: string}
+        profile_version: {type: string}
+        calculation_spec:
+          type: string
+          enum: [weighted-components-v1]
+        component_weights:
+          type: object
+          additionalProperties: false
+          required: [impact_buffer, pressure_buffer, energy_capacity, support_capacity, clarity_capacity, action_readiness, constraint_manageability]
           properties:
-            recovery_score: {type: number, minimum: 0, maximum: 100}
-            resilience_state: {type: string}
-            risk_flags: {type: array, items: {type: string}}
-            next_actions: {type: array, items: {type: string}}
-            decision_note: {type: string}
-            method_path: {type: array, items: {type: string}}
-            schema_version: {type: string, enum: ['1.0.1']}
-            engine_version: {type: string, enum: ['1.0.1']}
+            impact_buffer: {type: number, minimum: 0}
+            pressure_buffer: {type: number, minimum: 0}
+            energy_capacity: {type: number, minimum: 0}
+            support_capacity: {type: number, minimum: 0}
+            clarity_capacity: {type: number, minimum: 0}
+            action_readiness: {type: number, minimum: 0}
+            constraint_manageability: {type: number, minimum: 0}
+        thresholds:
+          type: object
+          additionalProperties: false
+          required: [stable, focused_support, fragile]
+          properties:
+            stable: {type: number, minimum: 0, maximum: 100}
+            focused_support: {type: number, minimum: 0, maximum: 100}
+            fragile: {type: number, minimum: 0, maximum: 100}
+    Findings:
+      type: object
+      additionalProperties: false
+      required: [methodology, component_scores, recovery_score, generated_state, effective_state, human_override_applied, flags, recommended_actions, decision_note, method_path, interpretation_limits, calculation_provenance]
+      properties:
+        methodology:
+          $ref: '#/components/schemas/MethodologyProfile'
+        component_scores:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ComponentScore'
+        recovery_score: {type: number, minimum: 0, maximum: 100}
+        generated_state: {type: string}
+        effective_state: {type: string}
+        human_override_applied: {type: boolean}
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Flag'
+        recommended_actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedAction'
+        decision_note: {type: string}
+        method_path: {type: array, items: {type: string}}
+        interpretation_limits: {type: array, items: {type: string}}
+        calculation_provenance:
+          type: object
+          required: [schema_version, engine_version, profile_id, profile_version, calculated_at]
+          properties:
+            schema_version: {type: string, enum: ['1.2.0']}
+            engine_version: {type: string, enum: ['1.2.0']}
+            profile_id: {type: string}
+            profile_version: {type: string}
+            calculated_at: {type: string, format: date-time}
+    ComponentScore:
+      type: object
+      required: [input_value, normalized_value, weight, weighted_score, explanation]
+      properties:
+        input_value: {type: number}
+        normalized_value: {type: number, minimum: 0, maximum: 1}
+        weight: {type: number, minimum: 0}
+        weighted_score: {type: number, minimum: 0}
+        explanation: {type: string}
+    Flag:
+      type: object
+      required: [code, severity, section, message, rationale]
+      properties:
+        code: {type: string}
+        severity: {type: string, enum: [low, medium, high]}
+        section: {type: string}
+        message: {type: string}
+        rationale: {type: string}
+    RecommendedAction:
+      type: object
+      required: [code, title, rationale, source, priority]
+      properties:
+        code: {type: string}
+        title: {type: string}
+        rationale: {type: string}
+        source: {type: string, enum: [user, engine]}
+        priority: {type: string, enum: [low, medium, high]}
+    ValidationError:
+      type: object
+      required: [error, message, issues]
+      properties:
+        error: {type: string, enum: [validation_failed]}
+        message: {type: string}
+        issues:
+          type: array
+          items:
+            type: object
+            required: [path, code, message]
+            properties:
+              path: {type: string}
+              code: {type: string}
+              message: {type: string}
+              value: {}
+    LegacyRecoveryRequest:
+      type: object
+      required: [challenge]
+      properties:
+        challenge: {type: string}
+        domain: {type: string}
+        impact_severity: {type: number}
+        pressure_level: {type: number}
+        energy_level: {type: number}
+        support_level: {type: number}
+        clarity_level: {type: number}
+        recovery_actions: {type: array, items: {type: string}}
+        time_horizon_days: {type: integer}
+        review_status: {type: string}

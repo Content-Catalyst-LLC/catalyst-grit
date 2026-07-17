@@ -1,21 +1,19 @@
 # Changelog
 
-## 1.0.1 - Repository Integrity and Product Consolidation
+## 1.2.0 — Persistent Records, Projects, and Review Checkpoints
 
-- Declared the recovery-record engine as the only production Catalyst Grit model.
-- Unified package, plugin, schema, manifest, OpenAPI, browser, documentation, and example versions at `1.0.1`.
-- Replaced the installed legacy metrics surface with the canonical recovery-record package and CLI.
-- Archived the obsolete Flask event tracker and trait-oriented metrics under `legacy/flask-tracker`.
-- Removed tracked SQLite runtime state and generated `egg-info` metadata.
-- Added schema, version, repository-integrity, output-parity, browser-parity, package-build, PHP, and JavaScript release checks.
-- Added deterministic source and WordPress packaging, checksums, release manifest, and macOS install-and-push tooling.
-- Added explicit schema and engine provenance to generated outputs.
+- Added a private SQLite workspace and packaged migration framework.
+- Added projects, records, append-only revisions, actions, checkpoints, reviews, status history, and audit events.
+- Added reopen, revision comparison, duplication, archive, soft deletion, retention, and guarded purge workflows.
+- Added v1.0/v1.1/v1.2 import plus full workspace export/import.
+- Added database and workspace CLI commands.
+- Added an authenticated nonce-protected WordPress workspace while keeping the public demo non-persistent.
+- Added persistence, migration, authorization, restart, revision, and round-trip release tests.
 
-## 1.0.0 - Repository refresh
+## 1.1.0 — Canonical Recovery Record Contract and Shared Engine
 
-- Added browser-based WordPress demo plugin using shortcode `[catalyst_grit_demo]`.
-- Added Python Catalyst Grit recovery-record generator.
-- Added JSON schema, sample input, sample output, and markdown brief.
-- Added methodology, architecture, export, review, and WordPress demo documentation.
-- Added lightweight tests and GitHub Actions workflow.
-- Added repository manifest and sample data.
+- Added the nested canonical recovery record, shared engine, methodology profile, browser parity, schemas, OpenAPI contract, and structured validation.
+
+## 1.0.1 — Repository Integrity and Product Consolidation
+
+- Consolidated the recovery-record product and archived the legacy trait-metrics prototype.

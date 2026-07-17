@@ -1,85 +1,58 @@
 # Catalyst Grit
 
-**Current release: v1.0.1 — Repository Integrity and Product Consolidation**
+**Current release: v1.2.0 — Persistent Records, Projects, and Review Checkpoints**
 
-Catalyst Grit is a Sustainable Catalyst human-systems module for documenting setbacks, recovery conditions, response choices, next actions, and learning loops. It treats grit as a system behavior shaped by pressure, friction, support, clarity, energy, response, recovery time, and adaptation.
+Catalyst Grit is a Sustainable Catalyst human-systems module for documenting setbacks, recovery conditions, response choices, learning, and review checkpoints. It evaluates recovery conditions—not character, worth, motivation, or clinical state.
 
-Catalyst Grit is educational and analytical infrastructure. It does not diagnose people, score character, rank employees, replace professional support, or guarantee resilience.
+## v1.2 private workspace
 
-## Canonical product model
+The installable package now includes a local-first SQLite repository with:
 
-The structured **recovery record** is the only production model. An older Flask event tracker is preserved under `legacy/` solely for historical reference and is excluded from the installed Python package, WordPress plugin, and current interfaces.
+- private recovery projects and records;
+- append-only revisions with exact inputs, outputs, versions, hashes, actors, and reasons;
+- saved actions, checkpoints, human reviews, status history, and audit events;
+- reopen, compare, duplicate, archive, delete, retention, and guarded purge operations;
+- v1.0/v1.1/v1.2 import and `catalyst-grit-workspace/1.0` export/import;
+- ordered reversible migrations packaged inside the Python wheel.
 
-## Repository surfaces
+The canonical recovery record still contains `metadata`, `user_input`, `normalized_input`, `findings`, `human_review`, and `extensions`. The `cg-recovery-conditions@1.2.0` methodology remains explainable and non-diagnostic.
 
-- `src/catalyst_grit/` — canonical installable engine and CLI
-- `python/catalyst_grit_core.py` — v1.0-compatible repository wrapper
-- `wordpress/catalyst-grit-demo/` — client-side public demo
-- `schemas/` — versioned recovery-record contract
-- `openapi.yaml` — recovery-record integration contract
-- `tests/fixtures/` — shared Python/browser golden fixtures
-- `scripts/` — smoke, release-contract, parity, and deterministic build tooling
-- `release/` — release notes
-- `legacy/` — isolated, unsupported prototypes
-
-## Python usage
-
-Install the package:
-
-```bash
-python3 -m pip install -e .
-```
-
-Generate a JSON record:
-
-```bash
-grit generate examples/grit_record_input.json --format json
-```
-
-Generate a Markdown brief:
-
-```bash
-grit generate examples/grit_record_input.json   --format markdown   --output outputs/grit_record_brief.md
-```
-
-The v1.0 repository command remains supported:
-
-```bash
-python3 python/catalyst_grit_core.py examples/grit_record_input.json --format json
-```
-
-## WordPress demo
-
-Install `wordpress/catalyst-grit-demo` or upload the generated plugin ZIP, then use:
-
-```text
-[catalyst_grit_demo]
-```
-
-The public demo runs locally in the browser and does not persist inputs.
-
-## Validation
+## Install and validate
 
 ```bash
 python3 -m pip install -e '.[dev]'
 python3 scripts/release_contract.py
 ```
 
-The release contract checks Python tests and compilation, schema validation, Python/browser parity, committed output parity, PHP and JavaScript syntax when available, package build/install/import, version consistency, and forbidden repository artifacts.
-
-## Build release artifacts
+## Generate a one-time record
 
 ```bash
-python3 scripts/build_release.py
+grit validate examples/grit_record_input.json
+grit generate examples/grit_record_input.json --format json
+grit generate examples/grit_record_input.json --format markdown
 ```
 
-Generated artifacts include the repository ZIP, WordPress plugin ZIP, checksums, release manifest, all-in-one release bundle, and macOS install-and-push script.
+## Create a private workspace
 
-## Method path
-
-```text
-setback → context → impact → pressure → support → response → recovery pattern → next action → review
+```bash
+grit init --database ~/catalyst-grit.sqlite3
+grit project-create --database ~/catalyst-grit.sqlite3 --title "Reporting recovery"
+grit record-save --database ~/catalyst-grit.sqlite3 PROJECT_ID examples/grit_record_input.json
+grit record-show --database ~/catalyst-grit.sqlite3 RECORD_ID --canonical
+grit checkpoint-add --database ~/catalyst-grit.sqlite3 PROJECT_ID --record RECORD_ID --title "72-hour review" --date 2026-07-20
+grit workspace-export --database ~/catalyst-grit.sqlite3 --record RECORD_ID --output recovery-workspace.json
 ```
+
+Use `grit --help` for revision comparison, duplication, archiving, deletion, retention, purge, review, migration, and import commands.
+
+## WordPress
+
+- `[catalyst_grit_demo]` — public browser demo; no persistence by default.
+- `[catalyst_grit_workspace]` — authenticated private per-user workspace with nonce-protected save, load, and delete actions.
+
+## Boundaries
+
+Catalyst Grit is educational and analytical infrastructure. It is not mental-health advice, diagnosis, personality or character scoring, employee evaluation, ranking, automated eligibility, professional care, or an outcome guarantee. Consequential interpretation requires human review.
 
 ## License
 

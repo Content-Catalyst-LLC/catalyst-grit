@@ -1,0 +1,12 @@
+DROP TRIGGER IF EXISTS audit_events_guard_delete;
+DROP TRIGGER IF EXISTS audit_events_no_update;
+DROP TRIGGER IF EXISTS reviews_guard_delete;
+DROP TRIGGER IF EXISTS reviews_no_update;
+DROP TRIGGER IF EXISTS status_history_guard_delete;
+DROP TRIGGER IF EXISTS status_history_no_update;
+DROP TRIGGER IF EXISTS record_revisions_guard_delete;
+DROP TRIGGER IF EXISTS record_revisions_no_update;
+DROP TABLE IF EXISTS audit_events;
+DROP TABLE IF EXISTS reviews;
+DROP TABLE IF EXISTS checkpoints;
+DROP TABLE IF EXISTS actions;

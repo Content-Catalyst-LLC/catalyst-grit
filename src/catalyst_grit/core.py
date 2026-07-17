@@ -1,22 +1,35 @@
-"""Canonical Catalyst Grit recovery-record domain engine."""
+"""Canonical Catalyst Grit recovery-record contract and shared engine.
+
+Catalyst Grit evaluates recovery *conditions*, not character. The engine is
+pure, dependency-free, deterministic for supplied metadata, and shared by the
+CLI, examples, tests, OpenAPI contract, and browser parity implementation.
+"""
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import asdict, dataclass
-from typing import Any, Iterable, Mapping
+from datetime import datetime, timezone
+import re
+import math
+from typing import Any, Callable, Iterable, Mapping, Sequence
+from uuid import uuid4
 
 from .version import ENGINE_VERSION, SCHEMA_VERSION
 
 METHOD_PATH = [
-    "setback",
     "context",
+    "trigger",
     "impact",
     "pressure",
-    "support",
+    "constraints",
+    "supports",
+    "capacity",
     "response",
-    "recovery pattern",
-    "next action",
-    "review",
+    "learning",
+    "next steps",
+    "human review",
 ]
+
 ALLOWED_DOMAINS = {
     "work",
     "learning",
@@ -24,245 +37,1023 @@ ALLOWED_DOMAINS = {
     "relationship",
     "project",
     "career",
+    "community",
+    "organization",
     "other",
 }
-ALLOWED_REVIEW_STATUSES = {"draft", "needs_review", "reviewed"}
+ALLOWED_RECORD_STATUSES = {"draft", "active", "under_review", "reviewed", "archived"}
+ALLOWED_REVIEW_STATUSES = {
+    "not_reviewed",
+    "needs_review",
+    "in_review",
+    "reviewed",
+    "changes_requested",
+}
+ALLOWED_TRIGGER_TYPES = {
+    "setback",
+    "delay",
+    "conflict",
+    "constraint_change",
+    "capacity_change",
+    "external_event",
+    "other",
+}
+ALLOWED_IMPACT_SCOPES = {
+    "task",
+    "workstream",
+    "project",
+    "team",
+    "organization",
+    "personal",
+    "multi_system",
+    "other",
+}
+ALLOWED_CONSTRAINT_TYPES = {
+    "time",
+    "resource",
+    "dependency",
+    "information",
+    "coordination",
+    "policy",
+    "capacity",
+    "other",
+}
+ALLOWED_CONTROLLABILITY = {"controllable", "influence", "limited", "unknown"}
+ALLOWED_SUPPORT_TYPES = {
+    "person",
+    "team",
+    "tool",
+    "process",
+    "time",
+    "funding",
+    "information",
+    "other",
+}
+ALLOWED_ACTION_STATUSES = {"planned", "in_progress", "completed", "paused"}
+ALLOWED_PROVENANCE_SOURCES = {"direct_entry", "browser", "cli", "api", "import", "migration"}
+
+EXTENSION_KEY = re.compile(r"^[a-z][a-z0-9-]*(?:\.[a-z0-9-]+)+$")
+RECORD_ID = re.compile(r"^cgr_[0-9a-f]{32}$")
+
 DEFAULT_ACTIONS = [
     "Name the smallest recoverable next step",
     "Review support and constraints",
     "Schedule a short follow-up review",
 ]
 
+DEFAULT_METHODOLOGY_PROFILE: dict[str, Any] = {
+    "profile_id": "cg-recovery-conditions",
+    "profile_version": "1.2.0",
+    "calculation_spec": "weighted-components-v1",
+    "component_weights": {
+        "impact_buffer": 15.0,
+        "pressure_buffer": 15.0,
+        "energy_capacity": 15.0,
+        "support_capacity": 15.0,
+        "clarity_capacity": 15.0,
+        "action_readiness": 15.0,
+        "constraint_manageability": 10.0,
+    },
+    "thresholds": {
+        "stable": 75.0,
+        "focused_support": 55.0,
+        "fragile": 35.0,
+    },
+}
+
+INTERPRETATION_LIMITS = [
+    "Describes recorded recovery conditions, not a person's character.",
+    "Does not diagnose mental health, predict outcomes, or replace professional support.",
+    "Must not be used for employee ranking, automated eligibility, or performance evaluation.",
+    "Generated findings require human review when used for consequential decisions.",
+]
+
+
+@dataclass(frozen=True)
+class ValidationIssue:
+    """Machine-readable validation issue."""
+
+    path: str
+    code: str
+    message: str
+    value: Any | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        value = asdict(self)
+        if self.value is None:
+            value.pop("value")
+        return value
+
 
 class GritValidationError(ValueError):
-    """Raised when a recovery-record input cannot be normalized safely."""
+    """Raised when a recovery-record request violates the canonical contract."""
+
+    def __init__(self, issues: ValidationIssue | Sequence[ValidationIssue] | str):
+        if isinstance(issues, str):
+            normalized = [ValidationIssue("$", "invalid_request", issues)]
+        elif isinstance(issues, ValidationIssue):
+            normalized = [issues]
+        else:
+            normalized = list(issues)
+        self.issues = normalized
+        super().__init__("; ".join(f"{issue.path}: {issue.message}" for issue in normalized))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "error": "validation_failed",
+            "message": "The recovery-record request is invalid.",
+            "issues": [issue.to_dict() for issue in self.issues],
+        }
 
 
 @dataclass(frozen=True)
-class GritInput:
-    challenge: str
-    domain: str = "project"
-    impact_severity: float = 5
-    pressure_level: float = 5
-    energy_level: float = 5
-    support_level: float = 5
-    clarity_level: float = 5
-    recovery_actions: list[str] | None = None
-    time_horizon_days: int = 14
-    review_status: str = "draft"
+class RecoveryRecord:
+    """Generated canonical recovery record."""
 
-
-@dataclass(frozen=True)
-class GritOutput:
-    challenge: str
-    domain: str
-    impact_severity: float
-    pressure_level: float
-    energy_level: float
-    support_level: float
-    clarity_level: float
-    recovery_actions: list[str]
-    time_horizon_days: int
-    review_status: str
-    recovery_score: float
-    resilience_state: str
-    risk_flags: list[str]
-    next_actions: list[str]
-    decision_note: str
-    method_path: list[str]
-    schema_version: str
-    engine_version: str
+    metadata: dict[str, Any]
+    user_input: dict[str, Any]
+    normalized_input: dict[str, Any]
+    findings: dict[str, Any]
+    human_review: dict[str, Any]
+    extensions: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
+# Backward-compatible public names retained for clients importing v1.0 symbols.
+GritOutput = RecoveryRecord
+GritInput = dict[str, Any]
+
+
+def _issue(path: str, code: str, message: str, value: Any | None = None) -> GritValidationError:
+    return GritValidationError(ValidationIssue(path, code, message, value))
+
+
+def _reject_unknown(value: Mapping[str, Any], allowed: set[str], path: str) -> None:
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise _issue(
+            path,
+            "unknown_field",
+            "Unsupported field(s): " + ", ".join(unknown) + ". Use the extensions object for namespaced additions.",
+            unknown,
+        )
+
+
+def _mapping(value: Any, path: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise _issue(path, "type_error", "Must be an object.", value)
+    return value
+
+
+def _text(value: Any, path: str, *, default: str = "", required: bool = False) -> str:
+    text = default if value is None else str(value).strip()
+    if required and not text:
+        raise _issue(path, "required", "Must not be empty.")
+    return text
+
+
+def _optional_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def clamp_scale(value: Any, field: str, low: float = 1, high: float = 10) -> float:
-    """Normalize a numeric scale value to the supported inclusive range."""
+    """Normalize a numeric scale to the supported inclusive range."""
     try:
         number = float(value)
     except (TypeError, ValueError) as exc:
-        raise GritValidationError(f"{field} must be numeric") from exc
+        raise _issue(field, "numeric_required", "Must be numeric.", value) from exc
     return max(low, min(high, number))
 
 
-def clean_actions(actions: Iterable[Any] | None) -> list[str]:
-    if actions is None:
-        return list(DEFAULT_ACTIONS)
-    if isinstance(actions, (str, bytes)):
-        actions = str(actions).splitlines()
-    cleaned = [str(action).strip() for action in actions if str(action).strip()]
+def _integer(value: Any, path: str, *, default: int, minimum: int = 1) -> int:
+    try:
+        number = int(float(default if value is None else value))
+    except (TypeError, ValueError) as exc:
+        raise _issue(path, "integer_required", "Must be numeric.", value) from exc
+    return max(minimum, number)
+
+
+def _nullable_number(value: Any, path: str, *, minimum: float = 0) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise _issue(path, "numeric_required", "Must be numeric or null.", value) from exc
+    if number < minimum:
+        raise _issue(path, "minimum", f"Must be at least {minimum}.", value)
+    return number
+
+
+def _enum(value: Any, path: str, allowed: set[str], default: str) -> str:
+    normalized = _text(value, path, default=default) or default
+    if normalized not in allowed:
+        raise _issue(path, "enum", "Must be one of: " + ", ".join(sorted(allowed)) + ".", value)
+    return normalized
+
+
+def _string_list(value: Any, path: str) -> list[str]:
+    if value in (None, ""):
+        return []
+    source: Iterable[Any]
+    if isinstance(value, (str, bytes)):
+        source = str(value).splitlines()
+    elif isinstance(value, Sequence):
+        source = value
+    else:
+        raise _issue(path, "type_error", "Must be an array of strings or newline-delimited text.", value)
+    return [str(item).strip() for item in source if str(item).strip()]
+
+
+def clean_actions(actions: Iterable[Any] | str | None) -> list[str]:
+    """Compatibility helper returning clean action titles."""
+    cleaned = _string_list(actions, "$.input.response.actions")
     return cleaned or list(DEFAULT_ACTIONS)
 
 
-def normalize_input(data: Mapping[str, Any]) -> GritInput:
-    if not isinstance(data, Mapping):
-        raise GritValidationError("input must be a JSON object")
+def _normalize_action_list(value: Any, path: str, *, default_actions: bool = False) -> list[dict[str, Any]]:
+    if value in (None, ""):
+        source: list[Any] = []
+    elif isinstance(value, (str, bytes)):
+        source = list(str(value).splitlines())
+    elif isinstance(value, Sequence):
+        source = list(value)
+    else:
+        raise _issue(path, "type_error", "Must be an array or newline-delimited text.", value)
 
-    challenge = str(data.get("challenge", "")).strip() or "Unspecified challenge"
-    domain = str(data.get("domain", "project")).strip() or "project"
-    if domain not in ALLOWED_DOMAINS:
-        raise GritValidationError(
-            f"domain must be one of: {', '.join(sorted(ALLOWED_DOMAINS))}"
-        )
+    actions: list[dict[str, Any]] = []
+    for index, item in enumerate(source):
+        item_path = f"{path}[{index}]"
+        if isinstance(item, Mapping):
+            _reject_unknown(item, {"title", "status", "owner", "target_date"}, item_path)
+            title = _text(item.get("title"), f"{item_path}.title", required=True)
+            status = _enum(item.get("status"), f"{item_path}.status", ALLOWED_ACTION_STATUSES, "planned")
+            owner = _optional_text(item.get("owner"))
+            target_date = _optional_date(item.get("target_date"), f"{item_path}.target_date")
+        else:
+            title = _text(item, item_path)
+            if not title:
+                continue
+            status = "planned"
+            owner = None
+            target_date = None
+        actions.append({"title": title, "status": status, "owner": owner, "target_date": target_date})
 
-    review_status = str(data.get("review_status", "draft")).strip() or "draft"
-    if review_status not in ALLOWED_REVIEW_STATUSES:
-        raise GritValidationError(
-            "review_status must be one of: "
-            + ", ".join(sorted(ALLOWED_REVIEW_STATUSES))
-        )
+    if not actions and default_actions:
+        actions = [
+            {"title": title, "status": "planned", "owner": None, "target_date": None}
+            for title in DEFAULT_ACTIONS
+        ]
+    return actions
 
+
+def _normalize_constraints(value: Any, path: str) -> list[dict[str, Any]]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, (str, bytes)):
+        source: list[Any] = list(str(value).splitlines())
+    elif isinstance(value, Sequence):
+        source = list(value)
+    else:
+        raise _issue(path, "type_error", "Must be an array or newline-delimited text.", value)
+
+    output: list[dict[str, Any]] = []
+    for index, item in enumerate(source):
+        item_path = f"{path}[{index}]"
+        if isinstance(item, Mapping):
+            _reject_unknown(item, {"label", "type", "controllability"}, item_path)
+            label = _text(item.get("label"), f"{item_path}.label", required=True)
+            item_type = _enum(item.get("type"), f"{item_path}.type", ALLOWED_CONSTRAINT_TYPES, "other")
+            controllability = _enum(
+                item.get("controllability"),
+                f"{item_path}.controllability",
+                ALLOWED_CONTROLLABILITY,
+                "unknown",
+            )
+        else:
+            label = _text(item, item_path)
+            if not label:
+                continue
+            item_type = "other"
+            controllability = "unknown"
+        output.append({"label": label, "type": item_type, "controllability": controllability})
+    return output
+
+
+def _normalize_supports(value: Any, path: str) -> list[dict[str, Any]]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, (str, bytes)):
+        source: list[Any] = list(str(value).splitlines())
+    elif isinstance(value, Sequence):
+        source = list(value)
+    else:
+        raise _issue(path, "type_error", "Must be an array or newline-delimited text.", value)
+
+    output: list[dict[str, Any]] = []
+    for index, item in enumerate(source):
+        item_path = f"{path}[{index}]"
+        if isinstance(item, Mapping):
+            _reject_unknown(item, {"label", "type", "reliability"}, item_path)
+            label = _text(item.get("label"), f"{item_path}.label", required=True)
+            item_type = _enum(item.get("type"), f"{item_path}.type", ALLOWED_SUPPORT_TYPES, "other")
+            reliability = clamp_scale(item.get("reliability", 5), f"{item_path}.reliability")
+        else:
+            label = _text(item, item_path)
+            if not label:
+                continue
+            item_type = "other"
+            reliability = 5.0
+        output.append({"label": label, "type": item_type, "reliability": reliability})
+    return output
+
+
+def _normalize_timestamp(value: Any, path: str, default: str) -> str:
+    text = _text(value, path, default=default) or default
     try:
-        horizon = max(1, int(float(data.get("time_horizon_days", 14))))
-    except (TypeError, ValueError) as exc:
-        raise GritValidationError("time_horizon_days must be numeric") from exc
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise _issue(path, "date_time", "Must be an ISO 8601 date-time with a timezone.", value) from exc
+    if parsed.tzinfo is None:
+        raise _issue(path, "date_time_timezone", "Must include a timezone.", value)
+    return parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
-    return GritInput(
-        challenge=challenge,
-        domain=domain,
-        impact_severity=clamp_scale(data.get("impact_severity", 5), "impact_severity"),
-        pressure_level=clamp_scale(data.get("pressure_level", 5), "pressure_level"),
-        energy_level=clamp_scale(data.get("energy_level", 5), "energy_level"),
-        support_level=clamp_scale(data.get("support_level", 5), "support_level"),
-        clarity_level=clamp_scale(data.get("clarity_level", 5), "clarity_level"),
-        recovery_actions=clean_actions(data.get("recovery_actions")),
-        time_horizon_days=horizon,
-        review_status=review_status,
+
+def _optional_timestamp(value: Any, path: str) -> str | None:
+    if value in (None, ""):
+        return None
+    return _normalize_timestamp(value, path, "")
+
+
+def _optional_date(value: Any, path: str) -> str | None:
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    try:
+        datetime.strptime(text, "%Y-%m-%d")
+    except ValueError as exc:
+        raise _issue(path, "date", "Must use YYYY-MM-DD.", value) from exc
+    return text
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _record_id() -> str:
+    return "cgr_" + uuid4().hex
+
+
+def _normalize_extensions(value: Any, path: str = "$.extensions") -> dict[str, Any]:
+    if value in (None, ""):
+        return {}
+    mapping = _mapping(value, path)
+    invalid = [key for key in mapping if not isinstance(key, str) or not EXTENSION_KEY.fullmatch(key)]
+    if invalid:
+        raise _issue(
+            path,
+            "extension_namespace",
+            "Extension keys must be namespaced, for example org.example.field.",
+            invalid,
+        )
+    return deepcopy(dict(mapping))
+
+
+def _legacy_request(data: Mapping[str, Any]) -> bool:
+    return "challenge" in data and "input" not in data
+
+
+def migrate_v1_request(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Migrate a v1.0.x flat request into the v1.1 canonical request shape."""
+    if not isinstance(data, Mapping):
+        raise _issue("$", "type_error", "Input must be an object.", data)
+    actions = data.get("recovery_actions")
+    review_status = str(data.get("review_status", "draft"))
+    record_status = {"draft": "draft", "needs_review": "under_review", "reviewed": "reviewed"}.get(review_status, "draft")
+    human_status = {"draft": "not_reviewed", "needs_review": "needs_review", "reviewed": "reviewed"}.get(review_status, "not_reviewed")
+    challenge = str(data.get("challenge", "")).strip() or "Unspecified challenge"
+    return {
+        "metadata": {
+            "status": record_status,
+            "provenance": {
+                "created_by": "self",
+                "source": "migration",
+                "source_schema_version": "1.0.1",
+                "source_record_id": None,
+                "notes": "Migrated from the v1.0.x flat recovery-record request.",
+            },
+        },
+        "input": {
+            "context": {
+                "title": challenge,
+                "domain": data.get("domain", "project"),
+                "description": "",
+                "stakeholders": [],
+            },
+            "trigger": {"summary": challenge, "type": "setback", "occurred_at": None},
+            "impact": {
+                "severity": data.get("impact_severity", 5),
+                "scope": "project",
+                "description": "",
+            },
+            "pressure": {"level": data.get("pressure_level", 5), "sources": []},
+            "constraints": {"items": []},
+            "supports": {"level": data.get("support_level", 5), "available": []},
+            "capacity": {
+                "energy_level": data.get("energy_level", 5),
+                "clarity_level": data.get("clarity_level", 5),
+                "available_time_hours": None,
+                "time_horizon_days": data.get("time_horizon_days", 14),
+            },
+            "response": {
+                "actions": actions,
+                "current_strategy": "",
+            },
+            "learning": {"observations": [], "assumptions": [], "adaptations": []},
+            "next_steps": {"actions": [], "checkpoint_date": None, "success_signal": ""},
+        },
+        "human_review": {
+            "review_status": human_status,
+            "reviewer": None,
+            "reviewed_at": None,
+            "notes": "",
+            "accepted_findings": [],
+            "rejected_findings": [],
+            "override_state": None,
+        },
+        "extensions": {},
+    }
+
+
+def _normalize_metadata(value: Any, *, source_schema_version: str) -> dict[str, Any]:
+    metadata = _mapping(value or {}, "$.metadata")
+    _reject_unknown(
+        metadata,
+        {"record_id", "schema_version", "engine_version", "created_at", "updated_at", "status", "provenance"},
+        "$.metadata",
     )
+    record_id = _text(metadata.get("record_id"), "$.metadata.record_id", default=_record_id())
+    if not RECORD_ID.fullmatch(record_id):
+        raise _issue("$.metadata.record_id", "record_id", "Must match cgr_ followed by 32 lowercase hexadecimal characters.", record_id)
 
+    supplied_schema = _optional_text(metadata.get("schema_version"))
+    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.1.0", "1.0.1"}:
+        raise _issue("$.metadata.schema_version", "schema_version", f"Unsupported source schema version: {supplied_schema}.", supplied_schema)
+    supplied_engine = _optional_text(metadata.get("engine_version"))
+    if supplied_engine and supplied_engine != ENGINE_VERSION:
+        raise _issue("$.metadata.engine_version", "engine_version", "Requests may not select a different engine version.", supplied_engine)
 
-def calculate_recovery_score(record: GritInput) -> float:
-    actions = clean_actions(record.recovery_actions)
-    action_bonus = min(10, len(actions) * 2.5)
-    raw = (
-        record.energy_level * 2.2
-        + record.support_level * 2.3
-        + record.clarity_level * 2.4
-        + action_bonus
-        + (10 - record.impact_severity) * 1.7
-        + (10 - record.pressure_level) * 1.4
+    created_default = _now_iso()
+    created_at = _normalize_timestamp(metadata.get("created_at"), "$.metadata.created_at", created_default)
+    updated_at = _normalize_timestamp(metadata.get("updated_at"), "$.metadata.updated_at", created_at)
+    if updated_at < created_at:
+        raise _issue("$.metadata.updated_at", "chronology", "Must not be earlier than created_at.", updated_at)
+    status = _enum(metadata.get("status"), "$.metadata.status", ALLOWED_RECORD_STATUSES, "draft")
+
+    provenance = _mapping(metadata.get("provenance") or {}, "$.metadata.provenance")
+    _reject_unknown(
+        provenance,
+        {"created_by", "source", "source_schema_version", "source_record_id", "notes"},
+        "$.metadata.provenance",
     )
-    return round(max(0, min(100, raw)), 1)
+    provenance_output = {
+        "created_by": _text(provenance.get("created_by"), "$.metadata.provenance.created_by", default="self") or "self",
+        "source": _enum(provenance.get("source"), "$.metadata.provenance.source", ALLOWED_PROVENANCE_SOURCES, "direct_entry"),
+        "source_schema_version": _text(
+            provenance.get("source_schema_version"),
+            "$.metadata.provenance.source_schema_version",
+            default=source_schema_version,
+        ) or source_schema_version,
+        "source_record_id": _optional_text(provenance.get("source_record_id")),
+        "notes": _text(provenance.get("notes"), "$.metadata.provenance.notes"),
+    }
+    return {
+        "record_id": record_id,
+        "schema_version": SCHEMA_VERSION,
+        "engine_version": ENGINE_VERSION,
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "status": status,
+        "provenance": provenance_output,
+    }
 
 
-def state_from_score(score: float) -> str:
-    if score >= 76:
+def _normalize_human_review(value: Any, *, record_status: str) -> dict[str, Any]:
+    review = _mapping(value or {}, "$.human_review")
+    _reject_unknown(
+        review,
+        {"review_status", "reviewer", "reviewed_at", "notes", "accepted_findings", "rejected_findings", "override_state"},
+        "$.human_review",
+    )
+    status = _enum(review.get("review_status"), "$.human_review.review_status", ALLOWED_REVIEW_STATUSES, "not_reviewed")
+    reviewer = _optional_text(review.get("reviewer"))
+    reviewed_at = _optional_timestamp(review.get("reviewed_at"), "$.human_review.reviewed_at")
+    override = _optional_text(review.get("override_state"))
+    allowed_states = {
+        "stable recovery conditions",
+        "recoverable with focused support",
+        "fragile recovery conditions",
+        "high-friction recovery conditions",
+    }
+    if override and override not in allowed_states:
+        raise _issue("$.human_review.override_state", "enum", "Must be a recognized recovery-condition state or null.", override)
+    if status == "reviewed" and not reviewed_at:
+        raise _issue("$.human_review.reviewed_at", "review_lifecycle", "A reviewed record requires reviewed_at.")
+    if status == "reviewed" and not reviewer:
+        raise _issue("$.human_review.reviewer", "review_lifecycle", "A reviewed record requires a reviewer.")
+    if record_status == "reviewed" and status != "reviewed":
+        raise _issue("$.human_review.review_status", "review_lifecycle", "A record with status reviewed requires human_review.review_status reviewed.", status)
+    return {
+        "review_status": status,
+        "reviewer": reviewer,
+        "reviewed_at": reviewed_at,
+        "notes": _text(review.get("notes"), "$.human_review.notes"),
+        "accepted_findings": _string_list(review.get("accepted_findings"), "$.human_review.accepted_findings"),
+        "rejected_findings": _string_list(review.get("rejected_findings"), "$.human_review.rejected_findings"),
+        "override_state": override,
+    }
+
+
+def _normalize_input_sections(value: Any) -> dict[str, Any]:
+    input_data = _mapping(value, "$.input")
+    required = {
+        "context",
+        "trigger",
+        "impact",
+        "pressure",
+        "constraints",
+        "supports",
+        "capacity",
+        "response",
+        "learning",
+        "next_steps",
+    }
+    _reject_unknown(input_data, required, "$.input")
+    missing = sorted(required - set(input_data))
+    if missing:
+        raise _issue("$.input", "required", "Missing section(s): " + ", ".join(missing) + ".", missing)
+
+    context = _mapping(input_data["context"], "$.input.context")
+    _reject_unknown(context, {"title", "domain", "description", "stakeholders"}, "$.input.context")
+    trigger = _mapping(input_data["trigger"], "$.input.trigger")
+    _reject_unknown(trigger, {"summary", "type", "occurred_at"}, "$.input.trigger")
+    impact = _mapping(input_data["impact"], "$.input.impact")
+    _reject_unknown(impact, {"severity", "scope", "description"}, "$.input.impact")
+    pressure = _mapping(input_data["pressure"], "$.input.pressure")
+    _reject_unknown(pressure, {"level", "sources"}, "$.input.pressure")
+    constraints = _mapping(input_data["constraints"], "$.input.constraints")
+    _reject_unknown(constraints, {"items"}, "$.input.constraints")
+    supports = _mapping(input_data["supports"], "$.input.supports")
+    _reject_unknown(supports, {"level", "available"}, "$.input.supports")
+    capacity = _mapping(input_data["capacity"], "$.input.capacity")
+    _reject_unknown(capacity, {"energy_level", "clarity_level", "available_time_hours", "time_horizon_days"}, "$.input.capacity")
+    response = _mapping(input_data["response"], "$.input.response")
+    _reject_unknown(response, {"actions", "current_strategy"}, "$.input.response")
+    learning = _mapping(input_data["learning"], "$.input.learning")
+    _reject_unknown(learning, {"observations", "assumptions", "adaptations"}, "$.input.learning")
+    next_steps = _mapping(input_data["next_steps"], "$.input.next_steps")
+    _reject_unknown(next_steps, {"actions", "checkpoint_date", "success_signal"}, "$.input.next_steps")
+
+    return {
+        "context": {
+            "title": _text(context.get("title"), "$.input.context.title", required=True),
+            "domain": _enum(context.get("domain"), "$.input.context.domain", ALLOWED_DOMAINS, "project"),
+            "description": _text(context.get("description"), "$.input.context.description"),
+            "stakeholders": _string_list(context.get("stakeholders"), "$.input.context.stakeholders"),
+        },
+        "trigger": {
+            "summary": _text(trigger.get("summary"), "$.input.trigger.summary", required=True),
+            "type": _enum(trigger.get("type"), "$.input.trigger.type", ALLOWED_TRIGGER_TYPES, "setback"),
+            "occurred_at": _optional_timestamp(trigger.get("occurred_at"), "$.input.trigger.occurred_at"),
+        },
+        "impact": {
+            "severity": clamp_scale(impact.get("severity", 5), "$.input.impact.severity"),
+            "scope": _enum(impact.get("scope"), "$.input.impact.scope", ALLOWED_IMPACT_SCOPES, "project"),
+            "description": _text(impact.get("description"), "$.input.impact.description"),
+        },
+        "pressure": {
+            "level": clamp_scale(pressure.get("level", 5), "$.input.pressure.level"),
+            "sources": _string_list(pressure.get("sources"), "$.input.pressure.sources"),
+        },
+        "constraints": {"items": _normalize_constraints(constraints.get("items"), "$.input.constraints.items")},
+        "supports": {
+            "level": clamp_scale(supports.get("level", 5), "$.input.supports.level"),
+            "available": _normalize_supports(supports.get("available"), "$.input.supports.available"),
+        },
+        "capacity": {
+            "energy_level": clamp_scale(capacity.get("energy_level", 5), "$.input.capacity.energy_level"),
+            "clarity_level": clamp_scale(capacity.get("clarity_level", 5), "$.input.capacity.clarity_level"),
+            "available_time_hours": _nullable_number(capacity.get("available_time_hours"), "$.input.capacity.available_time_hours"),
+            "time_horizon_days": _integer(capacity.get("time_horizon_days"), "$.input.capacity.time_horizon_days", default=14),
+        },
+        "response": {
+            "actions": _normalize_action_list(response.get("actions"), "$.input.response.actions", default_actions=True),
+            "current_strategy": _text(response.get("current_strategy"), "$.input.response.current_strategy"),
+        },
+        "learning": {
+            "observations": _string_list(learning.get("observations"), "$.input.learning.observations"),
+            "assumptions": _string_list(learning.get("assumptions"), "$.input.learning.assumptions"),
+            "adaptations": _string_list(learning.get("adaptations"), "$.input.learning.adaptations"),
+        },
+        "next_steps": {
+            "actions": _normalize_action_list(next_steps.get("actions"), "$.input.next_steps.actions"),
+            "checkpoint_date": _optional_date(next_steps.get("checkpoint_date"), "$.input.next_steps.checkpoint_date"),
+            "success_signal": _text(next_steps.get("success_signal"), "$.input.next_steps.success_signal"),
+        },
+    }
+
+
+def normalize_methodology_profile(value: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    profile = deepcopy(DEFAULT_METHODOLOGY_PROFILE if value is None else dict(value))
+    profile = dict(_mapping(profile, "$.methodology_profile"))
+    _reject_unknown(profile, {"profile_id", "profile_version", "calculation_spec", "component_weights", "thresholds"}, "$.methodology_profile")
+    profile_id = _text(profile.get("profile_id"), "$.methodology_profile.profile_id", required=True)
+    profile_version = _text(profile.get("profile_version"), "$.methodology_profile.profile_version", required=True)
+    spec = _text(profile.get("calculation_spec"), "$.methodology_profile.calculation_spec", required=True)
+    if spec != "weighted-components-v1":
+        raise _issue("$.methodology_profile.calculation_spec", "calculation_spec", "Only weighted-components-v1 is supported.", spec)
+
+    weights_map = _mapping(profile.get("component_weights"), "$.methodology_profile.component_weights")
+    expected_components = set(DEFAULT_METHODOLOGY_PROFILE["component_weights"])
+    _reject_unknown(weights_map, expected_components, "$.methodology_profile.component_weights")
+    missing = sorted(expected_components - set(weights_map))
+    if missing:
+        raise _issue("$.methodology_profile.component_weights", "required", "Missing component weight(s): " + ", ".join(missing) + ".", missing)
+    weights: dict[str, float] = {}
+    for key in DEFAULT_METHODOLOGY_PROFILE["component_weights"]:
+        try:
+            weight = float(weights_map[key])
+        except (TypeError, ValueError) as exc:
+            raise _issue(f"$.methodology_profile.component_weights.{key}", "numeric_required", "Must be numeric.", weights_map[key]) from exc
+        if weight < 0:
+            raise _issue(f"$.methodology_profile.component_weights.{key}", "minimum", "Must be zero or greater.", weight)
+        weights[key] = weight
+    if abs(sum(weights.values()) - 100.0) > 1e-6:
+        raise _issue("$.methodology_profile.component_weights", "weight_total", "Component weights must total 100.", sum(weights.values()))
+
+    thresholds_map = _mapping(profile.get("thresholds"), "$.methodology_profile.thresholds")
+    threshold_keys = {"stable", "focused_support", "fragile"}
+    _reject_unknown(thresholds_map, threshold_keys, "$.methodology_profile.thresholds")
+    missing_thresholds = sorted(threshold_keys - set(thresholds_map))
+    if missing_thresholds:
+        raise _issue("$.methodology_profile.thresholds", "required", "Missing threshold(s): " + ", ".join(missing_thresholds) + ".", missing_thresholds)
+    thresholds: dict[str, float] = {}
+    for key in ("stable", "focused_support", "fragile"):
+        try:
+            threshold = float(thresholds_map[key])
+        except (TypeError, ValueError) as exc:
+            raise _issue(f"$.methodology_profile.thresholds.{key}", "numeric_required", "Must be numeric.", thresholds_map[key]) from exc
+        if not 0 <= threshold <= 100:
+            raise _issue(f"$.methodology_profile.thresholds.{key}", "range", "Must be between 0 and 100.", threshold)
+        thresholds[key] = threshold
+    if not thresholds["stable"] > thresholds["focused_support"] > thresholds["fragile"]:
+        raise _issue("$.methodology_profile.thresholds", "threshold_order", "Thresholds must descend: stable > focused_support > fragile.", thresholds)
+
+    return {
+        "profile_id": profile_id,
+        "profile_version": profile_version,
+        "calculation_spec": spec,
+        "component_weights": weights,
+        "thresholds": thresholds,
+    }
+
+
+def normalize_input(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a canonical normalized request without generated findings."""
+    if not isinstance(data, Mapping):
+        raise _issue("$", "type_error", "Input must be an object.", data)
+    migrated = _legacy_request(data)
+    request = migrate_v1_request(data) if migrated else deepcopy(dict(data))
+    _reject_unknown(request, {"metadata", "input", "human_review", "extensions", "methodology_profile"}, "$")
+    if "input" not in request:
+        raise _issue("$.input", "required", "The input object is required.")
+    source_schema = "1.0.1" if migrated else str(
+        (request.get("metadata") or {}).get("schema_version")
+        or (request.get("metadata") or {}).get("provenance", {}).get("source_schema_version")
+        or SCHEMA_VERSION
+    )
+    metadata = _normalize_metadata(request.get("metadata"), source_schema_version=source_schema)
+    normalized_sections = _normalize_input_sections(request["input"])
+    human_review = _normalize_human_review(request.get("human_review"), record_status=metadata["status"])
+    extensions = _normalize_extensions(request.get("extensions"))
+    methodology = normalize_methodology_profile(request.get("methodology_profile"))
+    return {
+        "metadata": metadata,
+        "input": normalized_sections,
+        "human_review": human_review,
+        "extensions": extensions,
+        "methodology_profile": methodology,
+        "migrated": migrated,
+        "user_input": deepcopy(dict(request["input"])),
+    }
+
+
+
+def _round_half_up(value: float, places: int) -> float:
+    factor = 10 ** places
+    return math.floor(value * factor + 0.5) / factor
+
+def _positive(value: float) -> float:
+    return max(0.0, min(1.0, (value - 1.0) / 9.0))
+
+
+def _inverse(value: float) -> float:
+    return max(0.0, min(1.0, (10.0 - value) / 9.0))
+
+
+def _constraint_manageability(items: list[dict[str, Any]]) -> float:
+    if not items:
+        return 1.0
+    values = {"controllable": 1.0, "influence": 0.65, "limited": 0.25, "unknown": 0.4}
+    return sum(values[item["controllability"]] for item in items) / len(items)
+
+
+def _action_readiness(normalized: Mapping[str, Any]) -> tuple[float, int]:
+    response_actions = normalized["response"]["actions"]
+    next_actions = normalized["next_steps"]["actions"]
+    titles: list[str] = []
+    for action in [*response_actions, *next_actions]:
+        title = action["title"].strip().lower()
+        if title and title not in titles:
+            titles.append(title)
+    count = len(titles)
+    return min(1.0, count / 4.0), count
+
+
+def calculate_component_scores(normalized: Mapping[str, Any], profile: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """Calculate explainable weighted component scores."""
+    weights = profile["component_weights"]
+    action_value, action_count = _action_readiness(normalized)
+    raw: dict[str, tuple[Any, float, str]] = {
+        "impact_buffer": (
+            normalized["impact"]["severity"],
+            _inverse(normalized["impact"]["severity"]),
+            "Lower recorded impact leaves more near-term recovery room; severity remains visible separately.",
+        ),
+        "pressure_buffer": (
+            normalized["pressure"]["level"],
+            _inverse(normalized["pressure"]["level"]),
+            "Lower recorded pressure increases the room available for deliberate recovery action.",
+        ),
+        "energy_capacity": (
+            normalized["capacity"]["energy_level"],
+            _positive(normalized["capacity"]["energy_level"]),
+            "Recorded energy is treated as available capacity, not motivation or character.",
+        ),
+        "support_capacity": (
+            normalized["supports"]["level"],
+            _positive(normalized["supports"]["level"]),
+            "Recorded access to support increases recovery capacity.",
+        ),
+        "clarity_capacity": (
+            normalized["capacity"]["clarity_level"],
+            _positive(normalized["capacity"]["clarity_level"]),
+            "Recorded clarity supports prioritization and a bounded next step.",
+        ),
+        "action_readiness": (
+            action_count,
+            action_value,
+            "Readiness increases with up to four distinct response or next-step actions.",
+        ),
+        "constraint_manageability": (
+            len(normalized["constraints"]["items"]),
+            _constraint_manageability(normalized["constraints"]["items"]),
+            "Manageability reflects the recorded controllability of constraints; no listed constraints defaults to full manageability.",
+        ),
+    }
+    scores: dict[str, dict[str, Any]] = {}
+    for key in weights:
+        input_value, normalized_value, explanation = raw[key]
+        weight = float(weights[key])
+        scores[key] = {
+            "input_value": input_value,
+            "normalized_value": _round_half_up(normalized_value, 4),
+            "weight": weight,
+            "weighted_score": _round_half_up(normalized_value * weight, 1),
+            "explanation": explanation,
+        }
+    return scores
+
+
+def calculate_recovery_score(
+    record: Mapping[str, Any], profile: Mapping[str, Any] | None = None
+) -> float:
+    """Calculate the composite conditions score from normalized sections.
+
+    A canonical request may also be supplied; it is normalized first.
+    """
+    methodology = normalize_methodology_profile(profile)
+    normalized = record
+    if "impact" not in record:
+        normalized = normalize_input(record)["input"]
+    components = calculate_component_scores(normalized, methodology)
+    return _round_half_up(sum(item["normalized_value"] * item["weight"] for item in components.values()), 1)
+
+
+def state_from_score(score: float, profile: Mapping[str, Any] | None = None) -> str:
+    methodology = normalize_methodology_profile(profile)
+    thresholds = methodology["thresholds"]
+    if score >= thresholds["stable"]:
         return "stable recovery conditions"
-    if score >= 56:
+    if score >= thresholds["focused_support"]:
         return "recoverable with focused support"
-    if score >= 36:
+    if score >= thresholds["fragile"]:
         return "fragile recovery conditions"
     return "high-friction recovery conditions"
 
 
-def build_flags(record: GritInput) -> list[str]:
-    flags: list[str] = []
-    if record.impact_severity >= 8:
-        flags.append("High impact severity: reduce scope and protect recovery time.")
-    if record.pressure_level >= 8:
-        flags.append("High pressure: clarify what can pause, wait, or be delegated.")
-    if record.energy_level <= 3:
-        flags.append("Low energy: avoid overloading the next action plan.")
-    if record.support_level <= 3:
-        flags.append(
-            "Low support: identify one concrete support channel before expanding work."
-        )
-    if record.clarity_level <= 3:
-        flags.append("Low clarity: define the decision, owner, and next checkpoint.")
-    if record.time_horizon_days <= 3:
-        flags.append(
-            "Very short horizon: choose a recovery action that can be completed quickly."
-        )
+def build_flags(normalized: Mapping[str, Any]) -> list[dict[str, Any]]:
+    flags: list[dict[str, Any]] = []
+
+    def add(code: str, severity: str, section: str, message: str, rationale: str) -> None:
+        flags.append({"code": code, "severity": severity, "section": section, "message": message, "rationale": rationale})
+
+    if normalized["impact"]["severity"] >= 8:
+        add("high_impact", "high", "impact", "Reduce scope and protect recovery time.", "Impact severity is recorded at 8 or above.")
+    if normalized["pressure"]["level"] >= 8:
+        add("high_pressure", "high", "pressure", "Clarify what can pause, wait, or be delegated.", "Pressure is recorded at 8 or above.")
+    if normalized["capacity"]["energy_level"] <= 3:
+        add("low_energy_capacity", "high", "capacity", "Avoid overloading the next action plan.", "Energy capacity is recorded at 3 or below.")
+    if normalized["supports"]["level"] <= 3:
+        add("low_support_capacity", "high", "supports", "Identify one concrete support channel before expanding work.", "Support capacity is recorded at 3 or below.")
+    if normalized["capacity"]["clarity_level"] <= 3:
+        add("low_clarity_capacity", "high", "capacity", "Define the decision, owner, and next checkpoint.", "Clarity is recorded at 3 or below.")
+    if normalized["capacity"]["time_horizon_days"] <= 3:
+        add("short_horizon", "medium", "capacity", "Choose a recovery action that can be completed quickly.", "The time horizon is three days or less.")
+    limited = sum(1 for item in normalized["constraints"]["items"] if item["controllability"] == "limited")
+    if limited >= 2:
+        add("limited_constraints", "medium", "constraints", "Separate controllable work from constraints that require escalation or accommodation.", "Two or more constraints are recorded as having limited controllability.")
     return flags
 
 
-def build_next_actions(record: GritInput) -> list[str]:
-    next_actions = clean_actions(record.recovery_actions)[:4]
-    if record.clarity_level <= 5:
-        next_actions.append(
-            "Write a one-sentence definition of what recovery means for this situation."
+def build_next_actions(normalized: Mapping[str, Any]) -> list[dict[str, Any]]:
+    output: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add(code: str, title: str, rationale: str, source: str, priority: str) -> None:
+        key = title.strip().lower()
+        if key and key not in seen and len(output) < 6:
+            seen.add(key)
+            output.append({"code": code, "title": title, "rationale": rationale, "source": source, "priority": priority})
+
+    user_actions = [*normalized["next_steps"]["actions"], *normalized["response"]["actions"]]
+    for index, action in enumerate(user_actions):
+        add(
+            f"user_action_{index + 1}",
+            action["title"],
+            "Preserved from the recorded response or next-step plan.",
+            "user",
+            "high" if index == 0 else "medium",
         )
-    if record.support_level <= 5:
-        next_actions.append(
-            "Ask for one specific form of support or remove one friction point."
-        )
-    if record.pressure_level >= 7:
-        next_actions.append(
-            "Reduce the work to one near-term checkpoint instead of a full reset."
-        )
-    return next_actions[:6]
+    if normalized["capacity"]["clarity_level"] <= 5:
+        add("define_recovery", "Write a one-sentence definition of recovery for this situation.", "Clarity is at or below the midpoint.", "engine", "high")
+    if normalized["supports"]["level"] <= 5:
+        add("request_support", "Ask for one specific form of support or remove one friction point.", "Support is at or below the midpoint.", "engine", "high")
+    if normalized["pressure"]["level"] >= 7:
+        add("bound_checkpoint", "Reduce the work to one near-term checkpoint instead of a full reset.", "Pressure is elevated.", "engine", "high")
+    if normalized["constraints"]["items"]:
+        add("map_constraints", "Mark each constraint as controllable, influenceable, or limited.", "Recorded constraints should be routed differently based on controllability.", "engine", "medium")
+    if not output:
+        for index, title in enumerate(DEFAULT_ACTIONS):
+            add(f"default_action_{index + 1}", title, "Default recovery-planning prompt.", "engine", "medium")
+    return output
 
 
-def generate_record(data: Mapping[str, Any]) -> GritOutput:
-    record = normalize_input(data)
-    score = calculate_recovery_score(record)
-    state = state_from_score(score)
-    flags = build_flags(record)
-    next_actions = build_next_actions(record)
+def generate_record(
+    data: Mapping[str, Any],
+    methodology_profile: Mapping[str, Any] | None = None,
+) -> RecoveryRecord:
+    """Generate a canonical v1.2 recovery record."""
+    canonical = normalize_input(data)
+    normalized = canonical["input"]
+    profile = normalize_methodology_profile(methodology_profile or canonical["methodology_profile"])
+    components = calculate_component_scores(normalized, profile)
+    score = _round_half_up(sum(item["normalized_value"] * item["weight"] for item in components.values()), 1)
+    generated_state = state_from_score(score, profile)
+    human_state = canonical["human_review"]["override_state"]
+    effective_state = human_state or generated_state
+    flags = build_flags(normalized)
+    actions = build_next_actions(normalized)
     note = (
-        f"Recovery conditions are assessed as {state} with a score of {score}/100. "
-        "Use this as a structured reflection record: clarify the next action, "
-        "protect recovery capacity, review support, and update the plan after "
-        "the next checkpoint."
+        f"Recorded recovery conditions are assessed as {generated_state} with a conditions score of {score}/100. "
+        "Review the component explanations, protect available capacity, address the highest-friction condition, "
+        "and update the record at the next checkpoint."
     )
-    return GritOutput(
-        challenge=record.challenge,
-        domain=record.domain,
-        impact_severity=record.impact_severity,
-        pressure_level=record.pressure_level,
-        energy_level=record.energy_level,
-        support_level=record.support_level,
-        clarity_level=record.clarity_level,
-        recovery_actions=clean_actions(record.recovery_actions),
-        time_horizon_days=record.time_horizon_days,
-        review_status=record.review_status,
-        recovery_score=score,
-        resilience_state=state,
-        risk_flags=flags,
-        next_actions=next_actions,
-        decision_note=note,
-        method_path=list(METHOD_PATH),
-        schema_version=SCHEMA_VERSION,
-        engine_version=ENGINE_VERSION,
+    findings = {
+        "methodology": profile,
+        "component_scores": components,
+        "recovery_score": score,
+        "generated_state": generated_state,
+        "effective_state": effective_state,
+        "human_override_applied": bool(human_state),
+        "flags": flags,
+        "recommended_actions": actions,
+        "decision_note": note,
+        "method_path": list(METHOD_PATH),
+        "interpretation_limits": list(INTERPRETATION_LIMITS),
+        "calculation_provenance": {
+            "schema_version": SCHEMA_VERSION,
+            "engine_version": ENGINE_VERSION,
+            "profile_id": profile["profile_id"],
+            "profile_version": profile["profile_version"],
+            "calculated_at": canonical["metadata"]["updated_at"],
+        },
+    }
+    return RecoveryRecord(
+        metadata=canonical["metadata"],
+        user_input=canonical["user_input"],
+        normalized_input=normalized,
+        findings=findings,
+        human_review=canonical["human_review"],
+        extensions=canonical["extensions"],
     )
 
 
-def to_markdown(output: GritOutput) -> str:
-    flags = "\n".join(f"- {item}" for item in output.risk_flags)
-    flags = flags or "- No major review flags generated."
-    actions = "\n".join(f"- {item}" for item in output.next_actions)
+def validate_request(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate and return the canonical normalized request."""
+    canonical = normalize_input(data)
+    return {
+        "metadata": canonical["metadata"],
+        "normalized_input": canonical["input"],
+        "human_review": canonical["human_review"],
+        "extensions": canonical["extensions"],
+        "methodology_profile": canonical["methodology_profile"],
+        "migrated": canonical["migrated"],
+    }
+
+
+def to_markdown(output: RecoveryRecord) -> str:
+    flags = "\n".join(
+        f"- **{item['severity'].title()} · {item['section']}:** {item['message']}"
+        for item in output.findings["flags"]
+    ) or "- No major review flags generated."
+    actions = "\n".join(
+        f"- **{item['priority'].title()}:** {item['title']} — {item['rationale']}"
+        for item in output.findings["recommended_actions"]
+    )
+    components = "\n".join(
+        f"- **{name.replace('_', ' ').title()}:** {item['weighted_score']}/{item['weight']} — {item['explanation']}"
+        for name, item in output.findings["component_scores"].items()
+    )
+    metadata = output.metadata
+    context = output.normalized_input["context"]
     return f"""# Catalyst Grit Recovery Brief
 
-## Challenge
+## Record
 
-{output.challenge}
+- **Record ID:** {metadata['record_id']}
+- **Status:** {metadata['status']}
+- **Created:** {metadata['created_at']}
+- **Updated:** {metadata['updated_at']}
+- **Domain:** {context['domain']}
 
-## Recovery state
+## Context
 
-- **Score:** {output.recovery_score}/100
-- **State:** {output.resilience_state}
-- **Domain:** {output.domain}
-- **Review status:** {output.review_status}
+### {context['title']}
+
+{context['description'] or output.normalized_input['trigger']['summary']}
+
+## Recovery conditions
+
+- **Score:** {output.findings['recovery_score']}/100
+- **Generated state:** {output.findings['generated_state']}
+- **Effective state:** {output.findings['effective_state']}
+- **Methodology:** {output.findings['methodology']['profile_id']} v{output.findings['methodology']['profile_version']}
+
+## Component scores
+
+{components}
 
 ## Review flags
 
 {flags}
 
-## Next actions
+## Recommended actions
 
 {actions}
 
 ## Decision note
 
-{output.decision_note}
+{output.findings['decision_note']}
 
-## Method path
+## Human review
 
-{' → '.join(output.method_path)}
+- **Review status:** {output.human_review['review_status']}
+- **Reviewer:** {output.human_review['reviewer'] or 'Not assigned'}
+- **Override applied:** {'Yes' if output.findings['human_override_applied'] else 'No'}
+
+## Interpretation limits
+
+""" + "\n".join(f"- {item}" for item in output.findings["interpretation_limits"]) + f"""
 
 ## Release provenance
 
-- **Schema version:** {output.schema_version}
-- **Engine version:** {output.engine_version}
+- **Schema version:** {metadata['schema_version']}
+- **Engine version:** {metadata['engine_version']}
+- **Method path:** {' → '.join(output.findings['method_path'])}
 """

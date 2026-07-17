@@ -2,9 +2,10 @@
 set -euo pipefail
 
 PRODUCT="Catalyst Grit"
-VERSION="1.0.1"
-RELEASE_NAME="Repository Integrity and Product Consolidation"
-ARCHIVE_NAME="catalyst-grit-v${VERSION}-repository.zip"
+VERSION="1.2.0"
+RELEASE_NAME="Persistent Records, Projects, and Review Checkpoints"
+INSTALLER_REVISION="REPAIRED_V3"
+ARCHIVE_NAME="catalyst-grit-v${VERSION}-repository-REPAIRED_V3.zip"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 say() { printf '\n==> %s\n' "$1"; }
@@ -47,7 +48,7 @@ find_repo() {
   return 1
 }
 
-say "$PRODUCT v$VERSION installer"
+say "$PRODUCT v$VERSION installer $INSTALLER_REVISION"
 ARCHIVE="$(find_archive || true)"
 [ -n "$ARCHIVE" ] || fail "Could not find $ARCHIVE_NAME beside this script, in the current directory, or in Downloads."
 REPO="$(find_repo || true)"
@@ -57,12 +58,14 @@ printf 'Release archive: %s\n' "$ARCHIVE"
 printf 'Git repository: %s\n' "$REPO"
 printf 'Remote: %s\n' "$(git -C "$REPO" remote get-url origin 2>/dev/null || echo '(none)')"
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/catalyst-grit-v101.XXXXXX")"
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/catalyst-grit-v120.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 unzip -q "$ARCHIVE" -d "$TMP"
 SOURCE="$TMP/catalyst-grit-v$VERSION"
 [ -f "$SOURCE/VERSION" ] || fail "Release source is missing VERSION."
 [ "$(tr -d '[:space:]' < "$SOURCE/VERSION")" = "$VERSION" ] || fail "Release archive version mismatch."
+[ -f "$SOURCE/src/catalyst_grit/migrations/001_core_workspace.up.sql" ] || fail "Workspace migration 001 is missing."
+[ -f "$SOURCE/src/catalyst_grit/migrations/002_checkpoints_reviews_audit.up.sql" ] || fail "Workspace migration 002 is missing."
 
 say "Creating safety backup"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -74,20 +77,27 @@ BACKUP="$HOME/Downloads/catalyst-grit-before-v${VERSION}-${STAMP}.zip"
 printf 'Safety backup: %s\n' "$BACKUP"
 
 say "Installing release source"
-rsync -a --delete \
+rsync -a --checksum --delete \
   --exclude='.git/' \
   --exclude='.env' \
   --exclude='.venv/' \
   --exclude='dist/' \
   --exclude='build/' \
+  --exclude='*.db' \
+  --exclude='*.sqlite' \
+  --exclude='*.sqlite3' \
   "$SOURCE/" "$REPO/"
+
+[ "$(tr -d '[:space:]' < "$REPO/VERSION")" = "$VERSION" ] || fail "Installed VERSION does not match release after synchronization."
+cmp -s "$SOURCE/VERSION" "$REPO/VERSION" || fail "Installed VERSION file differs from release source."
+cmp -s "$SOURCE/src/catalyst_grit/version.py" "$REPO/src/catalyst_grit/version.py" || fail "Installed Python version module differs from release source."
 
 say "Running portable release smoke tests"
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || true)}"
 [ -n "$PYTHON_BIN" ] || fail "Python 3 is required."
 (
   cd "$REPO"
-  "$PYTHON_BIN" scripts/smoke_test.py
+  env -u PYTHONPATH -u PYTHONHOME PYTHONNOUSERSITE=1 "$PYTHON_BIN" -I -S scripts/smoke_test.py
 )
 
 say "Recording Git release"

@@ -1,11 +1,19 @@
-# Catalyst Grit Demo v1.0.1
+# Catalyst Grit WordPress v1.2.0
 
-Install this directory as a WordPress plugin and place the shortcode below on a page:
+## Public demo
 
-```text
-[catalyst_grit_demo]
-```
+Use `[catalyst_grit_demo]` for the browser-only canonical recovery-record demo. It does not call WordPress AJAX, use local storage, or persist input. Users may explicitly download a JSON record.
 
-The public demo runs entirely in the browser and does not persist visitor input. Its JavaScript engine is parity-tested against the canonical Python package.
+## Authenticated private workspace
 
-Catalyst Grit is a structured reflection and planning tool. It is not mental-health advice, diagnosis, employee evaluation, performance ranking, or an outcome guarantee.
+Use `[catalyst_grit_workspace]` on a page restricted to signed-in users. The shortcode:
+
+- refuses anonymous and unauthorized access;
+- uses a WordPress nonce on every request;
+- stores a private `catalyst-grit-workspace/1.0` object in the current user's metadata;
+- limits stored JSON to 512 KB;
+- enforces `visibility: private`;
+- provides load, save, and deletion actions;
+- loads separate workspace JavaScript and CSS assets.
+
+The WordPress workspace is a lightweight authenticated companion. The Python/SQLite workspace remains the canonical persistence implementation for complete projects, revisions, checkpoints, reviews, status history, audit events, retention, and export/import.

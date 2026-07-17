@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.2.0/methodology-profile.schema.json",
+  "title": "Catalyst Grit Methodology Profile",
+  "x-catalyst-grit-version": "1.2.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile_id",
+    "profile_version",
+    "calculation_spec",
+    "component_weights",
+    "thresholds"
+  ],
+  "properties": {
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "calculation_spec": {
+      "const": "weighted-components-v1"
+    },
+    "component_weights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "impact_buffer",
+        "pressure_buffer",
+        "energy_capacity",
+        "support_capacity",
+        "clarity_capacity",
+        "action_readiness",
+        "constraint_manageability"
+      ],
+      "properties": {
+        "impact_buffer": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pressure_buffer": {
+          "type": "number",
+          "minimum": 0
+        },
+        "energy_capacity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "support_capacity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "clarity_capacity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "action_readiness": {
+          "type": "number",
+          "minimum": 0
+        },
+        "constraint_manageability": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable",
+        "focused_support",
+        "fragile"
+      ],
+      "properties": {
+        "stable": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "focused_support": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "fragile": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    }
+  }
+}

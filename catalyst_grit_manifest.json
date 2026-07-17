@@ -1,38 +1,46 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.0.1",
-  "schema_version": "1.0.1",
-  "engine_version": "1.0.1",
+  "version": "1.2.0",
+  "schema_version": "1.2.0",
+  "engine_version": "1.2.0",
+  "release": "Persistent Records, Projects, and Review Checkpoints",
   "canonical_product_model": "recovery-record",
-  "shortcode": "[catalyst_grit_demo]",
-  "repository": "git@github.com:Content-Catalyst-LLC/catalyst-grit.git",
-  "method_path": [
-    "setback",
-    "context",
-    "impact",
-    "pressure",
-    "support",
-    "response",
-    "recovery pattern",
-    "next action",
-    "review"
+  "methodology_profile": "cg-recovery-conditions@1.2.0",
+  "workspace_format": "catalyst-grit-workspace/1.0",
+  "storage": "SQLite private workspace with ordered packaged migrations",
+  "migrations": [
+    "001_core_workspace",
+    "002_checkpoints_reviews_audit"
   ],
+  "persistent_entities": [
+    "projects",
+    "recovery_records",
+    "record_revisions",
+    "actions",
+    "checkpoints",
+    "reviews",
+    "status_history",
+    "audit_events"
+  ],
+  "shortcodes": [
+    "[catalyst_grit_demo]",
+    "[catalyst_grit_workspace]"
+  ],
+  "repository": "git@github.com:Content-Catalyst-LLC/catalyst-grit.git",
+  "privacy_defaults": {
+    "records": "private",
+    "public_demo_persistence": false,
+    "wordpress_workspace": "authenticated per-user metadata"
+  },
   "boundaries": [
     "not mental-health advice",
     "not diagnosis",
+    "not character scoring",
     "not performance rating",
-    "not outcome guarantee",
-    "not employee ranking"
+    "not employee ranking",
+    "not automated eligibility",
+    "not outcome guarantee"
   ],
-  "outputs": [
-    "recovery score",
-    "resilience state",
-    "review flags",
-    "next actions",
-    "decision note",
-    "JSON export"
-  ],
-  "legacy_location": "legacy/flask-tracker",
   "release_contract": "scripts/release_contract.py"
 }

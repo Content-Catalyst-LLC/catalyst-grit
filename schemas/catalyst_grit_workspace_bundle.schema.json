@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit-workspace-v1.0.json",
+  "title": "Catalyst Grit Workspace Bundle",
+  "type": "object",
+  "x-catalyst-grit-version": "1.2.0",
+  "required": ["format", "product_version", "project"],
+  "properties": {
+    "format": {"const": "catalyst-grit-workspace/1.0"},
+    "product_version": {"type": "string"},
+    "exported_at": {"type": "string", "format": "date-time"},
+    "visibility": {"const": "private"},
+    "project": {"$ref": "catalyst_grit_project.schema.json"},
+    "record": {"type": "object"},
+    "current_record": {"$ref": "catalyst_grit_record.schema.json"},
+    "revisions": {"type": "array", "items": {"type": "object"}},
+    "actions": {"type": "array", "items": {"type": "object"}},
+    "checkpoints": {"type": "array", "items": {"type": "object"}},
+    "reviews": {"type": "array", "items": {"type": "object"}},
+    "status_history": {"type": "array", "items": {"type": "object"}},
+    "audit_events": {"type": "array", "items": {"type": "object"}},
+    "records": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": true
+}

@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Catalyst Grit Demo
  * Description: Canonical public recovery-record demo and authenticated private workspace. Provides [catalyst_grit_demo] and [catalyst_grit_workspace].
- * Version: 1.3.0
+ * Version: 1.4.0
  * Author: Content Catalyst LLC
  * License: MIT
  */
 
 if (!defined('ABSPATH')) { exit; }
 
-define('CATALYST_GRIT_DEMO_VERSION', '1.3.0');
+define('CATALYST_GRIT_DEMO_VERSION', '1.4.0');
 
 function catalyst_grit_demo_assets() {
     $base = plugin_dir_url(__FILE__);
@@ -25,7 +25,7 @@ function catalyst_grit_demo_shortcode() {
       <header class="cg-demo__header">
         <p class="cg-demo__eyebrow">Catalyst Grit · Canonical contract v<?php echo esc_html(CATALYST_GRIT_DEMO_VERSION); ?></p>
         <h3 id="cg-demo-title">Build a Recovery Record</h3>
-        <p>Document the context, trigger, recovery conditions, response, learning, and next checkpoint. The shared engine returns pressure, constraint, support, capacity, control-zone, and friction-layer maps alongside explainable components, review flags, provenance, and a portable JSON record.</p>
+        <p>Document the context, trigger, recovery conditions, response, learning, and an executable recovery plan. The shared engine returns pressure, constraint, support, capacity, control-zone, and friction-layer maps alongside owned actions, planning horizons, dependencies, blockers, escalation paths, a dated checkpoint, explainable components, provenance, and portable JSON.</p>
       </header>
       <div class="cg-demo__errors" data-cg-errors role="alert" tabindex="-1" hidden>
         <h4>Review these fields</h4><ul></ul>
@@ -97,19 +97,34 @@ Break the work into a 48-hour recovery task</textarea></label>
             <label><span>Next actions, one per line</span><textarea name="next_actions" rows="3">Document unresolved assumptions
 Schedule a short stakeholder review</textarea></label>
             <div class="cg-demo__two">
+              <label><span>Default action owner</span><input name="action_owner" value="project lead"></label>
+              <label><span>Smallest-step target date</span><input type="date" name="action_target_date"></label>
+            </div>
+            <div class="cg-demo__two">
+              <label><span>Scope decision</span><select name="scope_decision"><option value="continue">Continue</option><option value="reduce_scope" selected>Reduce scope</option><option value="pause">Pause</option><option value="delegate">Delegate</option><option value="escalate">Escalate</option></select></label>
+              <label><span>First planning horizon</span><select name="action_horizon"><option value="24_hours" selected>24 hours</option><option value="72_hours">72 hours</option><option value="7_days">7 days</option><option value="longer_term">Longer term</option></select></label>
+            </div>
+            <label><span>Scope decision notes</span><textarea name="scope_decision_notes" rows="2">Limit recovery work to the decision and evidence needed for the next checkpoint.</textarea></label>
+            <label><span>Known blockers, one per line</span><textarea name="blockers" rows="2">External reviewer availability may constrain the checkpoint.</textarea></label>
+            <label><span>Escalation paths, one per line</span><textarea name="escalation_log" rows="2">Escalate unresolved decision ownership to the program sponsor after 24 hours.</textarea></label>
+            <div class="cg-demo__two">
               <label><span>Checkpoint date</span><input type="date" name="checkpoint_date"></label>
               <label><span>Success signal</span><input name="success_signal" value="One owner, one approved scope, and a dated checkpoint."></label>
             </div>
+            <label><span>Reassessment trigger</span><input name="reassessment_trigger" value="Reassess at the checkpoint or sooner if the approval dependency changes."></label>
           </fieldset>
           <div class="cg-demo__actions"><button type="button" data-cg-generate>Generate record</button><button type="button" data-cg-download>Download JSON</button></div>
         </form>
 
         <div class="cg-demo__output" aria-live="polite">
           <div class="cg-demo__score"><span>Conditions score · component context required</span><strong data-cg-score>—</strong></div>
-          <div class="cg-demo__panel"><h4>Generated state</h4><p data-cg-state>Generate a record to view the recovery conditions.</p><p class="cg-demo__method">Method: <span data-cg-profile>cg-recovery-conditions v1.3.0</span></p><p><strong>Completeness:</strong> <span data-cg-completeness>—</span> · <strong>Confidence:</strong> <span data-cg-confidence>—</span></p></div>
+          <div class="cg-demo__panel"><h4>Generated state</h4><p data-cg-state>Generate a record to view the recovery conditions.</p><p class="cg-demo__method">Method: <span data-cg-profile>cg-recovery-conditions v1.4.0</span></p><p><strong>Completeness:</strong> <span data-cg-completeness>—</span> · <strong>Confidence:</strong> <span data-cg-confidence>—</span></p></div>
           <div class="cg-demo__panel"><h4>Pressure map</h4><ul data-cg-pressure-map><li>Generate a record to map pressure.</li></ul></div>
           <div class="cg-demo__panel"><h4>Constraint map</h4><ul data-cg-constraint-map><li>Generate a record to map constraints.</li></ul></div>
           <div class="cg-demo__panel"><h4>Support map</h4><ul data-cg-support-map><li>Generate a record to map supports.</li></ul></div>
+          <div class="cg-demo__panel cg-demo__panel--plan"><h4>Executable recovery plan</h4><p data-cg-plan-summary>Generate a record to identify the smallest recoverable next step.</p><p class="cg-demo__method"><strong>Checkpoint:</strong> <span data-cg-plan-checkpoint>—</span> · <strong>Scope:</strong> <span data-cg-plan-scope>—</span></p></div>
+          <div class="cg-demo__panel"><h4>Planning horizons</h4><ul data-cg-plan-horizons><li>Generate a record to sequence actions.</li></ul></div>
+          <div class="cg-demo__panel"><h4>Blockers, escalation, and review signals</h4><ul data-cg-plan-signals><li>Generate a record to inspect support needs.</li></ul></div>
           <div class="cg-demo__panel"><h4>Missing-context prompts</h4><ul data-cg-missing><li>Generate a record to inspect completeness.</li></ul></div>
           <div class="cg-demo__panel"><h4>Contradictions</h4><ul data-cg-contradictions><li>Generate a record to inspect contradictions.</li></ul></div>
           <div class="cg-demo__panel"><h4>Component explanations</h4><ul class="cg-demo__components" data-cg-components><li>Generate a record to view weighted components.</li></ul></div>
@@ -144,7 +159,7 @@ function catalyst_grit_workspace_shortcode() {
     wp_enqueue_script('catalyst-grit-workspace', $base . 'assets/catalyst-grit-workspace.js', array(), CATALYST_GRIT_DEMO_VERSION, true);
     wp_localize_script('catalyst-grit-workspace', 'CatalystGritWorkspace', array(
         'ajaxUrl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('catalyst_grit_workspace_v130'),
+        'nonce' => wp_create_nonce('catalyst_grit_workspace_v140'),
         'version' => CATALYST_GRIT_DEMO_VERSION,
         'maxBytes' => 524288,
     ));
@@ -160,7 +175,7 @@ function catalyst_grit_workspace_shortcode() {
       <label class="cg-workspace__field"><span>Workspace JSON</span>
         <textarea rows="18" data-cg-workspace-json spellcheck="false" aria-describedby="cg-workspace-help"></textarea>
       </label>
-      <p id="cg-workspace-help" class="cg-workspace__help">The stored object must use <code>catalyst-grit-workspace/1.0</code> and <code>visibility: private</code>. Use the Python workspace export for complete project, revision, checkpoint, review, and audit bundles.</p>
+      <p id="cg-workspace-help" class="cg-workspace__help">The stored object must use <code>catalyst-grit-workspace/1.0</code> and <code>visibility: private</code>. Use the Python workspace export for complete project, revision, action-event, blocker, checkpoint, reassessment, review, and audit bundles.</p>
       <div class="cg-workspace__actions">
         <button type="button" data-cg-workspace-load>Load saved workspace</button>
         <button type="button" data-cg-workspace-save>Save private workspace</button>
@@ -177,12 +192,12 @@ function catalyst_grit_workspace_authorize() {
     if (!is_user_logged_in() || !current_user_can('read')) {
         wp_send_json_error(array('message' => 'Authentication and read access are required.'), 403);
     }
-    check_ajax_referer('catalyst_grit_workspace_v130', 'nonce');
+    check_ajax_referer('catalyst_grit_workspace_v140', 'nonce');
 }
 
 function catalyst_grit_workspace_load() {
     catalyst_grit_workspace_authorize();
-    $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v130', true);
+    $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v140', true);
     if (!is_array($value)) {
         $value = array(
             'format' => 'catalyst-grit-workspace/1.0',
@@ -211,14 +226,14 @@ function catalyst_grit_workspace_save() {
     $value['visibility'] = 'private';
     $value['product_version'] = CATALYST_GRIT_DEMO_VERSION;
     $value['saved_at'] = gmdate('c');
-    update_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v130', $value);
+    update_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v140', $value);
     wp_send_json_success(array('message' => 'Private workspace saved.', 'saved_at' => $value['saved_at']));
 }
 add_action('wp_ajax_catalyst_grit_workspace_save', 'catalyst_grit_workspace_save');
 
 function catalyst_grit_workspace_clear() {
     catalyst_grit_workspace_authorize();
-    delete_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v130');
+    delete_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v140');
     wp_send_json_success(array('message' => 'Saved workspace deleted.'));
 }
 add_action('wp_ajax_catalyst_grit_workspace_clear', 'catalyst_grit_workspace_clear');

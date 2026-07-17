@@ -1,14 +1,14 @@
 {
   "metadata": {
     "record_id": "cgr_11111111111111111111111111111111",
-    "schema_version": "1.3.0",
+    "schema_version": "1.4.0",
     "created_at": "2026-07-17T12:00:00Z",
     "updated_at": "2026-07-17T12:00:00Z",
     "status": "draft",
     "provenance": {
       "created_by": "example-user",
       "source": "direct_entry",
-      "source_schema_version": "1.3.0",
+      "source_schema_version": "1.4.0",
       "source_record_id": null,
       "notes": "Canonical recovery-record example."
     }
@@ -112,13 +112,41 @@
           "title": "Clarify the next decision owner",
           "status": "planned",
           "owner": "project lead",
-          "target_date": "2026-07-20"
+          "target_date": "2026-07-20",
+          "action_key": "clarify-owner",
+          "horizon": "24_hours",
+          "expected_effect": "A single decision owner is named.",
+          "required_support": [
+            "project lead availability"
+          ],
+          "dependencies": [],
+          "effort": 2,
+          "urgency": 5,
+          "completion_evidence": "",
+          "reassessment_trigger": "Decision owner remains unclear after 24 hours",
+          "blocked_reason": "",
+          "escalation_path": "program sponsor"
         },
         {
           "title": "Break the work into a 48-hour recovery task",
           "status": "in_progress",
           "owner": "reporting team",
-          "target_date": "2026-07-19"
+          "target_date": "2026-07-19",
+          "action_key": "recovery-task",
+          "horizon": "72_hours",
+          "expected_effect": "The work is reduced to one reviewable increment.",
+          "required_support": [
+            "protected work time"
+          ],
+          "dependencies": [
+            "clarify-owner"
+          ],
+          "effort": 3,
+          "urgency": 5,
+          "completion_evidence": "",
+          "reassessment_trigger": "The 48-hour task cannot be completed within available capacity",
+          "blocked_reason": "",
+          "escalation_path": "project lead"
         }
       ],
       "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
@@ -140,17 +168,58 @@
           "title": "Document unresolved assumptions",
           "status": "planned",
           "owner": "reporting team",
-          "target_date": "2026-07-21"
+          "target_date": "2026-07-21",
+          "action_key": "document-assumptions",
+          "horizon": "7_days",
+          "expected_effect": "Unresolved assumptions are visible before review.",
+          "required_support": [
+            "decision log"
+          ],
+          "dependencies": [
+            "clarify-owner"
+          ],
+          "effort": 2,
+          "urgency": 3,
+          "completion_evidence": "",
+          "reassessment_trigger": "New assumptions emerge before checkpoint",
+          "blocked_reason": "",
+          "escalation_path": ""
         },
         {
           "title": "Schedule a short stakeholder review",
           "status": "planned",
           "owner": "project lead",
-          "target_date": "2026-07-22"
+          "target_date": "2026-07-22",
+          "action_key": "stakeholder-review",
+          "horizon": "7_days",
+          "expected_effect": "Stakeholders confirm one scope and next decision.",
+          "required_support": [
+            "reviewer availability"
+          ],
+          "dependencies": [
+            "document-assumptions",
+            "recovery-task"
+          ],
+          "effort": 3,
+          "urgency": 4,
+          "completion_evidence": "",
+          "reassessment_trigger": "Required reviewers are unavailable by the checkpoint",
+          "blocked_reason": "",
+          "escalation_path": "program sponsor"
         }
       ],
       "checkpoint_date": "2026-07-24",
-      "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+      "success_signal": "One decision owner, one approved scope, and a dated next checkpoint.",
+      "scope_decision": "reduce_scope",
+      "scope_decision_notes": "Limit recovery work to the decision and evidence needed for the next checkpoint.",
+      "blockers": [
+        "External reviewer availability may constrain the checkpoint."
+      ],
+      "escalation_log": [
+        "Escalate unresolved decision ownership to the program sponsor after 24 hours."
+      ],
+      "changed_assumptions": [],
+      "reassessment_trigger": "Reassess at the checkpoint or sooner if the approval dependency changes."
     }
   },
   "human_review": {

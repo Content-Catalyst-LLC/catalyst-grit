@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.3.0/recovery-record.schema.json",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.4.0/recovery-record.schema.json",
   "title": "Catalyst Grit Recovery Record",
   "description": "Generated canonical recovery record with separated input, findings, and human review.",
-  "x-catalyst-grit-version": "1.3.0",
+  "x-catalyst-grit-version": "1.4.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -33,10 +33,10 @@
           "pattern": "^cgr_[0-9a-f]{32}$"
         },
         "schema_version": {
-          "const": "1.3.0"
+          "const": "1.4.0"
         },
         "engine_version": {
-          "const": "1.3.0"
+          "const": "1.4.0"
         },
         "created_at": {
           "type": "string",
@@ -579,7 +579,15 @@
                           "title"
                         ],
                         "properties": {
+                          "action_key": {
+                            "type": "string",
+                            "minLength": 1
+                          },
                           "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "statement": {
                             "type": "string",
                             "minLength": 1
                           },
@@ -588,8 +596,11 @@
                             "enum": [
                               "planned",
                               "in_progress",
+                              "blocked",
                               "completed",
-                              "paused"
+                              "paused",
+                              "deferred",
+                              "cancelled"
                             ]
                           },
                           "owner": {
@@ -604,6 +615,66 @@
                               "null"
                             ],
                             "format": "date"
+                          },
+                          "horizon": {
+                            "type": "string",
+                            "enum": [
+                              "24_hours",
+                              "72_hours",
+                              "7_days",
+                              "longer_term"
+                            ]
+                          },
+                          "expected_effect": {
+                            "type": "string"
+                          },
+                          "required_support": {
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "dependencies": {
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "effort": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "urgency": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "completion_evidence": {
+                            "type": "string"
+                          },
+                          "reassessment_trigger": {
+                            "type": "string"
+                          },
+                          "blocked_reason": {
+                            "type": "string"
+                          },
+                          "escalation_path": {
+                            "type": "string"
                           }
                         }
                       }
@@ -696,7 +767,15 @@
                           "title"
                         ],
                         "properties": {
+                          "action_key": {
+                            "type": "string",
+                            "minLength": 1
+                          },
                           "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "statement": {
                             "type": "string",
                             "minLength": 1
                           },
@@ -705,8 +784,11 @@
                             "enum": [
                               "planned",
                               "in_progress",
+                              "blocked",
                               "completed",
-                              "paused"
+                              "paused",
+                              "deferred",
+                              "cancelled"
                             ]
                           },
                           "owner": {
@@ -721,6 +803,66 @@
                               "null"
                             ],
                             "format": "date"
+                          },
+                          "horizon": {
+                            "type": "string",
+                            "enum": [
+                              "24_hours",
+                              "72_hours",
+                              "7_days",
+                              "longer_term"
+                            ]
+                          },
+                          "expected_effect": {
+                            "type": "string"
+                          },
+                          "required_support": {
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "dependencies": {
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "effort": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "urgency": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "completion_evidence": {
+                            "type": "string"
+                          },
+                          "reassessment_trigger": {
+                            "type": "string"
+                          },
+                          "blocked_reason": {
+                            "type": "string"
+                          },
+                          "escalation_path": {
+                            "type": "string"
                           }
                         }
                       }
@@ -740,6 +882,61 @@
               "format": "date"
             },
             "success_signal": {
+              "type": "string"
+            },
+            "scope_decision": {
+              "type": "string",
+              "enum": [
+                "continue",
+                "reduce_scope",
+                "pause",
+                "delegate",
+                "escalate"
+              ]
+            },
+            "scope_decision_notes": {
+              "type": "string"
+            },
+            "blockers": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "escalation_log": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "changed_assumptions": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "reassessment_trigger": {
               "type": "string"
             }
           }
@@ -1141,12 +1338,27 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
+                  "action_key",
                   "title",
                   "status",
                   "owner",
-                  "target_date"
+                  "target_date",
+                  "horizon",
+                  "expected_effect",
+                  "required_support",
+                  "dependencies",
+                  "effort",
+                  "urgency",
+                  "completion_evidence",
+                  "reassessment_trigger",
+                  "blocked_reason",
+                  "escalation_path"
                 ],
                 "properties": {
+                  "action_key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
                   "title": {
                     "type": "string",
                     "minLength": 1
@@ -1156,8 +1368,11 @@
                     "enum": [
                       "planned",
                       "in_progress",
+                      "blocked",
                       "completed",
-                      "paused"
+                      "paused",
+                      "deferred",
+                      "cancelled"
                     ]
                   },
                   "owner": {
@@ -1172,6 +1387,52 @@
                       "null"
                     ],
                     "format": "date"
+                  },
+                  "horizon": {
+                    "type": "string",
+                    "enum": [
+                      "24_hours",
+                      "72_hours",
+                      "7_days",
+                      "longer_term"
+                    ]
+                  },
+                  "expected_effect": {
+                    "type": "string"
+                  },
+                  "required_support": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "dependencies": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "effort": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "urgency": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "completion_evidence": {
+                    "type": "string"
+                  },
+                  "reassessment_trigger": {
+                    "type": "string"
+                  },
+                  "blocked_reason": {
+                    "type": "string"
+                  },
+                  "escalation_path": {
+                    "type": "string"
                   }
                 }
               }
@@ -1216,7 +1477,13 @@
           "required": [
             "actions",
             "checkpoint_date",
-            "success_signal"
+            "success_signal",
+            "scope_decision",
+            "scope_decision_notes",
+            "blockers",
+            "escalation_log",
+            "changed_assumptions",
+            "reassessment_trigger"
           ],
           "properties": {
             "actions": {
@@ -1225,12 +1492,27 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
+                  "action_key",
                   "title",
                   "status",
                   "owner",
-                  "target_date"
+                  "target_date",
+                  "horizon",
+                  "expected_effect",
+                  "required_support",
+                  "dependencies",
+                  "effort",
+                  "urgency",
+                  "completion_evidence",
+                  "reassessment_trigger",
+                  "blocked_reason",
+                  "escalation_path"
                 ],
                 "properties": {
+                  "action_key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
                   "title": {
                     "type": "string",
                     "minLength": 1
@@ -1240,8 +1522,11 @@
                     "enum": [
                       "planned",
                       "in_progress",
+                      "blocked",
                       "completed",
-                      "paused"
+                      "paused",
+                      "deferred",
+                      "cancelled"
                     ]
                   },
                   "owner": {
@@ -1256,6 +1541,52 @@
                       "null"
                     ],
                     "format": "date"
+                  },
+                  "horizon": {
+                    "type": "string",
+                    "enum": [
+                      "24_hours",
+                      "72_hours",
+                      "7_days",
+                      "longer_term"
+                    ]
+                  },
+                  "expected_effect": {
+                    "type": "string"
+                  },
+                  "required_support": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "dependencies": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "effort": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "urgency": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "completion_evidence": {
+                    "type": "string"
+                  },
+                  "reassessment_trigger": {
+                    "type": "string"
+                  },
+                  "blocked_reason": {
+                    "type": "string"
+                  },
+                  "escalation_path": {
+                    "type": "string"
                   }
                 }
               }
@@ -1268,6 +1599,40 @@
               "format": "date"
             },
             "success_signal": {
+              "type": "string"
+            },
+            "scope_decision": {
+              "type": "string",
+              "enum": [
+                "continue",
+                "reduce_scope",
+                "pause",
+                "delegate",
+                "escalate"
+              ]
+            },
+            "scope_decision_notes": {
+              "type": "string"
+            },
+            "blockers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "escalation_log": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "changed_assumptions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "reassessment_trigger": {
               "type": "string"
             }
           }
@@ -1288,6 +1653,7 @@
         "human_override_applied",
         "flags",
         "recommended_actions",
+        "recovery_plan",
         "decision_note",
         "method_path",
         "interpretation_limits",
@@ -1756,10 +2122,10 @@
           ],
           "properties": {
             "schema_version": {
-              "const": "1.3.0"
+              "const": "1.4.0"
             },
             "engine_version": {
-              "const": "1.3.0"
+              "const": "1.4.0"
             },
             "profile_id": {
               "type": "string"
@@ -2345,6 +2711,819 @@
                 "message": {
                   "type": "string"
                 }
+              }
+            }
+          }
+        },
+        "recovery_plan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "plan_status",
+            "smallest_recoverable_next_step",
+            "horizons",
+            "dependency_sequence",
+            "unresolved_dependencies",
+            "scope_decision",
+            "checkpoint",
+            "blocker_log",
+            "escalation_log",
+            "changed_assumptions",
+            "due_for_review",
+            "compatibility_defaults",
+            "plan_rules"
+          ],
+          "properties": {
+            "plan_status": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "needs_support"
+              ]
+            },
+            "smallest_recoverable_next_step": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_key",
+                "title",
+                "status",
+                "owner",
+                "target_date",
+                "horizon",
+                "expected_effect",
+                "required_support",
+                "dependencies",
+                "effort",
+                "urgency",
+                "completion_evidence",
+                "reassessment_trigger",
+                "blocked_reason",
+                "escalation_path",
+                "source_section",
+                "ordinal"
+              ],
+              "properties": {
+                "action_key": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "in_progress",
+                    "blocked",
+                    "completed",
+                    "paused",
+                    "deferred",
+                    "cancelled"
+                  ]
+                },
+                "owner": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "target_date": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date"
+                },
+                "horizon": {
+                  "type": "string",
+                  "enum": [
+                    "24_hours",
+                    "72_hours",
+                    "7_days",
+                    "longer_term"
+                  ]
+                },
+                "expected_effect": {
+                  "type": "string"
+                },
+                "required_support": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "dependencies": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "effort": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "urgency": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "completion_evidence": {
+                  "type": "string"
+                },
+                "reassessment_trigger": {
+                  "type": "string"
+                },
+                "blocked_reason": {
+                  "type": "string"
+                },
+                "escalation_path": {
+                  "type": "string"
+                },
+                "source_section": {
+                  "type": "string",
+                  "enum": [
+                    "response",
+                    "next_steps"
+                  ]
+                },
+                "ordinal": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "horizons": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "24_hours",
+                "72_hours",
+                "7_days",
+                "longer_term"
+              ],
+              "properties": {
+                "24_hours": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "action_key",
+                      "title",
+                      "status",
+                      "owner",
+                      "target_date",
+                      "horizon",
+                      "expected_effect",
+                      "required_support",
+                      "dependencies",
+                      "effort",
+                      "urgency",
+                      "completion_evidence",
+                      "reassessment_trigger",
+                      "blocked_reason",
+                      "escalation_path",
+                      "source_section",
+                      "ordinal"
+                    ],
+                    "properties": {
+                      "action_key": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "in_progress",
+                          "blocked",
+                          "completed",
+                          "paused",
+                          "deferred",
+                          "cancelled"
+                        ]
+                      },
+                      "owner": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "target_date": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date"
+                      },
+                      "horizon": {
+                        "type": "string",
+                        "enum": [
+                          "24_hours",
+                          "72_hours",
+                          "7_days",
+                          "longer_term"
+                        ]
+                      },
+                      "expected_effect": {
+                        "type": "string"
+                      },
+                      "required_support": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "dependencies": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "effort": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "urgency": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "completion_evidence": {
+                        "type": "string"
+                      },
+                      "reassessment_trigger": {
+                        "type": "string"
+                      },
+                      "blocked_reason": {
+                        "type": "string"
+                      },
+                      "escalation_path": {
+                        "type": "string"
+                      },
+                      "source_section": {
+                        "type": "string",
+                        "enum": [
+                          "response",
+                          "next_steps"
+                        ]
+                      },
+                      "ordinal": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                },
+                "72_hours": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "action_key",
+                      "title",
+                      "status",
+                      "owner",
+                      "target_date",
+                      "horizon",
+                      "expected_effect",
+                      "required_support",
+                      "dependencies",
+                      "effort",
+                      "urgency",
+                      "completion_evidence",
+                      "reassessment_trigger",
+                      "blocked_reason",
+                      "escalation_path",
+                      "source_section",
+                      "ordinal"
+                    ],
+                    "properties": {
+                      "action_key": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "in_progress",
+                          "blocked",
+                          "completed",
+                          "paused",
+                          "deferred",
+                          "cancelled"
+                        ]
+                      },
+                      "owner": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "target_date": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date"
+                      },
+                      "horizon": {
+                        "type": "string",
+                        "enum": [
+                          "24_hours",
+                          "72_hours",
+                          "7_days",
+                          "longer_term"
+                        ]
+                      },
+                      "expected_effect": {
+                        "type": "string"
+                      },
+                      "required_support": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "dependencies": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "effort": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "urgency": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "completion_evidence": {
+                        "type": "string"
+                      },
+                      "reassessment_trigger": {
+                        "type": "string"
+                      },
+                      "blocked_reason": {
+                        "type": "string"
+                      },
+                      "escalation_path": {
+                        "type": "string"
+                      },
+                      "source_section": {
+                        "type": "string",
+                        "enum": [
+                          "response",
+                          "next_steps"
+                        ]
+                      },
+                      "ordinal": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                },
+                "7_days": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "action_key",
+                      "title",
+                      "status",
+                      "owner",
+                      "target_date",
+                      "horizon",
+                      "expected_effect",
+                      "required_support",
+                      "dependencies",
+                      "effort",
+                      "urgency",
+                      "completion_evidence",
+                      "reassessment_trigger",
+                      "blocked_reason",
+                      "escalation_path",
+                      "source_section",
+                      "ordinal"
+                    ],
+                    "properties": {
+                      "action_key": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "in_progress",
+                          "blocked",
+                          "completed",
+                          "paused",
+                          "deferred",
+                          "cancelled"
+                        ]
+                      },
+                      "owner": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "target_date": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date"
+                      },
+                      "horizon": {
+                        "type": "string",
+                        "enum": [
+                          "24_hours",
+                          "72_hours",
+                          "7_days",
+                          "longer_term"
+                        ]
+                      },
+                      "expected_effect": {
+                        "type": "string"
+                      },
+                      "required_support": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "dependencies": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "effort": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "urgency": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "completion_evidence": {
+                        "type": "string"
+                      },
+                      "reassessment_trigger": {
+                        "type": "string"
+                      },
+                      "blocked_reason": {
+                        "type": "string"
+                      },
+                      "escalation_path": {
+                        "type": "string"
+                      },
+                      "source_section": {
+                        "type": "string",
+                        "enum": [
+                          "response",
+                          "next_steps"
+                        ]
+                      },
+                      "ordinal": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                },
+                "longer_term": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "action_key",
+                      "title",
+                      "status",
+                      "owner",
+                      "target_date",
+                      "horizon",
+                      "expected_effect",
+                      "required_support",
+                      "dependencies",
+                      "effort",
+                      "urgency",
+                      "completion_evidence",
+                      "reassessment_trigger",
+                      "blocked_reason",
+                      "escalation_path",
+                      "source_section",
+                      "ordinal"
+                    ],
+                    "properties": {
+                      "action_key": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "in_progress",
+                          "blocked",
+                          "completed",
+                          "paused",
+                          "deferred",
+                          "cancelled"
+                        ]
+                      },
+                      "owner": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "target_date": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date"
+                      },
+                      "horizon": {
+                        "type": "string",
+                        "enum": [
+                          "24_hours",
+                          "72_hours",
+                          "7_days",
+                          "longer_term"
+                        ]
+                      },
+                      "expected_effect": {
+                        "type": "string"
+                      },
+                      "required_support": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "dependencies": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "effort": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "urgency": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "completion_evidence": {
+                        "type": "string"
+                      },
+                      "reassessment_trigger": {
+                        "type": "string"
+                      },
+                      "blocked_reason": {
+                        "type": "string"
+                      },
+                      "escalation_path": {
+                        "type": "string"
+                      },
+                      "source_section": {
+                        "type": "string",
+                        "enum": [
+                          "response",
+                          "next_steps"
+                        ]
+                      },
+                      "ordinal": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "dependency_sequence": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action_key",
+                  "depends_on",
+                  "external_dependencies"
+                ],
+                "properties": {
+                  "action_key": {
+                    "type": "string"
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "external_dependencies": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "unresolved_dependencies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action_key",
+                  "dependency"
+                ],
+                "properties": {
+                  "action_key": {
+                    "type": "string"
+                  },
+                  "dependency": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "scope_decision": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decision",
+                "notes"
+              ],
+              "properties": {
+                "decision": {
+                  "type": "string",
+                  "enum": [
+                    "continue",
+                    "reduce_scope",
+                    "pause",
+                    "delegate",
+                    "escalate"
+                  ]
+                },
+                "notes": {
+                  "type": "string"
+                }
+              }
+            },
+            "checkpoint": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scheduled_for",
+                "success_signal",
+                "reassessment_trigger"
+              ],
+              "properties": {
+                "scheduled_for": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "success_signal": {
+                  "type": "string"
+                },
+                "reassessment_trigger": {
+                  "type": "string"
+                }
+              }
+            },
+            "blocker_log": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action_key",
+                  "title",
+                  "blocked_reason",
+                  "required_support",
+                  "escalation_path"
+                ],
+                "properties": {
+                  "action_key": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "blocked_reason": {
+                    "type": "string"
+                  },
+                  "required_support": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "escalation_path": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "escalation_log": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "changed_assumptions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "due_for_review": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action_key",
+                  "title",
+                  "target_date",
+                  "days_past_target",
+                  "message"
+                ],
+                "properties": {
+                  "action_key": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "target_date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "days_past_target": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "compatibility_defaults": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "plan_rules": {
+              "type": "array",
+              "items": {
+                "type": "string"
               }
             }
           }

@@ -52,7 +52,7 @@ The workstream lost momentum after conflicting stakeholder feedback and a missed
 - **Score (component context required):** 47.8/100
 - **Generated state:** fragile recovery conditions
 - **Effective state:** fragile recovery conditions
-- **Methodology:** cg-recovery-conditions v1.3.0
+- **Methodology:** cg-recovery-conditions v1.4.0
 
 ## Component scores
 
@@ -97,6 +97,6 @@ Recorded recovery conditions are assessed as fragile recovery conditions. The co
 
 ## Release provenance
 
-- **Schema version:** 1.3.0
-- **Engine version:** 1.3.0
+- **Schema version:** 1.4.0
+- **Engine version:** 1.4.0
 - **Method path:** context → trigger → impact → pressure → constraints → supports → capacity → response → learning → next steps → human review

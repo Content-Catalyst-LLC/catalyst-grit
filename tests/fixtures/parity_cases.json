@@ -140,8 +140,8 @@
     "expected": {
       "metadata": {
         "record_id": "cgr_11111111111111111111111111111111",
-        "schema_version": "1.3.0",
-        "engine_version": "1.3.0",
+        "schema_version": "1.4.0",
+        "engine_version": "1.4.0",
         "created_at": "2026-07-17T12:00:00Z",
         "updated_at": "2026-07-17T12:00:00Z",
         "status": "draft",
@@ -352,16 +352,38 @@
         "response": {
           "actions": [
             {
+              "action_key": "action-1",
               "title": "Clarify the next decision owner",
               "status": "planned",
               "owner": "project lead",
-              "target_date": "2026-07-20"
+              "target_date": "2026-07-20",
+              "horizon": "24_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             },
             {
+              "action_key": "action-2",
               "title": "Break the work into a 48-hour recovery task",
               "status": "in_progress",
               "owner": "reporting team",
-              "target_date": "2026-07-19"
+              "target_date": "2026-07-19",
+              "horizon": "72_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             }
           ],
           "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
@@ -380,26 +402,54 @@
         "next_steps": {
           "actions": [
             {
+              "action_key": "action-1",
               "title": "Document unresolved assumptions",
               "status": "planned",
               "owner": "reporting team",
-              "target_date": "2026-07-21"
+              "target_date": "2026-07-21",
+              "horizon": "24_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             },
             {
+              "action_key": "action-2",
               "title": "Schedule a short stakeholder review",
               "status": "planned",
               "owner": "project lead",
-              "target_date": "2026-07-22"
+              "target_date": "2026-07-22",
+              "horizon": "72_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             }
           ],
           "checkpoint_date": "2026-07-24",
-          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint.",
+          "scope_decision": "continue",
+          "scope_decision_notes": "",
+          "blockers": [],
+          "escalation_log": [],
+          "changed_assumptions": [],
+          "reassessment_trigger": ""
         }
       },
       "findings": {
         "methodology": {
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.3.0",
+          "profile_version": "1.4.0",
           "calculation_spec": "weighted-components-v1",
           "component_weights": {
             "impact_buffer": 15.0,
@@ -766,6 +816,155 @@
             "priority": "high"
           }
         ],
+        "recovery_plan": {
+          "plan_status": "ready",
+          "smallest_recoverable_next_step": {
+            "action_key": "action-1",
+            "title": "Clarify the next decision owner",
+            "status": "planned",
+            "owner": "project lead",
+            "target_date": "2026-07-20",
+            "horizon": "24_hours",
+            "expected_effect": "",
+            "required_support": [],
+            "dependencies": [],
+            "effort": 3.0,
+            "urgency": 3.0,
+            "completion_evidence": "",
+            "reassessment_trigger": "",
+            "blocked_reason": "",
+            "escalation_path": "",
+            "source_section": "response",
+            "ordinal": 0
+          },
+          "horizons": {
+            "24_hours": [
+              {
+                "action_key": "action-1",
+                "title": "Clarify the next decision owner",
+                "status": "planned",
+                "owner": "project lead",
+                "target_date": "2026-07-20",
+                "horizon": "24_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 0
+              },
+              {
+                "action_key": "next_steps-action-1",
+                "title": "Document unresolved assumptions",
+                "status": "planned",
+                "owner": "reporting team",
+                "target_date": "2026-07-21",
+                "horizon": "24_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "next_steps",
+                "ordinal": 0
+              }
+            ],
+            "72_hours": [
+              {
+                "action_key": "action-2",
+                "title": "Break the work into a 48-hour recovery task",
+                "status": "in_progress",
+                "owner": "reporting team",
+                "target_date": "2026-07-19",
+                "horizon": "72_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 1
+              },
+              {
+                "action_key": "next_steps-action-2",
+                "title": "Schedule a short stakeholder review",
+                "status": "planned",
+                "owner": "project lead",
+                "target_date": "2026-07-22",
+                "horizon": "72_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "next_steps",
+                "ordinal": 1
+              }
+            ],
+            "7_days": [],
+            "longer_term": []
+          },
+          "dependency_sequence": [
+            {
+              "action_key": "action-1",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "next_steps-action-1",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "action-2",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "next_steps-action-2",
+              "depends_on": [],
+              "external_dependencies": []
+            }
+          ],
+          "unresolved_dependencies": [],
+          "scope_decision": {
+            "decision": "continue",
+            "notes": ""
+          },
+          "checkpoint": {
+            "scheduled_for": "2026-07-24",
+            "success_signal": "One decision owner, one approved scope, and a dated next checkpoint.",
+            "reassessment_trigger": ""
+          },
+          "blocker_log": [],
+          "escalation_log": [],
+          "changed_assumptions": [],
+          "due_for_review": [],
+          "compatibility_defaults": [],
+          "plan_rules": [
+            "At least one action has a named owner.",
+            "A dated checkpoint is required.",
+            "Blocked and past-target actions are support signals, not performance judgments.",
+            "Reassessment creates a new record revision and preserves prior findings."
+          ]
+        },
         "decision_note": "Recorded recovery conditions are assessed as fragile recovery conditions. The composite conditions score is 47.8/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
         "method_path": [
           "context",
@@ -787,10 +986,10 @@
           "Generated findings require human review when used for consequential decisions."
         ],
         "calculation_provenance": {
-          "schema_version": "1.3.0",
-          "engine_version": "1.3.0",
+          "schema_version": "1.4.0",
+          "engine_version": "1.4.0",
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.3.0",
+          "profile_version": "1.4.0",
           "calculated_at": "2026-07-17T12:00:00Z"
         }
       },
@@ -930,8 +1129,8 @@
     "expected": {
       "metadata": {
         "record_id": "cgr_22222222222222222222222222222222",
-        "schema_version": "1.3.0",
-        "engine_version": "1.3.0",
+        "schema_version": "1.4.0",
+        "engine_version": "1.4.0",
         "created_at": "2026-07-10T10:00:00Z",
         "updated_at": "2026-07-17T13:00:00Z",
         "status": "reviewed",
@@ -1093,16 +1292,38 @@
         "response": {
           "actions": [
             {
+              "action_key": "action-1",
               "title": "Complete next checkpoint",
               "status": "in_progress",
               "owner": "team",
-              "target_date": "2026-07-20"
+              "target_date": "2026-07-20",
+              "horizon": "24_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             },
             {
+              "action_key": "action-2",
               "title": "Confirm dependencies",
               "status": "completed",
               "owner": "lead",
-              "target_date": "2026-07-16"
+              "target_date": "2026-07-16",
+              "horizon": "72_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "Completion predates v1.4; evidence was not supplied.",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             }
           ],
           "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
@@ -1121,26 +1342,54 @@
         "next_steps": {
           "actions": [
             {
+              "action_key": "action-1",
               "title": "Publish update",
               "status": "planned",
               "owner": "lead",
-              "target_date": "2026-07-21"
+              "target_date": "2026-07-21",
+              "horizon": "24_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             },
             {
+              "action_key": "action-2",
               "title": "Review lessons",
               "status": "planned",
               "owner": "team",
-              "target_date": "2026-07-22"
+              "target_date": "2026-07-22",
+              "horizon": "72_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             }
           ],
           "checkpoint_date": "2026-07-24",
-          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint.",
+          "scope_decision": "continue",
+          "scope_decision_notes": "",
+          "blockers": [],
+          "escalation_log": [],
+          "changed_assumptions": [],
+          "reassessment_trigger": ""
         }
       },
       "findings": {
         "methodology": {
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.3.0",
+          "profile_version": "1.4.0",
           "calculation_spec": "weighted-components-v1",
           "component_weights": {
             "impact_buffer": 15.0,
@@ -1436,6 +1685,155 @@
             "priority": "medium"
           }
         ],
+        "recovery_plan": {
+          "plan_status": "ready",
+          "smallest_recoverable_next_step": {
+            "action_key": "action-1",
+            "title": "Complete next checkpoint",
+            "status": "in_progress",
+            "owner": "team",
+            "target_date": "2026-07-20",
+            "horizon": "24_hours",
+            "expected_effect": "",
+            "required_support": [],
+            "dependencies": [],
+            "effort": 3.0,
+            "urgency": 3.0,
+            "completion_evidence": "",
+            "reassessment_trigger": "",
+            "blocked_reason": "",
+            "escalation_path": "",
+            "source_section": "response",
+            "ordinal": 0
+          },
+          "horizons": {
+            "24_hours": [
+              {
+                "action_key": "action-1",
+                "title": "Complete next checkpoint",
+                "status": "in_progress",
+                "owner": "team",
+                "target_date": "2026-07-20",
+                "horizon": "24_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 0
+              },
+              {
+                "action_key": "next_steps-action-1",
+                "title": "Publish update",
+                "status": "planned",
+                "owner": "lead",
+                "target_date": "2026-07-21",
+                "horizon": "24_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "next_steps",
+                "ordinal": 0
+              }
+            ],
+            "72_hours": [
+              {
+                "action_key": "next_steps-action-2",
+                "title": "Review lessons",
+                "status": "planned",
+                "owner": "team",
+                "target_date": "2026-07-22",
+                "horizon": "72_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "next_steps",
+                "ordinal": 1
+              },
+              {
+                "action_key": "action-2",
+                "title": "Confirm dependencies",
+                "status": "completed",
+                "owner": "lead",
+                "target_date": "2026-07-16",
+                "horizon": "72_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "Completion predates v1.4; evidence was not supplied.",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 1
+              }
+            ],
+            "7_days": [],
+            "longer_term": []
+          },
+          "dependency_sequence": [
+            {
+              "action_key": "action-1",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "next_steps-action-1",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "next_steps-action-2",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "action-2",
+              "depends_on": [],
+              "external_dependencies": []
+            }
+          ],
+          "unresolved_dependencies": [],
+          "scope_decision": {
+            "decision": "continue",
+            "notes": ""
+          },
+          "checkpoint": {
+            "scheduled_for": "2026-07-24",
+            "success_signal": "One decision owner, one approved scope, and a dated next checkpoint.",
+            "reassessment_trigger": ""
+          },
+          "blocker_log": [],
+          "escalation_log": [],
+          "changed_assumptions": [],
+          "due_for_review": [],
+          "compatibility_defaults": [],
+          "plan_rules": [
+            "At least one action has a named owner.",
+            "A dated checkpoint is required.",
+            "Blocked and past-target actions are support signals, not performance judgments.",
+            "Reassessment creates a new record revision and preserves prior findings."
+          ]
+        },
         "decision_note": "Recorded recovery conditions are assessed as stable recovery conditions. The composite conditions score is 91.7/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
         "method_path": [
           "context",
@@ -1457,10 +1855,10 @@
           "Generated findings require human review when used for consequential decisions."
         ],
         "calculation_provenance": {
-          "schema_version": "1.3.0",
-          "engine_version": "1.3.0",
+          "schema_version": "1.4.0",
+          "engine_version": "1.4.0",
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.3.0",
+          "profile_version": "1.4.0",
           "calculated_at": "2026-07-17T13:00:00Z"
         }
       },
@@ -1576,8 +1974,8 @@
     "expected": {
       "metadata": {
         "record_id": "cgr_33333333333333333333333333333333",
-        "schema_version": "1.3.0",
-        "engine_version": "1.3.0",
+        "schema_version": "1.4.0",
+        "engine_version": "1.4.0",
         "created_at": "2026-07-17T08:00:00Z",
         "updated_at": "2026-07-17T08:00:00Z",
         "status": "under_review",
@@ -1728,22 +2126,55 @@
         "response": {
           "actions": [
             {
+              "action_key": "default-1",
               "title": "Name the smallest recoverable next step",
               "status": "planned",
-              "owner": null,
-              "target_date": null
+              "owner": "self",
+              "target_date": null,
+              "horizon": "24_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             },
             {
+              "action_key": "default-2",
               "title": "Review support and constraints",
               "status": "planned",
-              "owner": null,
-              "target_date": null
+              "owner": "self",
+              "target_date": null,
+              "horizon": "72_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             },
             {
+              "action_key": "default-3",
               "title": "Schedule a short follow-up review",
               "status": "planned",
-              "owner": null,
-              "target_date": null
+              "owner": "self",
+              "target_date": null,
+              "horizon": "7_days",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             }
           ],
           "current_strategy": ""
@@ -1756,13 +2187,19 @@
         "next_steps": {
           "actions": [],
           "checkpoint_date": null,
-          "success_signal": ""
+          "success_signal": "",
+          "scope_decision": "continue",
+          "scope_decision_notes": "",
+          "blockers": [],
+          "escalation_log": [],
+          "changed_assumptions": [],
+          "reassessment_trigger": ""
         }
       },
       "findings": {
         "methodology": {
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.3.0",
+          "profile_version": "1.4.0",
           "calculation_spec": "weighted-components-v1",
           "component_weights": {
             "impact_buffer": 15.0,
@@ -2201,6 +2638,134 @@
             "priority": "high"
           }
         ],
+        "recovery_plan": {
+          "plan_status": "ready",
+          "smallest_recoverable_next_step": {
+            "action_key": "default-1",
+            "title": "Name the smallest recoverable next step",
+            "status": "planned",
+            "owner": "self",
+            "target_date": null,
+            "horizon": "24_hours",
+            "expected_effect": "",
+            "required_support": [],
+            "dependencies": [],
+            "effort": 3.0,
+            "urgency": 3.0,
+            "completion_evidence": "",
+            "reassessment_trigger": "",
+            "blocked_reason": "",
+            "escalation_path": "",
+            "source_section": "response",
+            "ordinal": 0
+          },
+          "horizons": {
+            "24_hours": [
+              {
+                "action_key": "default-1",
+                "title": "Name the smallest recoverable next step",
+                "status": "planned",
+                "owner": "self",
+                "target_date": null,
+                "horizon": "24_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 0
+              }
+            ],
+            "72_hours": [
+              {
+                "action_key": "default-2",
+                "title": "Review support and constraints",
+                "status": "planned",
+                "owner": "self",
+                "target_date": null,
+                "horizon": "72_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 1
+              }
+            ],
+            "7_days": [
+              {
+                "action_key": "default-3",
+                "title": "Schedule a short follow-up review",
+                "status": "planned",
+                "owner": "self",
+                "target_date": null,
+                "horizon": "7_days",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 2
+              }
+            ],
+            "longer_term": []
+          },
+          "dependency_sequence": [
+            {
+              "action_key": "default-1",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "default-2",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "default-3",
+              "depends_on": [],
+              "external_dependencies": []
+            }
+          ],
+          "unresolved_dependencies": [],
+          "scope_decision": {
+            "decision": "continue",
+            "notes": ""
+          },
+          "checkpoint": {
+            "scheduled_for": "2026-07-24",
+            "success_signal": "",
+            "reassessment_trigger": ""
+          },
+          "blocker_log": [],
+          "escalation_log": [],
+          "changed_assumptions": [],
+          "due_for_review": [],
+          "compatibility_defaults": [
+            "Scheduled a seven-day review checkpoint because the imported plan had no checkpoint."
+          ],
+          "plan_rules": [
+            "At least one action has a named owner.",
+            "A dated checkpoint is required.",
+            "Blocked and past-target actions are support signals, not performance judgments.",
+            "Reassessment creates a new record revision and preserves prior findings."
+          ]
+        },
         "decision_note": "Recorded recovery conditions are assessed as high-friction recovery conditions. The composite conditions score is 13.8/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
         "method_path": [
           "context",
@@ -2222,10 +2787,10 @@
           "Generated findings require human review when used for consequential decisions."
         ],
         "calculation_provenance": {
-          "schema_version": "1.3.0",
-          "engine_version": "1.3.0",
+          "schema_version": "1.4.0",
+          "engine_version": "1.4.0",
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.3.0",
+          "profile_version": "1.4.0",
           "calculated_at": "2026-07-17T08:00:00Z"
         }
       },
@@ -2403,8 +2968,8 @@
     "expected": {
       "metadata": {
         "record_id": "cgr_44444444444444444444444444444444",
-        "schema_version": "1.3.0",
-        "engine_version": "1.3.0",
+        "schema_version": "1.4.0",
+        "engine_version": "1.4.0",
         "created_at": "2026-07-17T14:00:00Z",
         "updated_at": "2026-07-17T14:00:00Z",
         "status": "active",
@@ -2615,16 +3180,38 @@
         "response": {
           "actions": [
             {
+              "action_key": "action-1",
               "title": "Clarify the next decision owner",
               "status": "planned",
               "owner": "project lead",
-              "target_date": "2026-07-20"
+              "target_date": "2026-07-20",
+              "horizon": "24_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             },
             {
+              "action_key": "action-2",
               "title": "Break the work into a 48-hour recovery task",
               "status": "in_progress",
               "owner": "reporting team",
-              "target_date": "2026-07-19"
+              "target_date": "2026-07-19",
+              "horizon": "72_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             }
           ],
           "current_strategy": "Reduce scope to the decision needed for the next checkpoint."
@@ -2643,20 +3230,48 @@
         "next_steps": {
           "actions": [
             {
+              "action_key": "action-1",
               "title": "Document unresolved assumptions",
               "status": "planned",
               "owner": "reporting team",
-              "target_date": "2026-07-21"
+              "target_date": "2026-07-21",
+              "horizon": "24_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             },
             {
+              "action_key": "action-2",
               "title": "Schedule a short stakeholder review",
               "status": "planned",
               "owner": "project lead",
-              "target_date": "2026-07-22"
+              "target_date": "2026-07-22",
+              "horizon": "72_hours",
+              "expected_effect": "",
+              "required_support": [],
+              "dependencies": [],
+              "effort": 3.0,
+              "urgency": 3.0,
+              "completion_evidence": "",
+              "reassessment_trigger": "",
+              "blocked_reason": "",
+              "escalation_path": ""
             }
           ],
           "checkpoint_date": "2026-07-24",
-          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint."
+          "success_signal": "One decision owner, one approved scope, and a dated next checkpoint.",
+          "scope_decision": "continue",
+          "scope_decision_notes": "",
+          "blockers": [],
+          "escalation_log": [],
+          "changed_assumptions": [],
+          "reassessment_trigger": ""
         }
       },
       "findings": {
@@ -3029,6 +3644,155 @@
             "priority": "high"
           }
         ],
+        "recovery_plan": {
+          "plan_status": "ready",
+          "smallest_recoverable_next_step": {
+            "action_key": "action-1",
+            "title": "Clarify the next decision owner",
+            "status": "planned",
+            "owner": "project lead",
+            "target_date": "2026-07-20",
+            "horizon": "24_hours",
+            "expected_effect": "",
+            "required_support": [],
+            "dependencies": [],
+            "effort": 3.0,
+            "urgency": 3.0,
+            "completion_evidence": "",
+            "reassessment_trigger": "",
+            "blocked_reason": "",
+            "escalation_path": "",
+            "source_section": "response",
+            "ordinal": 0
+          },
+          "horizons": {
+            "24_hours": [
+              {
+                "action_key": "action-1",
+                "title": "Clarify the next decision owner",
+                "status": "planned",
+                "owner": "project lead",
+                "target_date": "2026-07-20",
+                "horizon": "24_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 0
+              },
+              {
+                "action_key": "next_steps-action-1",
+                "title": "Document unresolved assumptions",
+                "status": "planned",
+                "owner": "reporting team",
+                "target_date": "2026-07-21",
+                "horizon": "24_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "next_steps",
+                "ordinal": 0
+              }
+            ],
+            "72_hours": [
+              {
+                "action_key": "action-2",
+                "title": "Break the work into a 48-hour recovery task",
+                "status": "in_progress",
+                "owner": "reporting team",
+                "target_date": "2026-07-19",
+                "horizon": "72_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "response",
+                "ordinal": 1
+              },
+              {
+                "action_key": "next_steps-action-2",
+                "title": "Schedule a short stakeholder review",
+                "status": "planned",
+                "owner": "project lead",
+                "target_date": "2026-07-22",
+                "horizon": "72_hours",
+                "expected_effect": "",
+                "required_support": [],
+                "dependencies": [],
+                "effort": 3.0,
+                "urgency": 3.0,
+                "completion_evidence": "",
+                "reassessment_trigger": "",
+                "blocked_reason": "",
+                "escalation_path": "",
+                "source_section": "next_steps",
+                "ordinal": 1
+              }
+            ],
+            "7_days": [],
+            "longer_term": []
+          },
+          "dependency_sequence": [
+            {
+              "action_key": "action-1",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "next_steps-action-1",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "action-2",
+              "depends_on": [],
+              "external_dependencies": []
+            },
+            {
+              "action_key": "next_steps-action-2",
+              "depends_on": [],
+              "external_dependencies": []
+            }
+          ],
+          "unresolved_dependencies": [],
+          "scope_decision": {
+            "decision": "continue",
+            "notes": ""
+          },
+          "checkpoint": {
+            "scheduled_for": "2026-07-24",
+            "success_signal": "One decision owner, one approved scope, and a dated next checkpoint.",
+            "reassessment_trigger": ""
+          },
+          "blocker_log": [],
+          "escalation_log": [],
+          "changed_assumptions": [],
+          "due_for_review": [],
+          "compatibility_defaults": [],
+          "plan_rules": [
+            "At least one action has a named owner.",
+            "A dated checkpoint is required.",
+            "Blocked and past-target actions are support signals, not performance judgments.",
+            "Reassessment creates a new record revision and preserves prior findings."
+          ]
+        },
         "decision_note": "Recorded recovery conditions are assessed as stable recovery conditions. The composite conditions score is 49.5/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
         "method_path": [
           "context",
@@ -3050,8 +3814,8 @@
           "Generated findings require human review when used for consequential decisions."
         ],
         "calculation_provenance": {
-          "schema_version": "1.3.0",
-          "engine_version": "1.3.0",
+          "schema_version": "1.4.0",
+          "engine_version": "1.4.0",
           "profile_id": "cg-pilot-thresholds",
           "profile_version": "1.2.0-pilot",
           "calculated_at": "2026-07-17T14:00:00Z"

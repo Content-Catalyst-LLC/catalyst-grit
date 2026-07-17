@@ -2,8 +2,8 @@
 set -euo pipefail
 
 PRODUCT="Catalyst Grit"
-VERSION="1.3.0"
-RELEASE_NAME="Pressure, Constraint, Support, and Capacity Mapping"
+VERSION="1.4.0"
+RELEASE_NAME="Recovery Planning and Action Management"
 INSTALLER_REVISION="CHECKSUM_SYNC_STATE_SAFE_V1"
 ARCHIVE_NAME="catalyst-grit-v${VERSION}-repository.zip"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -58,7 +58,7 @@ printf 'Release archive: %s\n' "$ARCHIVE"
 printf 'Git repository: %s\n' "$REPO"
 printf 'Remote: %s\n' "$(git -C "$REPO" remote get-url origin 2>/dev/null || echo '(none)')"
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/catalyst-grit-v130.XXXXXX")"
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/catalyst-grit-v140.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 unzip -q "$ARCHIVE" -d "$TMP"
 SOURCE="$TMP/catalyst-grit-v$VERSION"
@@ -66,6 +66,7 @@ SOURCE="$TMP/catalyst-grit-v$VERSION"
 [ "$(tr -d '[:space:]' < "$SOURCE/VERSION")" = "$VERSION" ] || fail "Release archive version mismatch."
 [ -f "$SOURCE/src/catalyst_grit/migrations/001_core_workspace.up.sql" ] || fail "Workspace migration 001 is missing."
 [ -f "$SOURCE/src/catalyst_grit/migrations/002_checkpoints_reviews_audit.up.sql" ] || fail "Workspace migration 002 is missing."
+[ -f "$SOURCE/src/catalyst_grit/migrations/003_recovery_plans_actions_reassessment.up.sql" ] || fail "Workspace migration 003 is missing."
 
 say "Creating safety backup"
 STAMP="$(date +%Y%m%d-%H%M%S)"

@@ -5,7 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var VERSION = '1.3.0';
+  var VERSION = '1.4.0';
   var METHOD_PATH = ['context', 'trigger', 'impact', 'pressure', 'constraints', 'supports', 'capacity', 'response', 'learning', 'next steps', 'human review'];
   var DEFAULT_ACTIONS = ['Name the smallest recoverable next step', 'Review support and constraints', 'Schedule a short follow-up review'];
   var DOMAINS = ['work', 'learning', 'health_wellbeing', 'relationship', 'project', 'career', 'community', 'organization', 'other'];
@@ -19,7 +19,9 @@
   var FRICTION_LAYERS = ['immediate', 'near_term', 'structural'];
   var SUPPORT_STATUSES = ['active', 'potential', 'unavailable'];
   var SUPPORT_TYPES = ['person', 'team', 'tool', 'process', 'time', 'funding', 'information', 'other'];
-  var ACTION_STATUSES = ['planned', 'in_progress', 'completed', 'paused'];
+  var ACTION_STATUSES = ['planned', 'in_progress', 'blocked', 'completed', 'paused', 'deferred', 'cancelled'];
+  var ACTION_HORIZONS = ['24_hours', '72_hours', '7_days', 'longer_term'];
+  var PLAN_DECISIONS = ['continue', 'reduce_scope', 'pause', 'delegate', 'escalate'];
   var PROVENANCE_SOURCES = ['direct_entry', 'browser', 'cli', 'api', 'import', 'migration'];
   var INTERPRETATION_LIMITS = [
     "Describes recorded recovery conditions, not a person's character.",
@@ -29,7 +31,7 @@
   ];
   var DEFAULT_PROFILE = {
     profile_id: 'cg-recovery-conditions',
-    profile_version: '1.3.0',
+    profile_version: '1.4.0',
     calculation_spec: 'weighted-components-v1',
     component_weights: {
       impact_buffer: 15, pressure_buffer: 15, energy_capacity: 15, support_capacity: 15,
@@ -133,22 +135,44 @@
     var actions = [];
     source.forEach(function (item, index) {
       var itemPath = path + '[' + index + ']';
+      var defaultHorizon = ACTION_HORIZONS[Math.min(index, 3)];
+      var action;
       if (isObject(item)) {
-        rejectUnknown(item, ['title', 'status', 'owner', 'target_date'], itemPath);
-        actions.push({
-          title: text(item.title, itemPath + '.title', '', true),
+        rejectUnknown(item, ['action_key','title','statement','status','owner','target_date','horizon','expected_effect','required_support','dependencies','effort','urgency','completion_evidence','reassessment_trigger','blocked_reason','escalation_path'], itemPath);
+        action = {
+          action_key: text(item.action_key, itemPath + '.action_key', 'action-' + (index + 1), false) || 'action-' + (index + 1),
+          title: text(item.title === undefined ? item.statement : item.title, itemPath + '.title', '', true),
           status: enumValue(item.status, itemPath + '.status', ACTION_STATUSES, 'planned'),
           owner: optionalText(item.owner),
-          target_date: optionalDate(item.target_date, itemPath + '.target_date')
-        });
+          target_date: optionalDate(item.target_date, itemPath + '.target_date'),
+          horizon: enumValue(item.horizon, itemPath + '.horizon', ACTION_HORIZONS, defaultHorizon),
+          expected_effect: text(item.expected_effect, itemPath + '.expected_effect', '', false),
+          required_support: stringList(item.required_support, itemPath + '.required_support'),
+          dependencies: stringList(item.dependencies, itemPath + '.dependencies'),
+          effort: Math.max(1, Math.min(5, Number(item.effort === undefined ? 3 : item.effort))),
+          urgency: Math.max(1, Math.min(5, Number(item.urgency === undefined ? 3 : item.urgency))),
+          completion_evidence: text(item.completion_evidence, itemPath + '.completion_evidence', '', false),
+          reassessment_trigger: text(item.reassessment_trigger, itemPath + '.reassessment_trigger', '', false),
+          blocked_reason: text(item.blocked_reason, itemPath + '.blocked_reason', '', false),
+          escalation_path: text(item.escalation_path, itemPath + '.escalation_path', '', false)
+        };
+        if (Number.isNaN(action.effort)) fail(itemPath + '.effort', 'numeric_required', 'Must be numeric.', item.effort);
+        if (Number.isNaN(action.urgency)) fail(itemPath + '.urgency', 'numeric_required', 'Must be numeric.', item.urgency);
       } else {
         var title = text(item, itemPath, '', false);
-        if (title) actions.push({ title: title, status: 'planned', owner: null, target_date: null });
+        if (!title) return;
+        action = { action_key:'action-' + (index + 1), title:title, status:'planned', owner:null, target_date:null, horizon:defaultHorizon, expected_effect:'', required_support:[], dependencies:[], effort:3, urgency:3, completion_evidence:'', reassessment_trigger:'', blocked_reason:'', escalation_path:'' };
       }
+      if (action.status === 'blocked' && !action.blocked_reason) fail(itemPath + '.blocked_reason', 'blocked_reason_required', 'A blocked action requires a non-punitive description of the support or dependency needed.');
+      if (action.status === 'completed' && !action.completion_evidence) fail(itemPath + '.completion_evidence', 'completion_evidence_required', 'A completed action requires completion evidence.');
+      actions.push(action);
     });
-    if (!actions.length && defaultActions) actions = DEFAULT_ACTIONS.map(function (title) { return { title: title, status: 'planned', owner: null, target_date: null }; });
+    if (!actions.length && defaultActions) actions = DEFAULT_ACTIONS.map(function (title, index) { return { action_key:'default-' + (index + 1), title:title, status:'planned', owner:'self', target_date:null, horizon:ACTION_HORIZONS[index], expected_effect:'', required_support:[], dependencies:[], effort:3, urgency:3, completion_evidence:'', reassessment_trigger:'', blocked_reason:'', escalation_path:'' }; });
+    var keys = actions.map(function (item) { return item.action_key; });
+    if ((new Set(keys)).size !== keys.length) fail(path, 'duplicate_action_key', 'Action keys must be unique within a section.', keys);
     return actions;
   }
+
   function controlZone(controllability) { return { controllable: 'control', influence: 'influence', limited: 'outside_control', unknown: 'unknown' }[controllability]; }
   function normalizeConstraints(value, path) {
     if (value === undefined || value === null || value === '') return [];
@@ -216,7 +240,7 @@
         constraints: { items: [] }, supports: { level: data.support_level === undefined ? 5 : data.support_level, available: [] },
         capacity: { energy_level: data.energy_level === undefined ? 5 : data.energy_level, clarity_level: data.clarity_level === undefined ? 5 : data.clarity_level, available_time_hours: null, time_horizon_days: data.time_horizon_days === undefined ? 14 : data.time_horizon_days, attention_level: data.clarity_level === undefined ? 5 : data.clarity_level, coordination_capacity: data.support_level === undefined ? 5 : data.support_level, recovery_time_hours: null, load_level: data.pressure_level === undefined ? 5 : data.pressure_level },
         response: { actions: data.recovery_actions, current_strategy: '' }, learning: { observations: [], assumptions: [], adaptations: [] },
-        next_steps: { actions: [], checkpoint_date: null, success_signal: '' }
+        next_steps: { actions: [], checkpoint_date: null, success_signal: '', scope_decision: 'continue', scope_decision_notes: '', blockers: [], escalation_log: [], changed_assumptions: [], reassessment_trigger: '' }
       },
       human_review: { review_status: humanStatus, reviewer: null, reviewed_at: null, notes: '', accepted_findings: [], rejected_findings: [], override_state: null },
       extensions: {}
@@ -227,7 +251,7 @@
     rejectUnknown(metadata, ['record_id', 'schema_version', 'engine_version', 'created_at', 'updated_at', 'status', 'provenance'], '$.metadata');
     var recordId = text(metadata.record_id, '$.metadata.record_id', randomRecordId(), false);
     if (!/^cgr_[0-9a-f]{32}$/.test(recordId)) fail('$.metadata.record_id', 'record_id', 'Must match cgr_ followed by 32 lowercase hexadecimal characters.', recordId);
-    if (metadata.schema_version && [VERSION, '1.2.0', '1.1.0', '1.0.1'].indexOf(String(metadata.schema_version)) === -1) fail('$.metadata.schema_version', 'schema_version', 'Unsupported source schema version: ' + metadata.schema_version + '.', metadata.schema_version);
+    if (metadata.schema_version && [VERSION, '1.3.0', '1.2.0', '1.1.0', '1.0.1'].indexOf(String(metadata.schema_version)) === -1) fail('$.metadata.schema_version', 'schema_version', 'Unsupported source schema version: ' + metadata.schema_version + '.', metadata.schema_version);
     if (metadata.engine_version && String(metadata.engine_version) !== VERSION) fail('$.metadata.engine_version', 'engine_version', 'Requests may not select a different engine version.', metadata.engine_version);
     var created = normalizeTimestamp(metadata.created_at, '$.metadata.created_at', nowISO());
     var updated = normalizeTimestamp(metadata.updated_at, '$.metadata.updated_at', created);
@@ -264,7 +288,7 @@
     var context=mapping(input.context,'$.input.context'), trigger=mapping(input.trigger,'$.input.trigger'), impact=mapping(input.impact,'$.input.impact'), pressure=mapping(input.pressure,'$.input.pressure'), constraints=mapping(input.constraints,'$.input.constraints'), supports=mapping(input.supports,'$.input.supports'), capacity=mapping(input.capacity,'$.input.capacity'), response=mapping(input.response,'$.input.response'), learning=mapping(input.learning,'$.input.learning'), next=mapping(input.next_steps,'$.input.next_steps');
     rejectUnknown(context,['title','domain','description','stakeholders','affected_work'],'$.input.context'); rejectUnknown(trigger,['summary','type','occurred_at'],'$.input.trigger'); rejectUnknown(impact,['severity','scope','description'],'$.input.impact');
     rejectUnknown(pressure,['level','sources','competing_demands','decision_ambiguity','dependency_friction','stakeholder_friction'],'$.input.pressure'); rejectUnknown(constraints,['items'],'$.input.constraints'); rejectUnknown(supports,['level','available'],'$.input.supports');
-    rejectUnknown(capacity,['energy_level','clarity_level','available_time_hours','time_horizon_days','attention_level','coordination_capacity','recovery_time_hours','load_level'],'$.input.capacity'); rejectUnknown(response,['actions','current_strategy'],'$.input.response'); rejectUnknown(learning,['observations','assumptions','adaptations'],'$.input.learning'); rejectUnknown(next,['actions','checkpoint_date','success_signal'],'$.input.next_steps');
+    rejectUnknown(capacity,['energy_level','clarity_level','available_time_hours','time_horizon_days','attention_level','coordination_capacity','recovery_time_hours','load_level'],'$.input.capacity'); rejectUnknown(response,['actions','current_strategy'],'$.input.response'); rejectUnknown(learning,['observations','assumptions','adaptations'],'$.input.learning'); rejectUnknown(next,['actions','checkpoint_date','success_signal','scope_decision','scope_decision_notes','blockers','escalation_log','changed_assumptions','reassessment_trigger'],'$.input.next_steps');
     var supportLevel=clampScale(supports.level,'$.input.supports.level'); var clarity=clampScale(capacity.clarity_level,'$.input.capacity.clarity_level'); var pressureLevel=clampScale(pressure.level,'$.input.pressure.level');
     return {
       context:{title:text(context.title,'$.input.context.title','',true),domain:enumValue(context.domain,'$.input.context.domain',DOMAINS,'project'),description:text(context.description,'$.input.context.description','',false),stakeholders:stringList(context.stakeholders,'$.input.context.stakeholders'),affected_work:stringList(context.affected_work,'$.input.context.affected_work')},
@@ -273,7 +297,7 @@
       pressure:{level:pressureLevel,sources:stringList(pressure.sources,'$.input.pressure.sources'),competing_demands:stringList(pressure.competing_demands,'$.input.pressure.competing_demands'),decision_ambiguity:clampScale(pressure.decision_ambiguity === undefined ? 5 : pressure.decision_ambiguity,'$.input.pressure.decision_ambiguity'),dependency_friction:clampScale(pressure.dependency_friction === undefined ? 5 : pressure.dependency_friction,'$.input.pressure.dependency_friction'),stakeholder_friction:clampScale(pressure.stakeholder_friction === undefined ? 5 : pressure.stakeholder_friction,'$.input.pressure.stakeholder_friction')},
       constraints:{items:normalizeConstraints(constraints.items,'$.input.constraints.items')}, supports:{level:supportLevel,available:normalizeSupports(supports.available,'$.input.supports.available')},
       capacity:{energy_level:clampScale(capacity.energy_level,'$.input.capacity.energy_level'),clarity_level:clarity,available_time_hours:nullableNumber(capacity.available_time_hours,'$.input.capacity.available_time_hours'),time_horizon_days:integer(capacity.time_horizon_days,'$.input.capacity.time_horizon_days',14),attention_level:clampScale(capacity.attention_level === undefined ? clarity : capacity.attention_level,'$.input.capacity.attention_level'),coordination_capacity:clampScale(capacity.coordination_capacity === undefined ? supportLevel : capacity.coordination_capacity,'$.input.capacity.coordination_capacity'),recovery_time_hours:nullableNumber(capacity.recovery_time_hours,'$.input.capacity.recovery_time_hours'),load_level:clampScale(capacity.load_level === undefined ? pressureLevel : capacity.load_level,'$.input.capacity.load_level')},
-      response:{actions:normalizeActions(response.actions,'$.input.response.actions',true),current_strategy:text(response.current_strategy,'$.input.response.current_strategy','',false)}, learning:{observations:stringList(learning.observations,'$.input.learning.observations'),assumptions:stringList(learning.assumptions,'$.input.learning.assumptions'),adaptations:stringList(learning.adaptations,'$.input.learning.adaptations')}, next_steps:{actions:normalizeActions(next.actions,'$.input.next_steps.actions',false),checkpoint_date:optionalDate(next.checkpoint_date,'$.input.next_steps.checkpoint_date'),success_signal:text(next.success_signal,'$.input.next_steps.success_signal','',false)}
+      response:{actions:normalizeActions(response.actions,'$.input.response.actions',true),current_strategy:text(response.current_strategy,'$.input.response.current_strategy','',false)}, learning:{observations:stringList(learning.observations,'$.input.learning.observations'),assumptions:stringList(learning.assumptions,'$.input.learning.assumptions'),adaptations:stringList(learning.adaptations,'$.input.learning.adaptations')}, next_steps:{actions:normalizeActions(next.actions,'$.input.next_steps.actions',false),checkpoint_date:optionalDate(next.checkpoint_date,'$.input.next_steps.checkpoint_date'),success_signal:text(next.success_signal,'$.input.next_steps.success_signal','',false),scope_decision:enumValue(next.scope_decision,'$.input.next_steps.scope_decision',PLAN_DECISIONS,'continue'),scope_decision_notes:text(next.scope_decision_notes,'$.input.next_steps.scope_decision_notes','',false),blockers:stringList(next.blockers,'$.input.next_steps.blockers'),escalation_log:stringList(next.escalation_log,'$.input.next_steps.escalation_log'),changed_assumptions:stringList(next.changed_assumptions,'$.input.next_steps.changed_assumptions'),reassessment_trigger:text(next.reassessment_trigger,'$.input.next_steps.reassessment_trigger','',false)}
     };
   }
   function normalizeProfile(value) {
@@ -293,6 +317,28 @@
     if (!(thresholds.stable > thresholds.focused_support && thresholds.focused_support > thresholds.fragile)) fail('$.methodology_profile.thresholds', 'threshold_order', 'Thresholds must descend: stable > focused_support > fragile.', thresholds);
     return { profile_id: profileId, profile_version: profileVersion, calculation_spec: spec, component_weights: weights, thresholds: thresholds };
   }
+  function upgradePriorInput(value, sourceSchema) {
+    var upgraded=clone(value);
+    if(sourceSchema===VERSION) return upgraded;
+    upgraded.next_steps=upgraded.next_steps || {};
+    if(upgraded.next_steps.scope_decision===undefined) upgraded.next_steps.scope_decision='continue';
+    if(upgraded.next_steps.scope_decision_notes===undefined) upgraded.next_steps.scope_decision_notes='';
+    if(upgraded.next_steps.blockers===undefined) upgraded.next_steps.blockers=[];
+    if(upgraded.next_steps.escalation_log===undefined) upgraded.next_steps.escalation_log=[];
+    if(upgraded.next_steps.changed_assumptions===undefined) upgraded.next_steps.changed_assumptions=[];
+    if(upgraded.next_steps.reassessment_trigger===undefined) upgraded.next_steps.reassessment_trigger='';
+    ['response','next_steps'].forEach(function(section){
+      upgraded[section]=upgraded[section] || {};
+      upgraded[section].actions=(upgraded[section].actions || []).map(function(item){
+        if(!isObject(item)) return item;
+        var action=clone(item);
+        if(action.status==='completed' && !action.completion_evidence) action.completion_evidence='Completion predates v1.4; evidence was not supplied.';
+        if(action.status==='blocked' && !action.blocked_reason) action.blocked_reason='Blocked status predates v1.4; the support need was not supplied.';
+        return action;
+      });
+    });
+    return upgraded;
+  }
   function normalizeInput(data) {
     if (!isObject(data)) fail('$', 'type_error', 'Input must be an object.', data);
     var migrated = Object.prototype.hasOwnProperty.call(data, 'challenge') && !Object.prototype.hasOwnProperty.call(data, 'input');
@@ -301,7 +347,7 @@
     if (!request.input) fail('$.input', 'required', 'The input object is required.');
     var sourceSchema = migrated ? '1.0.1' : String((request.metadata && (request.metadata.schema_version || (request.metadata.provenance && request.metadata.provenance.source_schema_version))) || VERSION);
     var metadata = normalizeMetadata(request.metadata, sourceSchema);
-    return { metadata: metadata, input: normalizeSections(request.input), human_review: normalizeHumanReview(request.human_review, metadata.status), extensions: normalizeExtensions(request.extensions), methodology_profile: normalizeProfile(request.methodology_profile), migrated: migrated, user_input: clone(request.input) };
+    return { metadata: metadata, input: normalizeSections(upgradePriorInput(request.input, sourceSchema)), human_review: normalizeHumanReview(request.human_review, metadata.status), extensions: normalizeExtensions(request.extensions), methodology_profile: normalizeProfile(request.methodology_profile), migrated: migrated, user_input: clone(request.input) };
   }
   function positive(value) { return Math.max(0, Math.min(1, (value - 1) / 9)); }
   function inverse(value) { return Math.max(0, Math.min(1, (10 - value) / 9)); }
@@ -358,6 +404,25 @@
     if(input.capacity.time_horizon_days<=3)add('short_horizon','medium','capacity','Choose a recovery action that can be completed quickly.','The time horizon is three days or less.',['$.input.capacity.time_horizon_days'],{time_horizon_days:input.capacity.time_horizon_days});
     var paths=[];input.constraints.items.forEach(function(item,index){if(item.control_zone==='outside_control')paths.push('$.input.constraints.items['+index+']');});if(paths.length>=2)add('outside_control_constraints','medium','constraints','Separate adaptation work from constraints requiring accommodation or escalation.','Two or more constraints are outside direct control.',paths,{count:paths.length}); return flags;
   }
+  function addDays(dateText, days) { var d = new Date(dateText + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0,10); }
+  function buildRecoveryPlan(input, asOf) {
+    var actions=[], seen={};
+    ['response','next_steps'].forEach(function(section){ input[section].actions.forEach(function(source, ordinal){ var item=clone(source), key=item.action_key; if(seen[key]) key=section+'-'+key; seen[key]=true; item.action_key=key; item.source_section=section; item.ordinal=ordinal; actions.push(item); }); });
+    if(!actions.length) fail('$.input.next_steps.actions','plan_action_required','A recovery plan requires at least one action.');
+    var defaults=[];
+    if(!actions.some(function(item){return Boolean(item.owner);})){ actions[0].owner='self'; defaults.push('Assigned the first action to self because the imported plan had no owner.'); }
+    var checkpoint=input.next_steps.checkpoint_date;
+    if(!checkpoint){ checkpoint=addDays(asOf || nowISO().slice(0,10),7); defaults.push('Scheduled a seven-day review checkpoint because the imported plan had no checkpoint.'); }
+    var hOrder={'24_hours':0,'72_hours':1,'7_days':2,'longer_term':3}, sOrder={in_progress:0,planned:1,blocked:2,paused:3,deferred:4,completed:5,cancelled:6};
+    actions.sort(function(a,b){ return hOrder[a.horizon]-hOrder[b.horizon] || sOrder[a.status]-sOrder[b.status] || b.urgency-a.urgency || a.ordinal-b.ordinal; });
+    var smallest=actions.find(function(item){return ['completed','cancelled'].indexOf(item.status)===-1;}) || actions[0];
+    var horizons={'24_hours':[],'72_hours':[],'7_days':[],longer_term:[]}; actions.forEach(function(item){horizons[item.horizon].push(item);});
+    var keys={}; actions.forEach(function(item){keys[item.action_key]=true;});
+    var sequence=[], unresolved=[]; actions.forEach(function(item){var internal=[],external=[]; item.dependencies.forEach(function(dep){(keys[dep]?internal:external).push(dep);}); sequence.push({action_key:item.action_key,depends_on:internal,external_dependencies:external}); external.forEach(function(dep){unresolved.push({action_key:item.action_key,dependency:dep});});});
+    var blocked=actions.filter(function(item){return item.status==='blocked';}).map(function(item){return {action_key:item.action_key,title:item.title,blocked_reason:item.blocked_reason,required_support:item.required_support,escalation_path:item.escalation_path};});
+    var base=new Date((asOf || nowISO().slice(0,10))+'T00:00:00Z'), due=[]; actions.forEach(function(item){if(item.target_date && ['completed','cancelled'].indexOf(item.status)===-1){var target=new Date(item.target_date+'T00:00:00Z'); if(target<base) due.push({action_key:item.action_key,title:item.title,target_date:item.target_date,days_past_target:Math.floor((base-target)/86400000),message:'Target date passed; review support, scope, or sequencing without assigning blame.'});}});
+    return {plan_status:blocked.length?'needs_support':'ready',smallest_recoverable_next_step:smallest,horizons:horizons,dependency_sequence:sequence,unresolved_dependencies:unresolved,scope_decision:{decision:input.next_steps.scope_decision,notes:input.next_steps.scope_decision_notes},checkpoint:{scheduled_for:checkpoint,success_signal:input.next_steps.success_signal,reassessment_trigger:input.next_steps.reassessment_trigger},blocker_log:blocked.concat(input.next_steps.blockers.map(function(item){return {action_key:null,title:item,blocked_reason:item,required_support:[],escalation_path:''};})),escalation_log:input.next_steps.escalation_log.slice(),changed_assumptions:input.next_steps.changed_assumptions.slice(),due_for_review:due,compatibility_defaults:defaults,plan_rules:['At least one action has a named owner.','A dated checkpoint is required.','Blocked and past-target actions are support signals, not performance judgments.','Reassessment creates a new record revision and preserves prior findings.']};
+  }
   function buildNextActions(input) {
     var output = []; var seen = {};
     function add(code, title, rationale, source, priority) { var key = title.trim().toLowerCase(); if (key && !seen[key] && output.length < 6) { seen[key] = true; output.push({ code: code, title: title, rationale: rationale, source: source, priority: priority }); } }
@@ -379,7 +444,7 @@
       normalized_input: input,
       findings: {
         methodology: profile, condition_map: conditionMap, interpretation: interpretation, component_scores: components, recovery_score: score, generated_state: generatedState, effective_state: effective,
-        human_override_applied: Boolean(override), flags: buildFlags(input), recommended_actions: buildNextActions(input),
+        human_override_applied: Boolean(override), flags: buildFlags(input), recommended_actions: buildNextActions(input), recovery_plan: buildRecoveryPlan(input, canonical.metadata.updated_at.slice(0,10)),
         decision_note: 'Recorded recovery conditions are assessed as ' + generatedState + '. The composite conditions score is ' + score + '/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.',
         method_path: METHOD_PATH.slice(), interpretation_limits: INTERPRETATION_LIMITS.slice(),
         calculation_provenance: { schema_version: VERSION, engine_version: VERSION, profile_id: profile.profile_id, profile_version: profile.profile_version, calculated_at: canonical.metadata.updated_at }
@@ -390,6 +455,10 @@
   }
 
   function lines(value) { return String(value || '').split('\n').map(function (item) { return item.trim(); }).filter(Boolean); }
+  function planActions(values, owner, firstHorizon, targetDate, prefix) {
+    var order = ['24_hours', '72_hours', '7_days', 'longer_term']; var start = Math.max(0, order.indexOf(firstHorizon));
+    return values.map(function (title, index) { return { action_key: prefix + '-' + (index + 1), title: title, status: index === 0 ? 'in_progress' : 'planned', owner: owner || null, target_date: index === 0 ? (targetDate || null) : null, horizon: order[Math.min(start + index, 3)], expected_effect: '', required_support: [], dependencies: index ? [prefix + '-' + index] : [], effort: 3, urgency: Math.max(1, 5 - index), completion_evidence: '', reassessment_trigger: '', blocked_reason: '', escalation_path: '' }; });
+  }
   function collect(form) {
     var now = nowISO();
     return {
@@ -401,9 +470,9 @@
         pressure: { level: form.pressure_level.value, sources: lines(form.pressure_sources.value), competing_demands: lines(form.competing_demands.value), decision_ambiguity: form.decision_ambiguity.value, dependency_friction: form.dependency_friction.value, stakeholder_friction: form.stakeholder_friction.value },
         constraints: { items: lines(form.constraints.value) }, supports: { level: form.support_level.value, available: lines(form.supports_available.value) },
         capacity: { energy_level: form.energy_level.value, clarity_level: form.clarity_level.value, available_time_hours: form.available_time_hours.value, time_horizon_days: form.time_horizon_days.value, attention_level: form.attention_level.value, coordination_capacity: form.coordination_capacity.value, recovery_time_hours: form.recovery_time_hours.value, load_level: form.load_level.value },
-        response: { actions: lines(form.response_actions.value), current_strategy: form.current_strategy.value },
+        response: { actions: planActions(lines(form.response_actions.value), form.action_owner.value, form.action_horizon.value, form.action_target_date.value, 'response'), current_strategy: form.current_strategy.value },
         learning: { observations: lines(form.learning_observations.value), assumptions: lines(form.learning_assumptions.value), adaptations: lines(form.learning_adaptations.value) },
-        next_steps: { actions: lines(form.next_actions.value), checkpoint_date: form.checkpoint_date.value || null, success_signal: form.success_signal.value }
+        next_steps: { actions: planActions(lines(form.next_actions.value), form.action_owner.value, '7_days', '', 'next'), checkpoint_date: form.checkpoint_date.value || null, success_signal: form.success_signal.value, scope_decision: form.scope_decision.value, scope_decision_notes: form.scope_decision_notes.value, blockers: lines(form.blockers.value), escalation_log: lines(form.escalation_log.value), changed_assumptions: [], reassessment_trigger: form.reassessment_trigger.value }
       },
       human_review: { review_status: form.review_status.value, reviewer: null, reviewed_at: null, notes: '', accepted_findings: [], rejected_findings: [], override_state: null },
       extensions: {}
@@ -419,7 +488,11 @@
       var output = generateRecord(collect(widget.querySelector('[data-cg-form]'))); var form = widget.querySelector('[data-cg-form]'); form.dataset.recordId = output.metadata.record_id; form.dataset.createdAt = output.metadata.created_at;
       widget.querySelector('[data-cg-score]').textContent = output.findings.recovery_score + '/100'; widget.querySelector('[data-cg-state]').textContent = output.findings.generated_state;
       widget.querySelector('[data-cg-profile]').textContent = output.findings.methodology.profile_id + ' v' + output.findings.methodology.profile_version; widget.querySelector('[data-cg-completeness]').textContent=output.findings.interpretation.completeness.percent+'%'; widget.querySelector('[data-cg-confidence]').textContent=output.findings.interpretation.confidence.level+' ('+output.findings.interpretation.confidence.score+'/100)';
-      renderComponents(widget.querySelector('[data-cg-components]'), output.findings.component_scores); list(widget.querySelector('[data-cg-pressure-map]'), output.findings.condition_map.pressure_map, function(item){return item.label+': '+item.value+'/10 · '+item.source_path;}, 'No pressure conditions mapped.'); list(widget.querySelector('[data-cg-constraint-map]'), output.findings.condition_map.constraint_map, function(item){return item.label+': '+item.control_zone.replace(/_/g,' ')+' · '+item.layer.replace(/_/g,' ')+' · '+item.severity+'/10';}, 'No constraints mapped.'); list(widget.querySelector('[data-cg-support-map]'), output.findings.condition_map.support_map, function(item){return item.label+': '+item.status+' · reliability '+item.reliability+'/10';}, 'No supports mapped.'); list(widget.querySelector('[data-cg-missing]'), output.findings.interpretation.completeness.missing_context, function(item){return item.path+': '+item.prompt;}, 'No missing-context prompts.'); list(widget.querySelector('[data-cg-contradictions]'), output.findings.interpretation.contradictions, function(item){return item.message+' '+item.review_prompt;}, 'No contradictions detected.');
+      renderComponents(widget.querySelector('[data-cg-components]'), output.findings.component_scores); list(widget.querySelector('[data-cg-pressure-map]'), output.findings.condition_map.pressure_map, function(item){return item.label+': '+item.value+'/10 · '+item.source_path;}, 'No pressure conditions mapped.'); list(widget.querySelector('[data-cg-constraint-map]'), output.findings.condition_map.constraint_map, function(item){return item.label+': '+item.control_zone.replace(/_/g,' ')+' · '+item.layer.replace(/_/g,' ')+' · '+item.severity+'/10';}, 'No constraints mapped.'); list(widget.querySelector('[data-cg-support-map]'), output.findings.condition_map.support_map, function(item){return item.label+': '+item.status+' · reliability '+item.reliability+'/10';}, 'No supports mapped.');
+      var plan=output.findings.recovery_plan, smallest=plan.smallest_recoverable_next_step; widget.querySelector('[data-cg-plan-summary]').textContent=smallest.title+' · owner '+(smallest.owner||'unassigned')+' · '+smallest.horizon.replace(/_/g,' ')+' · '+smallest.status.replace(/_/g,' '); widget.querySelector('[data-cg-plan-checkpoint]').textContent=plan.checkpoint.scheduled_for+' — '+(plan.checkpoint.success_signal||'success signal not recorded'); widget.querySelector('[data-cg-plan-scope]').textContent=plan.scope_decision.decision.replace(/_/g,' ');
+      var horizonItems=[]; ['24_hours','72_hours','7_days','longer_term'].forEach(function(key){plan.horizons[key].forEach(function(item){horizonItems.push({horizon:key,item:item});});}); list(widget.querySelector('[data-cg-plan-horizons]'), horizonItems, function(entry){return entry.horizon.replace(/_/g,' ')+': '+entry.item.title+' · '+(entry.item.owner||'unassigned')+' · '+entry.item.status.replace(/_/g,' ');}, 'No plan actions generated.');
+      var signals=[]; plan.blocker_log.forEach(function(item){signals.push('BLOCKER: '+item.blocked_reason);}); plan.escalation_log.forEach(function(item){signals.push('ESCALATION: '+item);}); plan.due_for_review.forEach(function(item){signals.push('REVIEW: '+item.title+' — '+item.message);}); plan.unresolved_dependencies.forEach(function(item){signals.push('DEPENDENCY: '+item.action_key+' needs '+item.dependency);}); list(widget.querySelector('[data-cg-plan-signals]'), signals, function(item){return item;}, 'No blockers, escalations, overdue targets, or unresolved dependencies.');
+      list(widget.querySelector('[data-cg-missing]'), output.findings.interpretation.completeness.missing_context, function(item){return item.path+': '+item.prompt;}, 'No missing-context prompts.'); list(widget.querySelector('[data-cg-contradictions]'), output.findings.interpretation.contradictions, function(item){return item.message+' '+item.review_prompt;}, 'No contradictions detected.');
       list(widget.querySelector('[data-cg-flags]'), output.findings.flags, function (item) { return item.severity.toUpperCase() + ' · ' + item.section + ': ' + item.message; }, 'No major review flags generated.');
       list(widget.querySelector('[data-cg-actions]'), output.findings.recommended_actions, function (item) { return item.priority.toUpperCase() + ': ' + item.title + ' — ' + item.rationale; }, 'No actions generated.');
       widget.querySelector('[data-cg-note]').textContent = output.findings.decision_note; widget.querySelector('[data-cg-json]').textContent = JSON.stringify(output, null, 2); widget._cgOutput = output; return output;
@@ -435,5 +508,5 @@
     });
   }
   if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize); else initialize(); }
-  return { VERSION: VERSION, DEFAULT_PROFILE: clone(DEFAULT_PROFILE), ValidationError: ValidationError, migrateV1Request: migrateV1Request, normalizeInput: normalizeInput, normalizeProfile: normalizeProfile, calculateComponentScores: calculateComponentScores, stateFromScore: stateFromScore, buildConditionMap: buildConditionMap, buildInterpretation: buildInterpretation, buildFlags: buildFlags, buildNextActions: buildNextActions, generateRecord: generateRecord };
+  return { VERSION: VERSION, DEFAULT_PROFILE: clone(DEFAULT_PROFILE), ValidationError: ValidationError, migrateV1Request: migrateV1Request, normalizeInput: normalizeInput, normalizeProfile: normalizeProfile, calculateComponentScores: calculateComponentScores, stateFromScore: stateFromScore, buildConditionMap: buildConditionMap, buildInterpretation: buildInterpretation, buildFlags: buildFlags, buildNextActions: buildNextActions, buildRecoveryPlan: buildRecoveryPlan, generateRecord: generateRecord };
 });

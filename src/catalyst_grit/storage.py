@@ -329,9 +329,29 @@ class SQLiteWorkspaceRepository:
             normalized = canonical.get("normalized_input") or {}
             for section in ("response", "next_steps"):
                 for ordinal, action in enumerate((normalized.get(section) or {}).get("actions") or []):
+                    action_id = _id("cga")
+                    created_at_action = _utc_now()
+                    action_key = str(action.get("action_key") or f"{section}-{ordinal + 1}")
                     self.connection.execute(
-                        "INSERT INTO actions(action_id,record_id,revision_id,source_section,ordinal,title,status,owner,target_date,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
-                        (_id("cga"), record_id, revision_id, section, ordinal, str(action.get("title", "")), str(action.get("status", "planned")), action.get("owner"), action.get("target_date"), _utc_now()),
+                        """INSERT INTO actions(
+                           action_id,record_id,revision_id,source_section,ordinal,title,status,owner,target_date,created_at,
+                           action_key,horizon,expected_effect,required_support_json,dependencies_json,effort,urgency,
+                           completion_evidence,reassessment_trigger,blocked_reason,escalation_path,completed_at,updated_at
+                           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        (
+                            action_id, record_id, revision_id, section, ordinal, str(action.get("title", "")),
+                            str(action.get("status", "planned")), action.get("owner"), action.get("target_date"), created_at_action,
+                            action_key, str(action.get("horizon", "7_days")), str(action.get("expected_effect", "")),
+                            _json(action.get("required_support") or []), _json(action.get("dependencies") or []),
+                            float(action.get("effort", 3)), float(action.get("urgency", 3)),
+                            str(action.get("completion_evidence", "")), str(action.get("reassessment_trigger", "")),
+                            str(action.get("blocked_reason", "")), str(action.get("escalation_path", "")),
+                            created_at_action if action.get("status") == "completed" else None, created_at_action,
+                        ),
+                    )
+                    self.connection.execute(
+                        "INSERT INTO action_events(event_id,action_id,record_id,revision_id,from_status,to_status,actor_id,reason,blocked_reason,completion_evidence,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                        (_id("cgae"), action_id, record_id, revision_id, None, str(action.get("status", "planned")), actor_id, "action created from record revision", str(action.get("blocked_reason", "")), str(action.get("completion_evidence", "")), created_at_action),
                     )
             previous_status = existing["status"] if existing else None
             if previous_status != status:
@@ -547,7 +567,38 @@ class SQLiteWorkspaceRepository:
         self._require_record(record_id, include_deleted=True)
         return [dict(row) for row in self.connection.execute("SELECT * FROM reviews WHERE record_id=? ORDER BY created_at", (record_id,))]
 
-    def list_actions(self, record_id: str, *, revision_number: int | None = None) -> list[dict[str, Any]]:
+    @staticmethod
+    def _decode_action(row: Mapping[str, Any]) -> dict[str, Any]:
+        item = dict(row)
+        item["required_support"] = json.loads(item.pop("required_support_json", "[]") or "[]")
+        item["dependencies"] = json.loads(item.pop("dependencies_json", "[]") or "[]")
+        return item
+
+    @staticmethod
+    def _action_attention(item: Mapping[str, Any], *, as_of: str | None = None) -> dict[str, Any]:
+        status = str(item.get("status") or "planned")
+        if status == "blocked":
+            return {"attention_state": "blocked_needs_support", "days_past_target": 0, "message": "This action is blocked; review support, sequencing, or escalation without assigning blame."}
+        if status in {"completed", "cancelled"}:
+            return {"attention_state": "closed", "days_past_target": 0, "message": "No timing review is required."}
+        target_date = item.get("target_date")
+        if target_date:
+            today = date.fromisoformat(as_of) if as_of else date.today()
+            target = date.fromisoformat(str(target_date))
+            if target < today:
+                days = (today - target).days
+                return {"attention_state": "target_date_passed", "days_past_target": days, "message": "The target date passed; review capacity, support, scope, or sequencing."}
+        return {"attention_state": "on_track", "days_past_target": 0, "message": "No immediate timing or blocker signal."}
+
+    def get_action(self, action_id: str, *, as_of: str | None = None) -> dict[str, Any]:
+        row = _row(self.connection.execute("SELECT * FROM actions WHERE action_id=?", (action_id,)).fetchone())
+        if not row:
+            raise WorkspaceError(f"action not found: {action_id}")
+        item = self._decode_action(row)
+        item.update(self._action_attention(item, as_of=as_of))
+        return item
+
+    def list_actions(self, record_id: str, *, revision_number: int | None = None, as_of: str | None = None) -> list[dict[str, Any]]:
         record = self._require_record(record_id, include_deleted=True)
         revision_id = record["current_revision_id"]
         if revision_number is not None:
@@ -555,7 +606,182 @@ class SQLiteWorkspaceRepository:
             if not row:
                 raise WorkspaceError("revision not found")
             revision_id = row["revision_id"]
-        return [dict(row) for row in self.connection.execute("SELECT * FROM actions WHERE revision_id=? ORDER BY source_section,ordinal", (revision_id,))]
+        result = []
+        for row in self.connection.execute("SELECT * FROM actions WHERE revision_id=? ORDER BY source_section,ordinal", (revision_id,)):
+            item = self._decode_action(row)
+            item.update(self._action_attention(item, as_of=as_of))
+            result.append(item)
+        return result
+
+    def update_action(
+        self,
+        action_id: str,
+        *,
+        status: str,
+        actor_id: str = "self",
+        reason: str = "status updated",
+        blocked_reason: str | None = None,
+        completion_evidence: str | None = None,
+        escalation_path: str | None = None,
+    ) -> dict[str, Any]:
+        allowed = {"planned", "in_progress", "blocked", "completed", "paused", "deferred", "cancelled"}
+        if status not in allowed:
+            raise WorkspaceError("unsupported action status")
+        current = self.get_action(action_id)
+        blocked_reason = current["blocked_reason"] if blocked_reason is None else blocked_reason.strip()
+        completion_evidence = current["completion_evidence"] if completion_evidence is None else completion_evidence.strip()
+        escalation_path = current["escalation_path"] if escalation_path is None else escalation_path.strip()
+        if status == "blocked" and not blocked_reason:
+            raise WorkspaceError("blocked actions require a support-oriented blocked reason")
+        if status == "completed" and not completion_evidence:
+            raise WorkspaceError("completed actions require completion evidence")
+        now = _utc_now()
+        completed_at = now if status == "completed" else None
+        with self.connection:
+            self.connection.execute(
+                "UPDATE actions SET status=?,blocked_reason=?,completion_evidence=?,escalation_path=?,completed_at=?,updated_at=? WHERE action_id=?",
+                (status, blocked_reason, completion_evidence, escalation_path, completed_at, now, action_id),
+            )
+            self.connection.execute(
+                "INSERT INTO action_events(event_id,action_id,record_id,revision_id,from_status,to_status,actor_id,reason,blocked_reason,completion_evidence,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (_id("cgae"), action_id, current["record_id"], current["revision_id"], current["status"], status, actor_id, reason, blocked_reason, completion_evidence, now),
+            )
+            self._history("action", action_id, current["status"], status, actor_id, reason)
+            self._audit("action.status_changed", "action", action_id, actor_id, {"record_id": current["record_id"], "from_status": current["status"], "to_status": status, "reason": reason})
+        return self.get_action(action_id)
+
+    def action_history(self, action_id: str) -> list[dict[str, Any]]:
+        self.get_action(action_id)
+        return [dict(row) for row in self.connection.execute("SELECT * FROM action_events WHERE action_id=? ORDER BY created_at,rowid", (action_id,))]
+
+    def add_blocker(
+        self,
+        record_id: str,
+        title: str,
+        *,
+        action_id: str | None = None,
+        owner: str | None = None,
+        required_support: str = "",
+        escalation_path: str = "",
+        notes: str = "",
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        self._require_record(record_id)
+        if action_id and self.get_action(action_id)["record_id"] != record_id:
+            raise WorkspaceError("blocker action must belong to the record")
+        blocker_id = _id("cgb")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO blockers(blocker_id,record_id,action_id,title,status,owner,required_support,escalation_path,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (blocker_id, record_id, action_id, title.strip() or "Unspecified blocker", "open", owner, required_support.strip(), escalation_path.strip(), notes.strip(), now, now),
+            )
+            self._audit("blocker.created", "blocker", blocker_id, actor_id, {"record_id": record_id, "action_id": action_id})
+        return self.get_blocker(blocker_id)
+
+    def get_blocker(self, blocker_id: str) -> dict[str, Any]:
+        row = _row(self.connection.execute("SELECT * FROM blockers WHERE blocker_id=?", (blocker_id,)).fetchone())
+        if not row:
+            raise WorkspaceError(f"blocker not found: {blocker_id}")
+        return row
+
+    def list_blockers(self, record_id: str, *, include_resolved: bool = True) -> list[dict[str, Any]]:
+        self._require_record(record_id, include_deleted=True)
+        query = "SELECT * FROM blockers WHERE record_id=?"
+        params: list[Any] = [record_id]
+        if not include_resolved:
+            query += " AND status!='resolved'"
+        query += " ORDER BY created_at,rowid"
+        return [dict(row) for row in self.connection.execute(query, params)]
+
+    def update_blocker(self, blocker_id: str, *, status: str, actor_id: str = "self", notes: str | None = None, escalation_path: str | None = None) -> dict[str, Any]:
+        if status not in {"open", "resolved", "escalated"}:
+            raise WorkspaceError("unsupported blocker status")
+        current = self.get_blocker(blocker_id)
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "UPDATE blockers SET status=?,notes=?,escalation_path=?,updated_at=?,resolved_at=? WHERE blocker_id=?",
+                (status, current["notes"] if notes is None else notes.strip(), current["escalation_path"] if escalation_path is None else escalation_path.strip(), now, now if status == "resolved" else None, blocker_id),
+            )
+            self._history("blocker", blocker_id, current["status"], status, actor_id, "blocker reviewed")
+            self._audit("blocker.status_changed", "blocker", blocker_id, actor_id, {"record_id": current["record_id"], "from_status": current["status"], "to_status": status})
+        return self.get_blocker(blocker_id)
+
+    @staticmethod
+    def _plan_comparison(before: Mapping[str, Any], after: Mapping[str, Any]) -> dict[str, Any]:
+        before_plan = (before.get("findings") or {}).get("recovery_plan") or {}
+        after_plan = (after.get("findings") or {}).get("recovery_plan") or {}
+        before_actions = {item["action_key"]: item for horizon in (before_plan.get("horizons") or {}).values() for item in horizon}
+        after_actions = {item["action_key"]: item for horizon in (after_plan.get("horizons") or {}).values() for item in horizon}
+        return {
+            "checkpoint_before": (before_plan.get("checkpoint") or {}).get("scheduled_for"),
+            "checkpoint_after": (after_plan.get("checkpoint") or {}).get("scheduled_for"),
+            "added_actions": sorted(set(after_actions) - set(before_actions)),
+            "removed_actions": sorted(set(before_actions) - set(after_actions)),
+            "status_changes": [
+                {"action_key": key, "before": before_actions[key]["status"], "after": after_actions[key]["status"]}
+                for key in sorted(set(before_actions) & set(after_actions))
+                if before_actions[key]["status"] != after_actions[key]["status"]
+            ],
+            "score_before": (before.get("findings") or {}).get("recovery_score"),
+            "score_after": (after.get("findings") or {}).get("recovery_score"),
+        }
+
+    def create_reassessment(
+        self,
+        record_id: str,
+        request: Mapping[str, Any],
+        *,
+        observed_summary: str,
+        checkpoint_id: str | None = None,
+        changed_assumptions: Sequence[str] | None = None,
+        carry_unresolved: bool = True,
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        record = self.get_record(record_id, include_canonical=True)
+        before = record["canonical"]
+        before_revision_id = record["current_revision_id"]
+        request_value = deepcopy(dict(request))
+        if carry_unresolved:
+            input_value = dict(request_value.get("input") or {})
+            next_steps = dict(input_value.get("next_steps") or {})
+            current_actions = [item for item in before["normalized_input"]["next_steps"]["actions"] if item["status"] not in {"completed", "cancelled"}]
+            supplied = list(next_steps.get("actions") or [])
+            supplied_keys = {str(item.get("action_key")) for item in supplied if isinstance(item, Mapping)}
+            carried = [deepcopy(item) for item in current_actions if item["action_key"] not in supplied_keys]
+            next_steps["actions"] = supplied + carried
+            next_steps.setdefault("changed_assumptions", list(changed_assumptions or []))
+            input_value["next_steps"] = next_steps
+            request_value["input"] = input_value
+        saved = self.revise_record(record_id, request_value, actor_id=actor_id, reason="checkpoint reassessment")
+        after = self.get_record(record_id, include_canonical=True)["canonical"]
+        comparison = self._plan_comparison(before, after)
+        carried_keys = [item["action_key"] for item in after["normalized_input"]["next_steps"]["actions"] if item["action_key"] in {x["action_key"] for x in before["normalized_input"]["next_steps"]["actions"]}]
+        reassessment_id = _id("cgra")
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO reassessments(reassessment_id,record_id,checkpoint_id,from_revision_id,to_revision_id,observed_summary,changed_assumptions_json,planned_vs_observed_json,carried_actions_json,actor_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (reassessment_id, record_id, checkpoint_id, before_revision_id, saved["revision"]["revision_id"], observed_summary.strip(), _json(list(changed_assumptions or [])), _json(comparison), _json(carried_keys), actor_id, _utc_now()),
+            )
+            self._audit("record.reassessed", "record", record_id, actor_id, {"reassessment_id": reassessment_id, "checkpoint_id": checkpoint_id, "from_revision_id": before_revision_id, "to_revision_id": saved["revision"]["revision_id"]})
+        if checkpoint_id:
+            self.complete_checkpoint(checkpoint_id, notes=observed_summary, actor_id=actor_id)
+        return self.get_reassessment(reassessment_id)
+
+    def get_reassessment(self, reassessment_id: str) -> dict[str, Any]:
+        row = _row(self.connection.execute("SELECT * FROM reassessments WHERE reassessment_id=?", (reassessment_id,)).fetchone())
+        if not row:
+            raise WorkspaceError(f"reassessment not found: {reassessment_id}")
+        row["changed_assumptions"] = json.loads(row.pop("changed_assumptions_json"))
+        row["planned_vs_observed"] = json.loads(row.pop("planned_vs_observed_json"))
+        row["carried_actions"] = json.loads(row.pop("carried_actions_json"))
+        return row
+
+    def list_reassessments(self, record_id: str) -> list[dict[str, Any]]:
+        self._require_record(record_id, include_deleted=True)
+        ids = [row["reassessment_id"] for row in self.connection.execute("SELECT reassessment_id FROM reassessments WHERE record_id=? ORDER BY created_at,rowid", (record_id,))]
+        return [self.get_reassessment(item) for item in ids]
 
     def status_history(self, entity_type: str, entity_id: str) -> list[dict[str, Any]]:
         return [dict(row) for row in self.connection.execute("SELECT * FROM status_history WHERE entity_type=? AND entity_id=? ORDER BY created_at, rowid", (entity_type, entity_id))]
@@ -589,6 +815,9 @@ class SQLiteWorkspaceRepository:
             "current_record": record.get("canonical"),
             "revisions": revisions,
             "actions": [item for revision in revisions for item in self.list_actions(record_id, revision_number=revision["revision_number"])],
+            "action_events": [dict(row) for row in self.connection.execute("SELECT * FROM action_events WHERE record_id=? ORDER BY created_at,rowid", (record_id,))],
+            "blockers": self.list_blockers(record_id),
+            "reassessments": self.list_reassessments(record_id),
             "checkpoints": self.list_checkpoints(project["project_id"], record_id=record_id),
             "reviews": self.list_reviews(record_id),
             "status_history": self.status_history("record", record_id),
@@ -650,7 +879,7 @@ class SQLiteWorkspaceRepository:
     def health(self) -> dict[str, Any]:
         integrity = self.connection.execute("PRAGMA integrity_check").fetchone()[0]
         counts = {}
-        for table in ("projects", "recovery_records", "record_revisions", "actions", "checkpoints", "reviews", "status_history", "audit_events"):
+        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "checkpoints", "reviews", "status_history", "audit_events"):
             try:
                 counts[table] = self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             except sqlite3.OperationalError:

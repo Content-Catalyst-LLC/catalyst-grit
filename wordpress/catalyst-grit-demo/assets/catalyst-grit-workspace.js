@@ -6,7 +6,7 @@
   function defaultWorkspace() {
     return {
       format: "catalyst-grit-workspace/1.0",
-      product_version: config.version || "1.3.0",
+      product_version: config.version || "1.4.0",
       visibility: "private",
       projects: []
     };

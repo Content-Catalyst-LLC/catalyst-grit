@@ -91,6 +91,19 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint_list = commands.add_parser("checkpoint-list", help="List project or record checkpoints"); _db_argument(checkpoint_list); checkpoint_list.add_argument("project_id"); checkpoint_list.add_argument("--record")
     checkpoint_complete = commands.add_parser("checkpoint-complete", help="Complete a checkpoint"); _db_argument(checkpoint_complete); checkpoint_complete.add_argument("checkpoint_id"); checkpoint_complete.add_argument("--notes")
 
+
+    action_list = commands.add_parser("action-list", help="List executable actions and support-oriented timing signals"); _db_argument(action_list); action_list.add_argument("record_id"); action_list.add_argument("--revision", type=int); action_list.add_argument("--as-of")
+    action_show = commands.add_parser("action-show", help="Show one action and its current attention state"); _db_argument(action_show); action_show.add_argument("action_id"); action_show.add_argument("--as-of")
+    action_update = commands.add_parser("action-update", help="Update an action with append-only status history"); _db_argument(action_update); action_update.add_argument("action_id"); action_update.add_argument("--status", required=True); action_update.add_argument("--reason", default="status updated"); action_update.add_argument("--blocked-reason"); action_update.add_argument("--completion-evidence"); action_update.add_argument("--escalation-path")
+    action_history = commands.add_parser("action-history", help="Show append-only action status history"); _db_argument(action_history); action_history.add_argument("action_id")
+
+    blocker_add = commands.add_parser("blocker-add", help="Add a blocker or support need without punitive language"); _db_argument(blocker_add); blocker_add.add_argument("record_id"); blocker_add.add_argument("--title", required=True); blocker_add.add_argument("--action"); blocker_add.add_argument("--owner"); blocker_add.add_argument("--required-support", default=""); blocker_add.add_argument("--escalation-path", default=""); blocker_add.add_argument("--notes", default="")
+    blocker_list = commands.add_parser("blocker-list", help="List blocker and escalation entries"); _db_argument(blocker_list); blocker_list.add_argument("record_id"); blocker_list.add_argument("--open-only", action="store_true")
+    blocker_update = commands.add_parser("blocker-update", help="Resolve, reopen, or escalate a blocker"); _db_argument(blocker_update); blocker_update.add_argument("blocker_id"); blocker_update.add_argument("--status", required=True); blocker_update.add_argument("--notes"); blocker_update.add_argument("--escalation-path")
+
+    reassess = commands.add_parser("record-reassess", help="Create a new revision at a checkpoint and compare plan versus observation"); _db_argument(reassess); reassess.add_argument("record_id"); reassess.add_argument("input", type=Path); reassess.add_argument("--observed-summary", required=True); reassess.add_argument("--checkpoint"); reassess.add_argument("--changed-assumption", action="append", default=[]); reassess.add_argument("--no-carry", action="store_true")
+    reassessments = commands.add_parser("reassessment-list", help="List checkpoint reassessments and plan comparisons"); _db_argument(reassessments); reassessments.add_argument("record_id")
+
     review_add = commands.add_parser("review-add", help="Record a human review event"); _db_argument(review_add); review_add.add_argument("record_id"); review_add.add_argument("--status", required=True); review_add.add_argument("--reviewer", required=True); review_add.add_argument("--notes", default="")
     review_list = commands.add_parser("review-list", help="List record reviews"); _db_argument(review_list); review_list.add_argument("record_id")
 
@@ -127,6 +140,15 @@ def _workspace_command(args: argparse.Namespace) -> Any:
         if args.command == "checkpoint-add": return repo.create_checkpoint(args.project_id, args.title, record_id=args.record, scheduled_for=args.date, notes=args.notes)
         if args.command == "checkpoint-list": return repo.list_checkpoints(args.project_id, record_id=args.record)
         if args.command == "checkpoint-complete": return repo.complete_checkpoint(args.checkpoint_id, notes=args.notes)
+        if args.command == "action-list": return repo.list_actions(args.record_id, revision_number=args.revision, as_of=args.as_of)
+        if args.command == "action-show": return repo.get_action(args.action_id, as_of=args.as_of)
+        if args.command == "action-update": return repo.update_action(args.action_id, status=args.status, reason=args.reason, blocked_reason=args.blocked_reason, completion_evidence=args.completion_evidence, escalation_path=args.escalation_path)
+        if args.command == "action-history": return repo.action_history(args.action_id)
+        if args.command == "blocker-add": return repo.add_blocker(args.record_id, args.title, action_id=args.action, owner=args.owner, required_support=args.required_support, escalation_path=args.escalation_path, notes=args.notes)
+        if args.command == "blocker-list": return repo.list_blockers(args.record_id, include_resolved=not args.open_only)
+        if args.command == "blocker-update": return repo.update_blocker(args.blocker_id, status=args.status, notes=args.notes, escalation_path=args.escalation_path)
+        if args.command == "record-reassess": return repo.create_reassessment(args.record_id, _read_json(args.input), observed_summary=args.observed_summary, checkpoint_id=args.checkpoint, changed_assumptions=args.changed_assumption, carry_unresolved=not args.no_carry)
+        if args.command == "reassessment-list": return repo.list_reassessments(args.record_id)
         if args.command == "review-add": return repo.add_review(args.record_id, status=args.status, reviewer_id=args.reviewer, notes=args.notes)
         if args.command == "review-list": return repo.list_reviews(args.record_id)
         if args.command == "workspace-export":

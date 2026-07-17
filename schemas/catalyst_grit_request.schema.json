@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.3.0/recovery-record-request.schema.json",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.4.0/recovery-record-request.schema.json",
   "title": "Catalyst Grit Recovery Record Request",
   "description": "Strict canonical request for the Catalyst Grit v1.3 shared engine.",
-  "x-catalyst-grit-version": "1.3.0",
+  "x-catalyst-grit-version": "1.4.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -24,11 +24,11 @@
             "1.0.1",
             "1.1.0",
             "1.2.0",
-            "1.3.0"
+            "1.4.0"
           ]
         },
         "engine_version": {
-          "const": "1.3.0"
+          "const": "1.4.0"
         },
         "created_at": {
           "type": "string",
@@ -564,7 +564,15 @@
                           "title"
                         ],
                         "properties": {
+                          "action_key": {
+                            "type": "string",
+                            "minLength": 1
+                          },
                           "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "statement": {
                             "type": "string",
                             "minLength": 1
                           },
@@ -573,8 +581,11 @@
                             "enum": [
                               "planned",
                               "in_progress",
+                              "blocked",
                               "completed",
-                              "paused"
+                              "paused",
+                              "deferred",
+                              "cancelled"
                             ]
                           },
                           "owner": {
@@ -589,6 +600,66 @@
                               "null"
                             ],
                             "format": "date"
+                          },
+                          "horizon": {
+                            "type": "string",
+                            "enum": [
+                              "24_hours",
+                              "72_hours",
+                              "7_days",
+                              "longer_term"
+                            ]
+                          },
+                          "expected_effect": {
+                            "type": "string"
+                          },
+                          "required_support": {
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "dependencies": {
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "effort": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "urgency": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "completion_evidence": {
+                            "type": "string"
+                          },
+                          "reassessment_trigger": {
+                            "type": "string"
+                          },
+                          "blocked_reason": {
+                            "type": "string"
+                          },
+                          "escalation_path": {
+                            "type": "string"
                           }
                         }
                       }
@@ -681,7 +752,15 @@
                           "title"
                         ],
                         "properties": {
+                          "action_key": {
+                            "type": "string",
+                            "minLength": 1
+                          },
                           "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "statement": {
                             "type": "string",
                             "minLength": 1
                           },
@@ -690,8 +769,11 @@
                             "enum": [
                               "planned",
                               "in_progress",
+                              "blocked",
                               "completed",
-                              "paused"
+                              "paused",
+                              "deferred",
+                              "cancelled"
                             ]
                           },
                           "owner": {
@@ -706,6 +788,66 @@
                               "null"
                             ],
                             "format": "date"
+                          },
+                          "horizon": {
+                            "type": "string",
+                            "enum": [
+                              "24_hours",
+                              "72_hours",
+                              "7_days",
+                              "longer_term"
+                            ]
+                          },
+                          "expected_effect": {
+                            "type": "string"
+                          },
+                          "required_support": {
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "dependencies": {
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "effort": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "urgency": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "completion_evidence": {
+                            "type": "string"
+                          },
+                          "reassessment_trigger": {
+                            "type": "string"
+                          },
+                          "blocked_reason": {
+                            "type": "string"
+                          },
+                          "escalation_path": {
+                            "type": "string"
                           }
                         }
                       }
@@ -725,6 +867,61 @@
               "format": "date"
             },
             "success_signal": {
+              "type": "string"
+            },
+            "scope_decision": {
+              "type": "string",
+              "enum": [
+                "continue",
+                "reduce_scope",
+                "pause",
+                "delegate",
+                "escalate"
+              ]
+            },
+            "scope_decision_notes": {
+              "type": "string"
+            },
+            "blockers": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "escalation_log": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "changed_assumptions": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "reassessment_trigger": {
               "type": "string"
             }
           }

@@ -1,5 +1,5 @@
-# Recovery Record Contract v1.3.0
+# Recovery Record Contract v1.4.0
 
-The canonical record contains `metadata`, `user_input`, `normalized_input`, `findings`, `human_review`, and `extensions`. v1.3.0 expands normalized context with affected work, competing demands, ambiguity and friction measures, enriched constraints, enriched supports, and recovery-capacity fields.
+The canonical record contains `metadata`, `user_input`, `normalized_input`, `findings`, `human_review`, and `extensions`. v1.4.0 adds an executable recovery-plan contract to the existing condition maps. Actions carry stable keys, owners, statuses, target dates, horizons, expected effects, required supports, dependencies, effort, urgency, completion evidence, reassessment triggers, blocker reasons, and escalation paths.
 
-`findings` contains methodology, condition maps, interpretation, component scores, state, traceable flags, recommended actions, decision note, limits, and calculation provenance. Inputs from v1.0.x, v1.1.0, and v1.2.0 remain importable; missing v1.3 fields receive documented neutral defaults and are surfaced by completeness prompts.
+`findings` contains methodology, condition maps, interpretation, component scores, state, traceable flags, recommended actions, `recovery_plan`, decision note, limits, and calculation provenance. The plan identifies the smallest recoverable next step, actions by horizon, dependencies, scope decision, checkpoint, blockers, escalation, changed assumptions, review signals, and compatibility defaults. Inputs from v1.0.x through v1.3.0 remain importable; missing planning fields receive visible compatibility defaults rather than silent historical rewrites.

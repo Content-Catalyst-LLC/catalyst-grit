@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import re
 import math
 from typing import Any, Callable, Iterable, Mapping, Sequence
@@ -92,7 +92,9 @@ ALLOWED_SUPPORT_TYPES = {
     "information",
     "other",
 }
-ALLOWED_ACTION_STATUSES = {"planned", "in_progress", "completed", "paused"}
+ALLOWED_ACTION_STATUSES = {"planned", "in_progress", "blocked", "completed", "paused", "deferred", "cancelled"}
+ALLOWED_ACTION_HORIZONS = {"24_hours", "72_hours", "7_days", "longer_term"}
+ALLOWED_PLAN_DECISIONS = {"continue", "reduce_scope", "pause", "delegate", "escalate"}
 ALLOWED_PROVENANCE_SOURCES = {"direct_entry", "browser", "cli", "api", "import", "migration"}
 
 EXTENSION_KEY = re.compile(r"^[a-z][a-z0-9-]*(?:\.[a-z0-9-]+)+$")
@@ -106,7 +108,7 @@ DEFAULT_ACTIONS = [
 
 DEFAULT_METHODOLOGY_PROFILE: dict[str, Any] = {
     "profile_id": "cg-recovery-conditions",
-    "profile_version": "1.3.0",
+    "profile_version": "1.4.0",
     "calculation_spec": "weighted-components-v1",
     "component_weights": {
         "impact_buffer": 15.0,
@@ -292,26 +294,86 @@ def _normalize_action_list(value: Any, path: str, *, default_actions: bool = Fal
     actions: list[dict[str, Any]] = []
     for index, item in enumerate(source):
         item_path = f"{path}[{index}]"
+        default_horizon = ("24_hours", "72_hours", "7_days", "longer_term")[min(index, 3)]
         if isinstance(item, Mapping):
-            _reject_unknown(item, {"title", "status", "owner", "target_date"}, item_path)
-            title = _text(item.get("title"), f"{item_path}.title", required=True)
+            _reject_unknown(
+                item,
+                {
+                    "action_key", "title", "statement", "status", "owner", "target_date", "horizon",
+                    "expected_effect", "required_support", "dependencies", "effort", "urgency",
+                    "completion_evidence", "reassessment_trigger", "blocked_reason", "escalation_path",
+                },
+                item_path,
+            )
+            title = _text(item.get("title", item.get("statement")), f"{item_path}.title", required=True)
+            action_key = _text(item.get("action_key"), f"{item_path}.action_key", default=f"action-{index + 1}") or f"action-{index + 1}"
             status = _enum(item.get("status"), f"{item_path}.status", ALLOWED_ACTION_STATUSES, "planned")
             owner = _optional_text(item.get("owner"))
             target_date = _optional_date(item.get("target_date"), f"{item_path}.target_date")
+            horizon = _enum(item.get("horizon"), f"{item_path}.horizon", ALLOWED_ACTION_HORIZONS, default_horizon)
+            expected_effect = _text(item.get("expected_effect"), f"{item_path}.expected_effect")
+            required_support = _string_list(item.get("required_support"), f"{item_path}.required_support")
+            dependencies = _string_list(item.get("dependencies"), f"{item_path}.dependencies")
+            effort = clamp_scale(item.get("effort", 3), f"{item_path}.effort", 1, 5)
+            urgency = clamp_scale(item.get("urgency", 3), f"{item_path}.urgency", 1, 5)
+            completion_evidence = _text(item.get("completion_evidence"), f"{item_path}.completion_evidence")
+            reassessment_trigger = _text(item.get("reassessment_trigger"), f"{item_path}.reassessment_trigger")
+            blocked_reason = _text(item.get("blocked_reason"), f"{item_path}.blocked_reason")
+            escalation_path = _text(item.get("escalation_path"), f"{item_path}.escalation_path")
         else:
             title = _text(item, item_path)
             if not title:
                 continue
+            action_key = f"action-{index + 1}"
             status = "planned"
             owner = None
             target_date = None
-        actions.append({"title": title, "status": status, "owner": owner, "target_date": target_date})
+            horizon = default_horizon
+            expected_effect = ""
+            required_support = []
+            dependencies = []
+            effort = 3.0
+            urgency = 3.0
+            completion_evidence = ""
+            reassessment_trigger = ""
+            blocked_reason = ""
+            escalation_path = ""
+        if status == "blocked" and not blocked_reason:
+            raise _issue(f"{item_path}.blocked_reason", "blocked_reason_required", "A blocked action requires a non-punitive description of the support or dependency needed.")
+        if status == "completed" and not completion_evidence:
+            raise _issue(f"{item_path}.completion_evidence", "completion_evidence_required", "A completed action requires completion evidence.")
+        actions.append({
+            "action_key": action_key,
+            "title": title,
+            "status": status,
+            "owner": owner,
+            "target_date": target_date,
+            "horizon": horizon,
+            "expected_effect": expected_effect,
+            "required_support": required_support,
+            "dependencies": dependencies,
+            "effort": effort,
+            "urgency": urgency,
+            "completion_evidence": completion_evidence,
+            "reassessment_trigger": reassessment_trigger,
+            "blocked_reason": blocked_reason,
+            "escalation_path": escalation_path,
+        })
 
     if not actions and default_actions:
         actions = [
-            {"title": title, "status": "planned", "owner": None, "target_date": None}
-            for title in DEFAULT_ACTIONS
+            {
+                "action_key": f"default-{index + 1}", "title": title, "status": "planned", "owner": "self",
+                "target_date": None, "horizon": ("24_hours", "72_hours", "7_days")[index],
+                "expected_effect": "", "required_support": [], "dependencies": [], "effort": 3.0,
+                "urgency": 3.0, "completion_evidence": "", "reassessment_trigger": "",
+                "blocked_reason": "", "escalation_path": "",
+            }
+            for index, title in enumerate(DEFAULT_ACTIONS)
         ]
+    keys = [item["action_key"] for item in actions]
+    if len(keys) != len(set(keys)):
+        raise _issue(path, "duplicate_action_key", "Action keys must be unique within a section.", keys)
     return actions
 
 
@@ -514,7 +576,7 @@ def _normalize_metadata(value: Any, *, source_schema_version: str) -> dict[str, 
         raise _issue("$.metadata.record_id", "record_id", "Must match cgr_ followed by 32 lowercase hexadecimal characters.", record_id)
 
     supplied_schema = _optional_text(metadata.get("schema_version"))
-    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.2.0", "1.1.0", "1.0.1"}:
+    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.3.0", "1.2.0", "1.1.0", "1.0.1"}:
         raise _issue("$.metadata.schema_version", "schema_version", f"Unsupported source schema version: {supplied_schema}.", supplied_schema)
     supplied_engine = _optional_text(metadata.get("engine_version"))
     if supplied_engine and supplied_engine != ENGINE_VERSION:
@@ -629,7 +691,7 @@ def _normalize_input_sections(value: Any) -> dict[str, Any]:
     learning = _mapping(input_data["learning"], "$.input.learning")
     _reject_unknown(learning, {"observations", "assumptions", "adaptations"}, "$.input.learning")
     next_steps = _mapping(input_data["next_steps"], "$.input.next_steps")
-    _reject_unknown(next_steps, {"actions", "checkpoint_date", "success_signal"}, "$.input.next_steps")
+    _reject_unknown(next_steps, {"actions", "checkpoint_date", "success_signal", "scope_decision", "scope_decision_notes", "blockers", "escalation_log", "changed_assumptions", "reassessment_trigger"}, "$.input.next_steps")
 
     return {
         "context": {
@@ -685,6 +747,12 @@ def _normalize_input_sections(value: Any) -> dict[str, Any]:
             "actions": _normalize_action_list(next_steps.get("actions"), "$.input.next_steps.actions"),
             "checkpoint_date": _optional_date(next_steps.get("checkpoint_date"), "$.input.next_steps.checkpoint_date"),
             "success_signal": _text(next_steps.get("success_signal"), "$.input.next_steps.success_signal"),
+            "scope_decision": _enum(next_steps.get("scope_decision"), "$.input.next_steps.scope_decision", ALLOWED_PLAN_DECISIONS, "continue"),
+            "scope_decision_notes": _text(next_steps.get("scope_decision_notes"), "$.input.next_steps.scope_decision_notes"),
+            "blockers": _string_list(next_steps.get("blockers"), "$.input.next_steps.blockers"),
+            "escalation_log": _string_list(next_steps.get("escalation_log"), "$.input.next_steps.escalation_log"),
+            "changed_assumptions": _string_list(next_steps.get("changed_assumptions"), "$.input.next_steps.changed_assumptions"),
+            "reassessment_trigger": _text(next_steps.get("reassessment_trigger"), "$.input.next_steps.reassessment_trigger"),
         },
     }
 
@@ -744,6 +812,37 @@ def normalize_methodology_profile(value: Mapping[str, Any] | None = None) -> dic
     }
 
 
+def _upgrade_prior_input(value: Mapping[str, Any], source_schema: str) -> dict[str, Any]:
+    """Add non-destructive v1.4 defaults to earlier canonical requests."""
+    upgraded = deepcopy(dict(value))
+    if source_schema == SCHEMA_VERSION:
+        return upgraded
+    next_steps = dict(upgraded.get("next_steps") or {})
+    next_steps.setdefault("scope_decision", "continue")
+    next_steps.setdefault("scope_decision_notes", "")
+    next_steps.setdefault("blockers", [])
+    next_steps.setdefault("escalation_log", [])
+    next_steps.setdefault("changed_assumptions", [])
+    next_steps.setdefault("reassessment_trigger", "")
+    upgraded["next_steps"] = next_steps
+    for section in ("response", "next_steps"):
+        section_value = dict(upgraded.get(section) or {})
+        actions = []
+        for item in section_value.get("actions") or []:
+            if isinstance(item, Mapping):
+                action = deepcopy(dict(item))
+                if action.get("status") == "completed" and not action.get("completion_evidence"):
+                    action["completion_evidence"] = "Completion predates v1.4; evidence was not supplied."
+                if action.get("status") == "blocked" and not action.get("blocked_reason"):
+                    action["blocked_reason"] = "Blocked status predates v1.4; the support need was not supplied."
+                actions.append(action)
+            else:
+                actions.append(item)
+        section_value["actions"] = actions
+        upgraded[section] = section_value
+    return upgraded
+
+
 def normalize_input(data: Mapping[str, Any]) -> dict[str, Any]:
     """Return a canonical normalized request without generated findings."""
     if not isinstance(data, Mapping):
@@ -759,7 +858,8 @@ def normalize_input(data: Mapping[str, Any]) -> dict[str, Any]:
         or SCHEMA_VERSION
     )
     metadata = _normalize_metadata(request.get("metadata"), source_schema_version=source_schema)
-    normalized_sections = _normalize_input_sections(request["input"])
+    upgraded_input = _upgrade_prior_input(request["input"], source_schema)
+    normalized_sections = _normalize_input_sections(upgraded_input)
     human_review = _normalize_human_review(request.get("human_review"), record_status=metadata["status"])
     extensions = _normalize_extensions(request.get("extensions"))
     methodology = normalize_methodology_profile(request.get("methodology_profile"))
@@ -989,6 +1089,92 @@ def build_flags(normalized: Mapping[str, Any]) -> list[dict[str, Any]]:
     return flags
 
 
+def build_recovery_plan(normalized: Mapping[str, Any], *, as_of: str | None = None) -> dict[str, Any]:
+    """Build an executable, non-punitive plan view from normalized actions."""
+    actions: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for section in ("response", "next_steps"):
+        for ordinal, source in enumerate(normalized[section]["actions"]):
+            key = source["action_key"]
+            if key in seen:
+                key = f"{section}-{key}"
+            seen.add(key)
+            item = deepcopy(source)
+            item["action_key"] = key
+            item["source_section"] = section
+            item["ordinal"] = ordinal
+            actions.append(item)
+
+    checkpoint_date = normalized["next_steps"]["checkpoint_date"]
+    compatibility_defaults: list[str] = []
+    if not actions:
+        raise _issue("$.input.next_steps.actions", "plan_action_required", "A recovery plan requires at least one action.")
+    if not any(item["owner"] for item in actions):
+        actions[0]["owner"] = "self"
+        compatibility_defaults.append("Assigned the first action to self because the imported plan had no owner.")
+    if not checkpoint_date:
+        base = date.fromisoformat(as_of) if as_of else datetime.now(timezone.utc).date()
+        checkpoint_date = (base + timedelta(days=7)).isoformat()
+        compatibility_defaults.append("Scheduled a seven-day review checkpoint because the imported plan had no checkpoint.")
+
+    horizon_order = {"24_hours": 0, "72_hours": 1, "7_days": 2, "longer_term": 3}
+    status_order = {"in_progress": 0, "planned": 1, "blocked": 2, "paused": 3, "deferred": 4, "completed": 5, "cancelled": 6}
+    actions.sort(key=lambda item: (horizon_order[item["horizon"]], status_order[item["status"]], -item["urgency"], item["ordinal"]))
+    smallest = next((item for item in actions if item["status"] not in {"completed", "cancelled"}), actions[0])
+    by_horizon = {key: [] for key in ("24_hours", "72_hours", "7_days", "longer_term")}
+    for item in actions:
+        by_horizon[item["horizon"]].append(item)
+
+    keys = {item["action_key"] for item in actions}
+    dependency_sequence = []
+    unresolved_dependencies = []
+    for item in actions:
+        internal = [dep for dep in item["dependencies"] if dep in keys]
+        external = [dep for dep in item["dependencies"] if dep not in keys]
+        dependency_sequence.append({"action_key": item["action_key"], "depends_on": internal, "external_dependencies": external})
+        unresolved_dependencies.extend({"action_key": item["action_key"], "dependency": dep} for dep in external)
+
+    blocked = [
+        {"action_key": item["action_key"], "title": item["title"], "blocked_reason": item["blocked_reason"], "required_support": item["required_support"], "escalation_path": item["escalation_path"]}
+        for item in actions if item["status"] == "blocked"
+    ]
+    today = date.fromisoformat(as_of) if as_of else datetime.now(timezone.utc).date()
+    due_for_review = []
+    for item in actions:
+        if item["target_date"] and item["status"] not in {"completed", "cancelled"}:
+            target = date.fromisoformat(item["target_date"])
+            if target < today:
+                due_for_review.append({"action_key": item["action_key"], "title": item["title"], "target_date": item["target_date"], "days_past_target": (today - target).days, "message": "Target date passed; review support, scope, or sequencing without assigning blame."})
+
+    return {
+        "plan_status": "needs_support" if blocked else "ready",
+        "smallest_recoverable_next_step": smallest,
+        "horizons": by_horizon,
+        "dependency_sequence": dependency_sequence,
+        "unresolved_dependencies": unresolved_dependencies,
+        "scope_decision": {
+            "decision": normalized["next_steps"]["scope_decision"],
+            "notes": normalized["next_steps"]["scope_decision_notes"],
+        },
+        "checkpoint": {
+            "scheduled_for": checkpoint_date,
+            "success_signal": normalized["next_steps"]["success_signal"],
+            "reassessment_trigger": normalized["next_steps"]["reassessment_trigger"],
+        },
+        "blocker_log": blocked + [{"action_key": None, "title": item, "blocked_reason": item, "required_support": [], "escalation_path": ""} for item in normalized["next_steps"]["blockers"]],
+        "escalation_log": list(normalized["next_steps"]["escalation_log"]),
+        "changed_assumptions": list(normalized["next_steps"]["changed_assumptions"]),
+        "due_for_review": due_for_review,
+        "compatibility_defaults": compatibility_defaults,
+        "plan_rules": [
+            "At least one action has a named owner.",
+            "A dated checkpoint is required.",
+            "Blocked and past-target actions are support signals, not performance judgments.",
+            "Reassessment creates a new record revision and preserves prior findings.",
+        ],
+    }
+
+
 def build_next_actions(normalized: Mapping[str, Any]) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -1026,7 +1212,7 @@ def generate_record(
     data: Mapping[str, Any],
     methodology_profile: Mapping[str, Any] | None = None,
 ) -> RecoveryRecord:
-    """Generate a canonical v1.3 recovery record with inspectable condition maps."""
+    """Generate a canonical v1.4 recovery record with an executable recovery plan."""
     canonical = normalize_input(data)
     normalized = canonical["input"]
     profile = normalize_methodology_profile(methodology_profile or canonical["methodology_profile"])
@@ -1039,6 +1225,7 @@ def generate_record(
     interpretation = build_interpretation(normalized)
     flags = build_flags(normalized)
     actions = build_next_actions(normalized)
+    recovery_plan = build_recovery_plan(normalized, as_of=canonical["metadata"]["updated_at"][:10])
     note = (
         f"Recorded recovery conditions are assessed as {generated_state}. The composite conditions score is {score}/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. "
         "Protect available capacity, address the highest-friction condition, "
@@ -1055,6 +1242,7 @@ def generate_record(
         "human_override_applied": bool(human_state),
         "flags": flags,
         "recommended_actions": actions,
+        "recovery_plan": recovery_plan,
         "decision_note": note,
         "method_path": list(METHOD_PATH),
         "interpretation_limits": list(INTERPRETATION_LIMITS),

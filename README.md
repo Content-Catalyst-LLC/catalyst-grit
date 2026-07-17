@@ -1,20 +1,21 @@
 # Catalyst Grit
 
-**Current release: v1.3.0 — Pressure, Constraint, Support, and Capacity Mapping**
+**Current release: v1.4.0 — Recovery Planning and Action Management**
 
-Catalyst Grit is a private-by-default human-systems recovery and learning engine. It documents setbacks, the conditions shaping recovery, actions, checkpoints, and learning without scoring character, diagnosing health, or ranking people.
+Catalyst Grit is a private-by-default human-systems recovery and learning engine. It documents setbacks, the conditions shaping recovery, owned actions, checkpoints, reassessments, and learning without scoring character, diagnosing health, or ranking people.
 
-## v1.3.0 capabilities
+## v1.4.0 capabilities
 
-- Pressure map covering overall pressure, competing load, decision ambiguity, dependency friction, and stakeholder friction
-- Constraint map with type, severity, control zone, and immediate / near-term / structural layer
-- Support map with availability status, reliability, and capacity contribution
-- Recovery-capacity profile for energy, clarity, attention, coordination, time, and support access
-- Control / influence / outside-control routing view
-- Completeness prompts, contradiction detection, and confidence indicators
-- Review flags that cite the exact input paths and values that caused them
-- Composite score displayed only with component and condition context
-- Persistent SQLite projects, append-only revisions, checkpoints, reviews, audit history, retention, import, and export
+- Executable recovery plans with a smallest recoverable next step
+- Named action owners, statuses, target dates, effort, urgency, required support, expected effects, and completion evidence
+- 24-hour, 72-hour, 7-day, and longer-term planning horizons
+- Action dependencies and unresolved external-dependency signals
+- Continue, reduce-scope, pause, delegate, and escalate decisions
+- Blocker records, escalation paths, and non-punitive past-target review signals
+- Dated checkpoints, success signals, and reassessment triggers
+- Append-only action events and reassessments that create new record revisions
+- Pressure, constraint, support, capacity, control-zone, and friction-layer maps
+- Persistent SQLite projects, revisions, checkpoints, reviews, audit history, retention, import, and export
 - Public non-persistent browser demo and authenticated private WordPress workspace
 
 ## Quick validation
@@ -30,6 +31,10 @@ grit generate examples/grit_record_input.json
 grit init --database catalyst-grit.sqlite3
 grit project-create --database catalyst-grit.sqlite3 --title "Recovery project"
 grit record-map --database catalyst-grit.sqlite3 RECORD_ID
+grit action-list --database catalyst-grit.sqlite3 RECORD_ID
+grit action-update --database catalyst-grit.sqlite3 ACTION_ID --status in_progress
+grit blocker-add --database catalyst-grit.sqlite3 RECORD_ID --title "Reviewer availability"
+grit record-reassess --database catalyst-grit.sqlite3 RECORD_ID updated-request.json
 ```
 
 Catalyst Grit is educational and analytical infrastructure. It is not diagnosis, mental-health advice, employee evaluation, automated eligibility, or an outcome guarantee.

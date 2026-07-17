@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — Recovery Planning and Action Management
+
+- Added executable recovery plans with owned actions, four planning horizons, dependencies, expected effects, support requirements, effort, urgency, evidence, and reassessment triggers.
+- Added explicit scope decisions, blockers, escalation paths, checkpoints, due-for-review signals, and the smallest recoverable next step.
+- Added migration 003 with enriched actions, append-only action events, blockers, and reassessments.
+- Added action, blocker, and reassessment CLI workflows plus plan-history export.
+- Added public browser planning controls and plan summaries while preserving the non-persistent public boundary.
+- Preserved checksum-based installation and existing private SQLite workspace files.
+
 ## 1.3.0 — Pressure, Constraint, Support, and Capacity Mapping
 
 - Added inspectable condition maps, source-linked flags, completeness, contradiction detection, and accessible mapping controls.

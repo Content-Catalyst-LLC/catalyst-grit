@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the complete Catalyst Grit v1.3.0 release contract."""
+"""Run the complete Catalyst Grit v1.4.0 release contract."""
 from __future__ import annotations
 
 import json
@@ -59,17 +59,21 @@ def main() -> int:
         target = Path(temp) / "site"
         run("Install wheel", [sys.executable, "-m", "pip", "install", "--no-deps", "--target", str(target), str(wheels[-1])])
         wheel_env = os.environ.copy(); wheel_env["PYTHONPATH"] = str(target)
-        code = """
+        example_payload = json.dumps(json.loads((ROOT / "examples/grit_record_input.json").read_text()))
+        code = f"""
 import json, tempfile
 from pathlib import Path
 import catalyst_grit
-assert catalyst_grit.__version__ == '1.3.0'
-assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2]
+assert catalyst_grit.__version__ == '1.4.0'
+assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3]
 with tempfile.TemporaryDirectory() as d:
     with catalyst_grit.SQLiteWorkspaceRepository(Path(d)/'installed.sqlite3') as repo:
         project=repo.create_project('Installed wheel')
         assert project['visibility']=='private'
-        assert repo.health()['migrations']['current']==2
+        assert repo.health()['migrations']['current']==3
+        saved=repo.save_record(project['project_id'], json.loads({example_payload!r}))
+        record_id=saved['record']['record_id']
+        assert repo.list_actions(record_id)
 print(catalyst_grit.__version__)
 """
         run("Import installed package and migrations", [sys.executable, "-c", code], cwd=Path(temp), env=wheel_env)
@@ -78,7 +82,7 @@ print(catalyst_grit.__version__)
     for generated in ROOT.glob("src/*.egg-info"):
         shutil.rmtree(generated, ignore_errors=True)
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    print("Catalyst Grit v1.3.0 release contract passed.")
+    print("Catalyst Grit v1.4.0 release contract passed.")
     return 0
 
 

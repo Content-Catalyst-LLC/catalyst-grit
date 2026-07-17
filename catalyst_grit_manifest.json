@@ -1,24 +1,28 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.3.0",
-  "schema_version": "1.3.0",
-  "engine_version": "1.3.0",
-  "release": "Pressure, Constraint, Support, and Capacity Mapping",
+  "version": "1.4.0",
+  "schema_version": "1.4.0",
+  "engine_version": "1.4.0",
+  "release": "Recovery Planning and Action Management",
   "canonical_product_model": "recovery-record",
-  "methodology_profile": "cg-recovery-conditions@1.3.0",
+  "methodology_profile": "cg-recovery-conditions@1.4.0",
   "workspace_format": "catalyst-grit-workspace/1.0",
   "storage": "SQLite private workspace with ordered packaged migrations",
   "migrations": [
     "001_core_workspace",
-    "002_checkpoints_reviews_audit"
+    "002_checkpoints_reviews_audit",
+    "003_recovery_plans_actions_reassessment"
   ],
   "persistent_entities": [
     "projects",
     "recovery_records",
     "record_revisions",
     "actions",
+    "action_events",
+    "blockers",
     "checkpoints",
+    "reassessments",
     "reviews",
     "status_history",
     "audit_events"
@@ -42,5 +46,30 @@
     "not automated eligibility",
     "not outcome guarantee"
   ],
-  "release_contract": "scripts/release_contract.py"
+  "release_contract": "scripts/release_contract.py",
+  "planning_contract": {
+    "action_statuses": [
+      "planned",
+      "in_progress",
+      "blocked",
+      "completed",
+      "paused",
+      "deferred",
+      "cancelled"
+    ],
+    "horizons": [
+      "24_hours",
+      "72_hours",
+      "7_days",
+      "longer_term"
+    ],
+    "scope_decisions": [
+      "continue",
+      "reduce_scope",
+      "pause",
+      "delegate",
+      "escalate"
+    ],
+    "history": "append-only action events and reassessments"
+  }
 }

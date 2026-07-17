@@ -16,7 +16,7 @@ def test_public_demo_remains_non_persistent():
 def test_private_workspace_requires_authentication_capability_and_nonce():
     assert "is_user_logged_in()" in PHP
     assert "current_user_can('read')" in PHP
-    assert "check_ajax_referer('catalyst_grit_workspace_v130', 'nonce')" in PHP
+    assert "check_ajax_referer('catalyst_grit_workspace_v140', 'nonce')" in PHP
     assert "wp_ajax_nopriv_catalyst_grit_workspace" not in PHP
 
 

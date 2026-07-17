@@ -1,15 +1,15 @@
 # Changelog
 
-## 1.9.0 — Publication, Export, API, and Institutional Integration
+## 2.0.0 — Connected Human-Systems Resilience Platform
 
-- Added seven governed publication report types.
-- Added JSON, JSON-LD, Markdown, HTML, CSV, platform PDF requests, and deterministic publication ZIP bundles.
-- Added private, internal, and public redaction policies with deterministic identifier masking.
-- Added a framework-neutral institutional API with hashed bearer tokens, scopes, project allowlists, rate limits, and append-only audits.
-- Added versioned institutional policies and append-only access reviews.
-- Added methodology registration, schema-deprecation declarations, compatibility checks, and administrative diagnostics.
-- Added migration 008 and preserved all v1.0.x through v1.8.0 workspace data.
-- Expanded CLI, WordPress workspace guidance, OpenAPI, schemas, release validation, and upgrade tooling.
+- Added a twelve-stage connected workflow from setback through governed publication.
+- Added explicit human-review gates and append-only workflow history.
+- Added a provenance-preserving cross-product artifact graph with visible stale and conflict states.
+- Added offline-verifiable portable platform snapshots and restore.
+- Added scoped v2 API routes, connected-platform CLI workflows, diagnostics, and export integration.
+- Added migration 009 while preserving all v1.0.x through v1.9.0 workspace data.
+- Expanded the WordPress private workspace with an accessible connected-platform summary and portable-recovery guidance.
+- Retained all v1.9 publication, export, institutional API, governance, and schema lifecycle capabilities.
 
 ## 1.8.0 — Monitoring, Trends, and Resilience Signals
 

@@ -1,6 +1,6 @@
 # Institutional API
 
-Catalyst Grit v1.9.0 exposes a framework-neutral API service contract, `catalyst-grit-api/1.0`, with routes documented in `openapi.yaml`.
+Catalyst Grit v2.0.0 exposes a framework-neutral API service contract, `catalyst-grit-api/1.0`, with routes documented in `openapi.yaml`.
 
 Private routes require opaque bearer tokens. Tokens are shown once, stored only as SHA-256 hashes, constrained by scopes and optional project allowlists, rate-limited per minute, and recorded in an append-only API audit log.
 

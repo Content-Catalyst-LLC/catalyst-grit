@@ -5,20 +5,20 @@ from catalyst_grit import MigrationManager, SQLiteWorkspaceRepository
 
 def test_packaged_migrations_are_ordered_and_complete():
     migrations = MigrationManager.available()
-    assert [item.version for item in migrations] == [1, 2, 3, 4, 5, 6, 7, 8]
-    assert [item.name for item in migrations] == ["core_workspace", "checkpoints_reviews_audit", "recovery_plans_actions_reassessment", "learning_loops_adaptation_patterns", "team_recovery_facilitated_review", "evidence_assumptions_handoffs", "monitoring_trends_resilience_signals", "publication_api_institutional_governance"]
+    assert [item.version for item in migrations] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert [item.name for item in migrations] == ["core_workspace", "checkpoints_reviews_audit", "recovery_plans_actions_reassessment", "learning_loops_adaptation_patterns", "team_recovery_facilitated_review", "evidence_assumptions_handoffs", "monitoring_trends_resilience_signals", "publication_api_institutional_governance", "connected_human_systems_platform"]
     assert all(item.up_sql.strip() and item.down_sql.strip() for item in migrations)
 
 
 def test_clean_install_rollback_and_remigration(tmp_path: Path):
     database = tmp_path / "workspace.sqlite3"
     with SQLiteWorkspaceRepository(database, auto_migrate=False) as repo:
-        assert repo.migrations.status() == {"current": 0, "latest": 8, "applied": [], "pending": [1, 2, 3, 4, 5, 6, 7, 8]}
-        assert repo.migrations.migrate() == [1, 2, 3, 4, 5, 6, 7, 8]
+        assert repo.migrations.status() == {"current": 0, "latest": 9, "applied": [], "pending": [1, 2, 3, 4, 5, 6, 7, 8, 9]}
+        assert repo.migrations.migrate() == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        assert repo.migrations.status()["current"] == 9
+        assert repo.migrations.rollback(1) == [9]
         assert repo.migrations.status()["current"] == 8
-        assert repo.migrations.rollback(1) == [8]
-        assert repo.migrations.status()["current"] == 7
-        assert repo.migrations.migrate() == [8]
+        assert repo.migrations.migrate() == [9]
         assert repo.health()["integrity"] == "ok"
 
 

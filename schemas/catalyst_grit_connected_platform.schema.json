@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit-connected-platform-v2.0.0.json",
+  "title": "Catalyst Grit Connected Human-Systems Resilience Platform",
+  "type": "object",
+  "x-catalyst-grit-version": "2.0.0",
+  "required": ["contract", "version", "project", "workflow_count", "workflow_progress", "artifact_graph", "governance", "summary_hash"],
+  "properties": {
+    "contract": {"const": "catalyst-grit-connected-platform/2.0"},
+    "version": {"const": "2.0.0"},
+    "project": {
+      "type": "object",
+      "required": ["project_id", "title", "visibility"],
+      "properties": {
+        "project_id": {"type": "string", "minLength": 1},
+        "title": {"type": "string"},
+        "visibility": {"const": "private"}
+      },
+      "additionalProperties": true
+    },
+    "workflow_count": {"type": "integer", "minimum": 0},
+    "workflow_progress": {"type": "array", "items": {"type": "object"}},
+    "artifact_graph": {
+      "type": "object",
+      "required": ["connection_count", "valid_count", "conflict_count", "connections"],
+      "properties": {
+        "connection_count": {"type": "integer", "minimum": 0},
+        "valid_count": {"type": "integer", "minimum": 0},
+        "conflict_count": {"type": "integer", "minimum": 0},
+        "connections": {"type": "array", "items": {"type": "object"}}
+      },
+      "additionalProperties": false
+    },
+    "governance": {
+      "type": "object",
+      "required": ["private_by_default", "human_review_required", "individual_ranking_allowed", "diagnosis_allowed", "automated_eligibility_allowed"],
+      "properties": {
+        "private_by_default": {"const": true},
+        "human_review_required": {"const": true},
+        "individual_ranking_allowed": {"const": false},
+        "diagnosis_allowed": {"const": false},
+        "automated_eligibility_allowed": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "summary_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "additionalProperties": true
+}

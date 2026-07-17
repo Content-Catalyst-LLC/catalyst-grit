@@ -1,4 +1,4 @@
-"""Publication, redaction, and portable export services for Catalyst Grit v1.9.0."""
+"""Publication, redaction, and portable export services for Catalyst Grit v2.0.0."""
 from __future__ import annotations
 
 from copy import deepcopy

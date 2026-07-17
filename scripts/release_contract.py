@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the complete Catalyst Grit v1.9.0 release contract."""
+"""Run the complete Catalyst Grit v2.0.0 release contract."""
 from __future__ import annotations
 
 import json
@@ -64,13 +64,13 @@ def main() -> int:
 import json, tempfile
 from pathlib import Path
 import catalyst_grit
-assert catalyst_grit.__version__ == '1.9.0'
-assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4, 5, 6, 7, 8]
+assert catalyst_grit.__version__ == '2.0.0'
+assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
 with tempfile.TemporaryDirectory() as d:
     with catalyst_grit.SQLiteWorkspaceRepository(Path(d)/'installed.sqlite3') as repo:
         project=repo.create_project('Installed wheel')
         assert project['visibility']=='private'
-        assert repo.health()['migrations']['current']==8
+        assert repo.health()['migrations']['current']==9
         saved=repo.save_record(project['project_id'], json.loads({example_payload!r}))
         record_id=saved['record']['record_id']
         assert repo.list_actions(record_id)
@@ -110,7 +110,15 @@ with tempfile.TemporaryDirectory() as d:
         response=catalyst_grit.InstitutionalAPI(repo).handle('GET', f'/v1/records/{{record_id}}', token=client['token'])
         assert response.status==200
         assert repo.list_api_audit_events(client_id=client['client_id'])
-        assert repo.institutional_diagnostics()['migration_status']['current']==8
+        platform=catalyst_grit.ConnectedPlatformService(repo)
+        workflow=platform.create_workflow(record_id, actor_id='installed-wheel')
+        assert workflow['contract_version']=='catalyst-grit-connected-platform/2.0'
+        portable=platform.create_portable_snapshot(project['project_id'], record_id=record_id, actor_id='installed-wheel')
+        assert platform.verify_portable_bundle(portable.bundle)['verified'] is True
+        platform_client=repo.create_api_client('Installed platform client', scopes=['platform:read'], project_ids=[project['project_id']], rate_limit_per_minute=5)
+        platform_response=catalyst_grit.InstitutionalAPI(repo).handle('GET', f"/v2/projects/{{project['project_id']}}/platform", token=platform_client['token'])
+        assert platform_response.status==200
+        assert repo.institutional_diagnostics()['migration_status']['current']==9
 print(catalyst_grit.__version__)
 """
         run("Import installed package and migrations", [sys.executable, "-c", code], cwd=Path(temp), env=wheel_env)
@@ -119,7 +127,7 @@ print(catalyst_grit.__version__)
     for generated in ROOT.glob("src/*.egg-info"):
         shutil.rmtree(generated, ignore_errors=True)
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    print("Catalyst Grit v1.9.0 release contract passed.")
+    print("Catalyst Grit v2.0.0 release contract passed.")
     return 0
 
 

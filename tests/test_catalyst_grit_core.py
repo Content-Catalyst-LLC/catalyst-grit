@@ -28,7 +28,7 @@ def test_generated_record_separates_contract_layers():
     record = generate_record(sample()).to_dict()
     assert set(record) == {"metadata", "user_input", "normalized_input", "findings", "human_review", "extensions"}
     assert record["metadata"]["record_id"].startswith("cgr_")
-    assert record["findings"]["calculation_provenance"]["engine_version"] == "1.9.0"
+    assert record["findings"]["calculation_provenance"]["engine_version"] == "2.0.0"
 
 
 def test_all_explicit_sections_are_present():

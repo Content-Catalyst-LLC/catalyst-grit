@@ -25,7 +25,7 @@ def _setup(repo: SQLiteWorkspaceRepository):
 
 def test_migration_008_tables_and_append_only_guards(tmp_path: Path):
     with SQLiteWorkspaceRepository(tmp_path / "governance.sqlite3") as repo:
-        assert repo.health()["migrations"]["current"] == 8
+        assert repo.health()["migrations"]["current"] == 9
         project, _ = _setup(repo)
         review = repo.record_access_review(project["project_id"], "project", project["project_id"], "approved", reviewer_id="owner")
         with pytest.raises(sqlite3.IntegrityError, match="append-only"):
@@ -156,14 +156,14 @@ def test_versioned_policies_access_reviews_and_export_import(tmp_path: Path):
 
 def test_methodology_and_schema_governance(tmp_path: Path):
     with SQLiteWorkspaceRepository(tmp_path / "methodology.sqlite3") as repo:
-        profile = json.loads((ROOT / "methodology/recovery-profile-v1.9.0.json").read_text())
-        registered = repo.register_methodology("cg-recovery-conditions", "1.9.0", profile, status="approved", approved_by="methodology-board", effective_at="2026-07-17T00:00:00Z")
+        profile = json.loads((ROOT / "methodology/recovery-profile-v2.0.0.json").read_text())
+        registered = repo.register_methodology("cg-recovery-conditions", "2.0.0", profile, status="approved", approved_by="methodology-board", effective_at="2026-07-17T00:00:00Z")
         assert registered["status"] == "approved" and len(registered["content_hash"]) == 64
-        declaration = repo.declare_schema_deprecation("catalyst_grit_record", "1.7.0", replacement_version="1.9.0", status="deprecated", sunset_at="2027-07-17T00:00:00Z", migration_notes="Use canonical migration.")
-        assert declaration["replacement_version"] == "1.9.0"
+        declaration = repo.declare_schema_deprecation("catalyst_grit_record", "1.7.0", replacement_version="2.0.0", status="deprecated", sunset_at="2027-07-17T00:00:00Z", migration_notes="Use canonical migration.")
+        assert declaration["replacement_version"] == "2.0.0"
         compatibility = repo.schema_compatibility("catalyst_grit_record", "1.7.0")
         assert compatibility["migration_required"] is True and compatibility["supported"] is True
-        assert repo.schema_compatibility("catalyst_grit_record", "1.9.0")["status"] == "supported"
+        assert repo.schema_compatibility("catalyst_grit_record", "2.0.0")["status"] == "supported"
 
 
 def test_diagnostics_exposes_health_not_tokens_or_private_records(tmp_path: Path):
@@ -173,7 +173,7 @@ def test_diagnostics_exposes_health_not_tokens_or_private_records(tmp_path: Path
         repo.create_api_client("Diagnostics client", scopes=["records:read"])
         diagnostics = repo.institutional_diagnostics()
         assert diagnostics["database_integrity"] == "ok"
-        assert diagnostics["migration_status"]["current"] == 8
+        assert diagnostics["migration_status"]["current"] == 9
         assert diagnostics["active_policy_count"] == 1
         assert diagnostics["active_api_client_count"] == 1
         assert "token" not in json.dumps(diagnostics).lower()
@@ -192,4 +192,4 @@ def test_cli_publication_policy_and_diagnostics(tmp_path: Path, capsys):
     assert main(["policy-set", "--database", str(db), "export_redaction", str(config), "--project", project["project_id"]]) == 0
     assert json.loads(capsys.readouterr().out)["version"] == 1
     assert main(["institution-diagnostics", "--database", str(db)]) == 0
-    assert json.loads(capsys.readouterr().out)["migration_status"]["current"] == 8
+    assert json.loads(capsys.readouterr().out)["migration_status"]["current"] == 9

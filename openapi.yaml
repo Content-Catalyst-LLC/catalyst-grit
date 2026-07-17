@@ -1,118 +1,157 @@
 openapi: 3.1.0
 info:
-  title: Catalyst Grit Institutional API
-  version: 1.9.0
-  summary: Governed recovery records, publication, and institutional integration
+  title: Catalyst Grit Connected Platform API
+  version: 2.0.0
+  summary: Connected recovery workflows, governed institutional integration, and portable resilience records
   description: >-
     Framework-neutral API contract implemented by catalyst_grit.api.InstitutionalAPI.
-    Private routes require opaque bearer tokens, scopes, optional project allowlists,
-    fixed-window rate limits, and append-only request audits. The API must not be used
-    for diagnosis, employee ranking, hidden performance evaluation, personality
-    inference, automated eligibility, or predictive claims.
+    v1 resource routes remain backward compatible. v2 routes expose connected workflows,
+    platform overviews, artifact connections, and offline-verifiable snapshots. Private routes
+    require opaque bearer tokens, explicit scopes, optional project allowlists, rate limits,
+    and append-only audits. The API prohibits diagnosis, employee ranking, hidden performance
+    evaluation, personality inference, automated eligibility, and predictive claims.
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 servers:
-  - url: /v1
+  - url: /
 security:
   - bearerAuth: []
 paths:
-  /health:
+  /v1/health:
     get:
-      operationId: getInstitutionalHealth
-      summary: Read non-sensitive administrative health and diagnostics
+      operationId: getInstitutionalHealthV1
+      summary: Read backward-compatible administrative health
       security: []
-      responses:
-        '200':
-          description: Database, migration, policy, API-client, publication, and access-review diagnostics
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/APIEnvelope'}
-  /projects/{project_id}/records:
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v2/health:
+    get:
+      operationId: getConnectedPlatformHealth
+      summary: Read institutional and connected-platform diagnostics
+      security: []
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v1/projects/{project_id}/records:
     get:
       operationId: listProjectRecords
-      summary: List recovery records in an authorized project
       x-required-scope: records:read
       parameters: [{$ref: '#/components/parameters/ProjectId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /records/{record_id}:
+  /v1/records/{record_id}:
     get:
       operationId: getRecoveryRecord
-      summary: Read one canonical recovery record
       x-required-scope: records:read
       parameters: [{$ref: '#/components/parameters/RecordId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /records/{record_id}/revisions:
+  /v1/records/{record_id}/revisions:
     get:
       operationId: listRecordRevisions
-      summary: List immutable record revisions
       x-required-scope: revisions:read
       parameters: [{$ref: '#/components/parameters/RecordId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /records/{record_id}/actions:
+  /v1/records/{record_id}/actions:
     get:
       operationId: listRecordActions
-      summary: List recovery-plan actions and current states
       x-required-scope: actions:read
       parameters: [{$ref: '#/components/parameters/RecordId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /projects/{project_id}/checkpoints:
+  /v1/projects/{project_id}/checkpoints:
     get:
       operationId: listProjectCheckpoints
-      summary: List project checkpoints
       x-required-scope: checkpoints:read
       parameters: [{$ref: '#/components/parameters/ProjectId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /records/{record_id}/reviews:
+  /v1/records/{record_id}/reviews:
     get:
       operationId: listRecordReviews
-      summary: List human record reviews
       x-required-scope: reviews:read
       parameters: [{$ref: '#/components/parameters/RecordId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /projects/{project_id}/evidence:
+  /v1/projects/{project_id}/evidence:
     get:
       operationId: listProjectEvidence
-      summary: List traceable project evidence
       x-required-scope: evidence:read
       parameters: [{$ref: '#/components/parameters/ProjectId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /projects/{project_id}/patterns:
+  /v1/projects/{project_id}/patterns:
     get:
       operationId: listProjectPatterns
-      summary: List explainable adaptation-pattern candidates
       x-required-scope: patterns:read
       parameters: [{$ref: '#/components/parameters/ProjectId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /projects/{project_id}/monitoring:
+  /v1/projects/{project_id}/monitoring:
     get:
       operationId: getProjectMonitoring
-      summary: Read traceable project monitoring with sparse-data governance
       x-required-scope: monitoring:read
       parameters: [{$ref: '#/components/parameters/ProjectId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /projects/{project_id}/handoffs:
+  /v1/projects/{project_id}/handoffs:
     get:
       operationId: listProjectHandoffs
-      summary: List provenance-preserving cross-product handoffs
       x-required-scope: handoffs:read
       parameters: [{$ref: '#/components/parameters/ProjectId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /projects/{project_id}/audit:
+  /v1/projects/{project_id}/audit:
     get:
       operationId: listProjectAudit
-      summary: Read authorized project and API audit history
       x-required-scope: audit:read
       parameters: [{$ref: '#/components/parameters/ProjectId'}]
       responses: {$ref: '#/components/x-standard-responses'}
-  /publications:
+  /v1/publications:
     post:
       operationId: createPublication
-      summary: Create a governed and redaction-aware publication artifact
       x-required-scope: publications:write
       requestBody:
         required: true
         content:
           application/json:
             schema: {$ref: '#/components/schemas/PublicationRequest'}
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v2/projects/{project_id}/platform:
+    get:
+      operationId: getConnectedPlatformOverview
+      x-required-scope: platform:read
+      parameters: [{$ref: '#/components/parameters/ProjectId'}]
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v2/projects/{project_id}/workflows:
+    get:
+      operationId: listConnectedWorkflows
+      x-required-scope: platform:read
+      parameters: [{$ref: '#/components/parameters/ProjectId'}]
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v2/workflows:
+    post:
+      operationId: createConnectedWorkflow
+      x-required-scope: platform:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [record_id]
+              properties: {record_id: {type: string}}
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v2/workflows/{workflow_id}:
+    get:
+      operationId: getConnectedWorkflow
+      x-required-scope: platform:read
+      parameters: [{$ref: '#/components/parameters/WorkflowId'}]
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v2/workflows/{workflow_id}/steps/{step_key}:
+    post:
+      operationId: reviewConnectedWorkflowStep
+      x-required-scope: platform:review
+      parameters: [{$ref: '#/components/parameters/WorkflowId'}, {$ref: '#/components/parameters/StepKey'}]
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v2/projects/{project_id}/connections:
+    get:
+      operationId: listArtifactConnections
+      x-required-scope: platform:read
+      parameters: [{$ref: '#/components/parameters/ProjectId'}]
+      responses: {$ref: '#/components/x-standard-responses'}
+  /v2/projects/{project_id}/portable-snapshots:
+    post:
+      operationId: createPortablePlatformSnapshot
+      x-required-scope: platform:export
+      parameters: [{$ref: '#/components/parameters/ProjectId'}]
       responses: {$ref: '#/components/x-standard-responses'}
 components:
   securitySchemes:
@@ -121,23 +160,15 @@ components:
       scheme: bearer
       bearerFormat: opaque Catalyst Grit API token
   parameters:
-    ProjectId:
-      in: path
-      name: project_id
-      required: true
-      schema: {type: string, pattern: '^cgp_[a-f0-9]+$'}
-    RecordId:
-      in: path
-      name: record_id
-      required: true
-      schema: {type: string, pattern: '^cgr_[a-f0-9]+$'}
+    ProjectId: {in: path, name: project_id, required: true, schema: {type: string, pattern: '^cgp_[a-f0-9]+$'}}
+    RecordId: {in: path, name: record_id, required: true, schema: {type: string, pattern: '^cgr_[a-f0-9]+$'}}
+    WorkflowId: {in: path, name: workflow_id, required: true, schema: {type: string, pattern: '^cgwf_[a-f0-9]+$'}}
+    StepKey: {in: path, name: step_key, required: true, schema: {type: string}}
   schemas:
-    APIEnvelope:
-      $ref: './schemas/catalyst_grit_api_response.schema.json'
-    RecoveryRecord:
-      $ref: './schemas/catalyst_grit_record.schema.json'
-    Publication:
-      $ref: './schemas/catalyst_grit_publication.schema.json'
+    APIEnvelope: {$ref: './schemas/catalyst_grit_api_response.schema.json'}
+    RecoveryRecord: {$ref: './schemas/catalyst_grit_record.schema.json'}
+    ConnectedPlatform: {$ref: './schemas/catalyst_grit_connected_platform.schema.json'}
+    Publication: {$ref: './schemas/catalyst_grit_publication.schema.json'}
     PublicationRequest:
       type: object
       additionalProperties: false
@@ -145,42 +176,19 @@ components:
       properties:
         project_id: {type: string}
         record_id: {type: [string, 'null']}
-        report_type:
-          enum: [recovery_brief, facilitated_review_brief, action_plan, learning_loop_report, adaptation_proposal, monitoring_summary, decision_studio_handoff]
-        format:
-          enum: [json, jsonld, markdown, html, csv, pdf_request, bundle]
-          default: json
-        redaction_policy:
-          enum: [none, internal, public]
-          default: none
+        report_type: {enum: [recovery_brief, facilitated_review_brief, action_plan, learning_loop_report, adaptation_proposal, monitoring_summary, decision_studio_handoff]}
+        format: {enum: [json, jsonld, markdown, html, csv, pdf_request, bundle], default: json}
+        redaction_policy: {enum: [none, internal, public], default: none}
     Error:
       type: object
       required: [error]
-      properties:
-        error: {type: string}
-        message: {type: string}
-        required_scope: {type: string}
+      properties: {error: {type: string}, message: {type: string}, required_scope: {type: string}}
   x-standard-responses:
     '200':
       description: Successful governed API response
-      headers:
-        X-RateLimit-Limit: {schema: {type: integer}}
-        X-RateLimit-Remaining: {schema: {type: integer}}
-      content:
-        application/json:
-          schema: {$ref: '#/components/schemas/APIEnvelope'}
-    '400':
-      description: Invalid request
-      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
-    '401':
-      description: Missing, invalid, or revoked bearer token
-      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
-    '403':
-      description: Scope or project authorization failed
-      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
-    '404':
-      description: Route or resource not found
-      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
-    '429':
-      description: Client rate limit exceeded
-      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/APIEnvelope'}}}
+    '400': {description: Invalid request, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    '401': {description: Missing, invalid, or revoked bearer token, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    '403': {description: Scope or project authorization failed, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    '404': {description: Route or resource not found, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    '429': {description: Client rate limit exceeded, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}

@@ -16,7 +16,7 @@ def test_public_demo_remains_non_persistent():
 def test_private_workspace_requires_authentication_capability_and_nonce():
     assert "is_user_logged_in()" in PHP
     assert "current_user_can('read')" in PHP
-    assert "check_ajax_referer('catalyst_grit_workspace_v190', 'nonce')" in PHP
+    assert "check_ajax_referer('catalyst_grit_workspace_v200', 'nonce')" in PHP
     assert "wp_ajax_nopriv_catalyst_grit_workspace" not in PHP
 
 
@@ -35,14 +35,14 @@ def test_public_and_private_assets_are_separate():
 
 
 def test_team_workspace_exposes_consent_roles_and_legacy_workspace_migration():
-    assert "Private Recovery, Publication, and Governance Workspace" in PHP
+    assert "Connected Human-Systems Resilience Workspace" in PHP
     assert "Consent-aware sharing" in PHP
     assert "facilitated_sessions" in PHP
     assert "_catalyst_grit_workspace_v160" in PHP
     assert "_catalyst_grit_workspace_v150" in PHP
     assert "team_members must be an array" in PHP
     assert "evidence_items" in PHP and "assumptions" in PHP and "handoffs" in PHP and "monitoring_snapshots" in PHP and "monitoring_reviews" in PHP and "institutional_policies" in PHP and "access_reviews" in PHP and "publication_artifacts" in PHP and "methodology_registry" in PHP
-    assert "evidence_items" in PRIVATE_JS and "assumptions" in PRIVATE_JS and "handoffs" in PRIVATE_JS and "monitoring_snapshots" in PRIVATE_JS and "monitoring_reviews" in PRIVATE_JS and "institutional_policies" in PRIVATE_JS and "access_reviews" in PRIVATE_JS and "publication_artifacts" in PRIVATE_JS and "methodology_registry" in PRIVATE_JS
+    assert "evidence_items" in PRIVATE_JS and "assumptions" in PRIVATE_JS and "handoffs" in PRIVATE_JS and "monitoring_snapshots" in PRIVATE_JS and "monitoring_reviews" in PRIVATE_JS and "institutional_policies" in PRIVATE_JS and "access_reviews" in PRIVATE_JS and "publication_artifacts" in PRIVATE_JS and "methodology_registry" in PRIVATE_JS and "connected_workflows" in PRIVATE_JS and "artifact_connections" in PRIVATE_JS and "portable_platform_snapshots" in PRIVATE_JS and "platform_sync_events" in PRIVATE_JS
 
 
 def test_wordpress_integration_exposes_health_and_authenticated_workspace_routes():
@@ -56,4 +56,16 @@ def test_workspace_migrates_v18_and_exposes_publication_governance_guidance():
     assert "_catalyst_grit_workspace_v180" in PHP
     assert "Publication controls" in PHP
     assert "Institutional integration" in PHP
-    assert "Private Recovery, Publication, and Governance Workspace" in PHP
+    assert "Connected Human-Systems Resilience Workspace" in PHP
+
+
+def test_v2_workspace_exposes_connected_platform_and_accessibility_contract():
+    assert "Connected workflow overview" in PHP
+    assert "data-cg-platform-summary" in PHP and 'aria-live="polite"' in PHP
+    assert "Portable recovery" in PHP
+    assert "catalyst-grit-connected-platform/2.0" in PHP
+    assert "catalyst-grit-portable-platform/2.0" in PHP
+    assert "register_rest_route('catalyst-grit/v2', '/health'" in PHP
+    assert "register_rest_route('catalyst-grit/v2', '/workspace'" in PHP
+    assert "prefers-reduced-motion" in (ROOT / "wordpress/catalyst-grit-demo/assets/catalyst-grit-workspace.css").read_text()
+    assert "renderPlatformSummary" in PRIVATE_JS

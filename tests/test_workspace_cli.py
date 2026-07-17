@@ -13,7 +13,7 @@ def parsed(capsys):
 def test_cli_init_and_status(tmp_path, capsys):
     db = tmp_path / "cli.sqlite3"
     assert main(["init", "--database", str(db)]) == 0
-    assert parsed(capsys)["migrations"]["current"] == 8
+    assert parsed(capsys)["migrations"]["current"] == 9
     assert main(["status", "--database", str(db)]) == 0
     assert parsed(capsys)["integrity"] == "ok"
 

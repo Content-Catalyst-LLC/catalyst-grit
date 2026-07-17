@@ -1,12 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/api-response/1.9.0",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/api-response/2.0.0",
   "title": "Catalyst Grit API Response",
-  "x-catalyst-grit-version": "1.9.0",
+  "x-catalyst-grit-version": "2.0.0",
   "type": "object",
-  "required": ["contract", "data"],
+  "required": [
+    "contract",
+    "data"
+  ],
   "properties": {
-    "contract": {"const": "catalyst-grit-api/1.0"},
+    "contract": {
+      "const": "catalyst-grit-api/2.0"
+    },
     "data": {}
   },
   "additionalProperties": true

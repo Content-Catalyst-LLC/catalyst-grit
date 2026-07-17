@@ -1,7 +1,7 @@
 [project]
 name = "catalyst-grit"
-version = "1.9.0"
-description = "Governed recovery records, publication, institutional APIs, learning loops, and longitudinal monitoring"
+version = "2.0.0"
+description = "Connected human-systems recovery, learning, monitoring, evidence, decision handoffs, publication, and portable institutional workflows"
 authors = [{name = "Tariq Ahmad", email = "tariq@thecontentcatalyst.net"}]
 readme = "README.md"
 requires-python = ">=3.9"

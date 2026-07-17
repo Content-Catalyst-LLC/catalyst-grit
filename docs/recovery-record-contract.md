@@ -1,6 +1,6 @@
-# Recovery Record Contract v1.9.0
+# Recovery Record Contract v2.0.0
 
-The canonical recovery record continues to contain `metadata`, `user_input`, `normalized_input`, `findings`, `human_review`, and `extensions`. The v1.9.0 evidence, assumption, and handoff ledgers are private workspace entities linked to the canonical record and revision IDs rather than silently embedded into or rewriting historical records.
+The canonical recovery record continues to contain `metadata`, `user_input`, `normalized_input`, `findings`, `human_review`, and `extensions`. The v2.0.0 evidence, assumption, and handoff ledgers are private workspace entities linked to the canonical record and revision IDs rather than silently embedded into or rewriting historical records.
 
 ## Canonical findings
 

@@ -1,12 +1,12 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.9.0",
-  "schema_version": "1.9.0",
-  "engine_version": "1.9.0",
-  "release": "Publication, Export, API, and Institutional Integration",
+  "version": "2.0.0",
+  "schema_version": "2.0.0",
+  "engine_version": "2.0.0",
+  "release": "Connected Human-Systems Resilience Platform",
   "canonical_product_model": "recovery-record",
-  "methodology_profile": "cg-recovery-conditions@1.9.0",
+  "methodology_profile": "cg-recovery-conditions@2.0.0",
   "workspace_format": "catalyst-grit-workspace/1.0",
   "storage": "SQLite private workspace with ordered packaged migrations",
   "migrations": [
@@ -17,7 +17,8 @@
     "005_team_recovery_facilitated_review",
     "006_evidence_assumptions_handoffs",
     "007_monitoring_trends_resilience_signals",
-    "008_publication_api_institutional_governance"
+    "008_publication_api_institutional_governance",
+    "009_connected_human_systems_platform"
   ],
   "persistent_entities": [
     "projects",
@@ -59,7 +60,14 @@
     "publication_artifacts",
     "publication_events",
     "methodology_registry",
-    "schema_deprecations"
+    "schema_deprecations",
+    "connected_workflows",
+    "connected_workflow_steps",
+    "connected_workflow_events",
+    "artifact_connections",
+    "artifact_connection_events",
+    "portable_platform_snapshots",
+    "platform_sync_events"
   ],
   "shortcodes": [
     "[catalyst_grit_demo]",
@@ -276,9 +284,15 @@
     "longitudinal_monitoring",
     "privacy_thresholded_dashboards",
     "signal_governance",
-    "traceable_trends"
+    "traceable_trends",
+    "connected_end_to_end_workflow",
+    "provenance_artifact_graph",
+    "offline_portable_snapshots",
+    "offline_restore",
+    "accessible_workflow_navigation",
+    "cross_product_sync_history"
   ],
-  "api_contract": "catalyst-grit-api/1.0",
+  "api_contract": "catalyst-grit-api/2.0",
   "publication_contract": {
     "report_types": [
       "recovery_brief",
@@ -308,7 +322,7 @@
   },
   "publication_bundle_format": "catalyst-grit-publication-bundle/1.0",
   "institutional_api_contract": {
-    "contract": "catalyst-grit-api/1.0",
+    "contract": "catalyst-grit-api/2.0",
     "authentication": "opaque bearer tokens stored only as SHA-256 hashes",
     "authorization": "scopes plus optional project allowlists",
     "rate_limit": "per-client fixed one-minute windows",
@@ -324,7 +338,11 @@
       "monitoring",
       "handoffs",
       "audit",
-      "publications"
+      "publications",
+      "connected_workflows",
+      "artifact_connections",
+      "portable_snapshots",
+      "platform_overview"
     ]
   },
   "institutional_governance_contract": {
@@ -344,5 +362,45 @@
     "methodology_registry": true,
     "schema_deprecation_registry": true,
     "administrative_diagnostics": true
+  },
+  "connected_platform_contract": {
+    "contract": "catalyst-grit-connected-platform/2.0",
+    "portable_format": "catalyst-grit-portable-platform/2.0",
+    "workflow_steps": [
+      "setback",
+      "context",
+      "conditions_mapping",
+      "recovery_assessment",
+      "action_plan",
+      "checkpoint",
+      "reassessment",
+      "learning_loop",
+      "system_adaptation",
+      "decision_handoff",
+      "monitoring_review",
+      "publication"
+    ],
+    "human_review_steps": [
+      "recovery_assessment",
+      "reassessment",
+      "learning_loop",
+      "system_adaptation",
+      "decision_handoff",
+      "monitoring_review",
+      "publication"
+    ],
+    "artifact_relations": [
+      "informs",
+      "supports",
+      "challenges",
+      "derived_from",
+      "supersedes",
+      "monitors",
+      "publishes",
+      "hands_off_to"
+    ],
+    "offline_restore": true,
+    "public_demo_persistence": false,
+    "safeguard": "orchestration preserves source provenance and never converts recovery conditions into people-ranking, diagnosis, or automated eligibility decisions"
   }
 }

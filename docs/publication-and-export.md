@@ -1,6 +1,6 @@
 # Publication and Export
 
-Catalyst Grit v1.9.0 creates governed publication artifacts rather than treating a saved recovery record as automatically publishable.
+Catalyst Grit v2.0.0 creates governed publication artifacts rather than treating a saved recovery record as automatically publishable.
 
 Supported report types are recovery briefs, facilitated-review briefs, action plans, learning-loop reports, adaptation proposals, monitoring summaries, and Decision Studio handoff packets.
 

@@ -1,6 +1,6 @@
 # Export Specification
 
-Catalyst Grit v1.9.0 separates private workspace portability from governed publication.
+Catalyst Grit v2.0.0 separates private workspace portability from governed publication.
 
 ## Workspace bundles
 

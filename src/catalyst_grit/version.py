@@ -1,5 +1,5 @@
 """Catalyst Grit release identity."""
 
-__version__ = "1.9.0"
-SCHEMA_VERSION = "1.9.0"
-ENGINE_VERSION = "1.9.0"
+__version__ = "2.0.0"
+SCHEMA_VERSION = "2.0.0"
+ENGINE_VERSION = "2.0.0"

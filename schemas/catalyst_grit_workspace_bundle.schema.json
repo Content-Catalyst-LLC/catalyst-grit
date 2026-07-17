@@ -3,7 +3,7 @@
   "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit-workspace-v1.0.json",
   "title": "Catalyst Grit Workspace Bundle",
   "type": "object",
-  "x-catalyst-grit-version": "1.9.0",
+  "x-catalyst-grit-version": "2.0.0",
   "required": [
     "format",
     "product_version",
@@ -216,6 +216,11 @@
     },
     "schema_compatibility": {
       "type": "object"
+    },
+    "connected_platform": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Connected workflows, artifact graph, synchronization events, and portable snapshot metadata."
     }
   },
   "additionalProperties": true

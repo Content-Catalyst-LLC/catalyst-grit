@@ -13,6 +13,7 @@ from .core import DEFAULT_METHODOLOGY_PROFILE, GritValidationError, generate_rec
 from .storage import SQLiteWorkspaceRepository, WorkspaceError
 from .publication import EXPORT_FORMATS, REPORT_TYPES, PublicationService
 from .api import InstitutionalAPI
+from .platform import ConnectedPlatformService
 from .version import __version__
 
 
@@ -184,6 +185,18 @@ def build_parser() -> argparse.ArgumentParser:
     schema_check = commands.add_parser("schema-check", help="Check schema compatibility and deprecation state"); _db_argument(schema_check); schema_check.add_argument("schema_name"); schema_check.add_argument("schema_version")
     diagnostics = commands.add_parser("institution-diagnostics", help="Show institutional health, governance, API, and publication diagnostics"); _db_argument(diagnostics)
 
+    workflow_start = commands.add_parser("platform-workflow-start", help="Create or refresh a connected end-to-end recovery workflow"); _db_argument(workflow_start); workflow_start.add_argument("record_id"); workflow_start.add_argument("--actor", default="self")
+    workflow_show = commands.add_parser("platform-workflow-show", help="Show connected workflow steps, provenance, and review state"); _db_argument(workflow_show); workflow_show.add_argument("workflow_id")
+    workflow_list = commands.add_parser("platform-workflow-list", help="List connected workflows for a project"); _db_argument(workflow_list); workflow_list.add_argument("project_id"); workflow_list.add_argument("--status")
+    workflow_review = commands.add_parser("platform-workflow-review", help="Human-review a connected workflow step"); _db_argument(workflow_review); workflow_review.add_argument("workflow_id"); workflow_review.add_argument("step_key"); workflow_review.add_argument("--reviewer", default="self"); workflow_review.add_argument("--notes", default="")
+    platform_overview = commands.add_parser("platform-overview", help="Show the connected human-systems resilience platform view"); _db_argument(platform_overview); platform_overview.add_argument("project_id")
+    connection_add = commands.add_parser("platform-connect", help="Create a provenance-preserving cross-product artifact connection"); _db_argument(connection_add); connection_add.add_argument("project_id"); connection_add.add_argument("--source-product", required=True); connection_add.add_argument("--source-type", required=True); connection_add.add_argument("--source-id", required=True); connection_add.add_argument("--source-version", required=True); connection_add.add_argument("--source-hash", required=True); connection_add.add_argument("--target-product", required=True); connection_add.add_argument("--target-type", required=True); connection_add.add_argument("--target-id", required=True); connection_add.add_argument("--target-version", required=True); connection_add.add_argument("--target-hash", required=True); connection_add.add_argument("--relation", default="informs"); connection_add.add_argument("--actor", default="self")
+    connection_list = commands.add_parser("platform-connections", help="List cross-product artifact connections"); _db_argument(connection_list); connection_list.add_argument("project_id"); connection_list.add_argument("--state")
+    portable_create = commands.add_parser("platform-snapshot", help="Create an offline-verifiable portable platform snapshot"); _db_argument(portable_create); portable_create.add_argument("project_id"); portable_create.add_argument("--record"); portable_create.add_argument("--actor", default="self"); portable_create.add_argument("--output", type=Path)
+    portable_verify = commands.add_parser("platform-verify", help="Verify a portable platform snapshot without network access"); portable_verify.add_argument("input", type=Path)
+    portable_restore = commands.add_parser("platform-restore", help="Restore a verified portable platform snapshot"); _db_argument(portable_restore); portable_restore.add_argument("input", type=Path); portable_restore.add_argument("--project"); portable_restore.add_argument("--actor", default="self")
+    platform_diagnostics = commands.add_parser("platform-diagnostics", help="Show connected-platform, portability, privacy, and migration diagnostics"); _db_argument(platform_diagnostics)
+
     export = commands.add_parser("workspace-export", help="Export a record or project bundle"); _db_argument(export); group = export.add_mutually_exclusive_group(required=True); group.add_argument("--record"); group.add_argument("--project"); export.add_argument("--output", type=Path, required=True)
     import_cmd = commands.add_parser("workspace-import", help="Import v1.0/v1.1 records or workspace bundles"); _db_argument(import_cmd); import_cmd.add_argument("input", type=Path); import_cmd.add_argument("--project")
     return parser
@@ -302,6 +315,21 @@ def _workspace_command(args: argparse.Namespace) -> Any:
         if args.command == "methodology-list": return repo.list_methodologies()
         if args.command == "schema-deprecate": return repo.declare_schema_deprecation(args.schema_name, args.schema_version, replacement_version=args.replacement, status=args.status, sunset_at=args.sunset_at, migration_notes=args.migration_notes, actor_id=args.actor)
         if args.command == "schema-check": return repo.schema_compatibility(args.schema_name, args.schema_version)
+        if args.command == "platform-workflow-start": return ConnectedPlatformService(repo).create_workflow(args.record_id, actor_id=args.actor)
+        if args.command == "platform-workflow-show": return ConnectedPlatformService(repo).get_workflow(args.workflow_id)
+        if args.command == "platform-workflow-list": return ConnectedPlatformService(repo).list_workflows(args.project_id, status=args.status)
+        if args.command == "platform-workflow-review": return ConnectedPlatformService(repo).review_step(args.workflow_id, args.step_key, reviewer_id=args.reviewer, notes=args.notes)
+        if args.command == "platform-overview": return ConnectedPlatformService(repo).platform_overview(args.project_id)
+        if args.command == "platform-connect": return ConnectedPlatformService(repo).connect_artifacts(args.project_id, source_product=args.source_product, source_artifact_type=args.source_type, source_artifact_id=args.source_id, source_version=args.source_version, source_hash=args.source_hash, target_product=args.target_product, target_artifact_type=args.target_type, target_artifact_id=args.target_id, target_version=args.target_version, target_hash=args.target_hash, relation=args.relation, actor_id=args.actor)
+        if args.command == "platform-connections": return ConnectedPlatformService(repo).list_connections(args.project_id, validation_state=args.state)
+        if args.command == "platform-snapshot":
+            result = ConnectedPlatformService(repo).create_portable_snapshot(args.project_id, record_id=args.record, actor_id=args.actor)
+            if args.output:
+                repo.write_export(result.bundle, args.output)
+                return {"output": str(args.output), "snapshot": result.metadata}
+            return {"metadata": result.metadata, "bundle": result.bundle}
+        if args.command == "platform-restore": return ConnectedPlatformService(repo).restore_portable_bundle(_read_json(args.input), actor_id=args.actor, project_id=args.project)
+        if args.command == "platform-diagnostics": return ConnectedPlatformService(repo).diagnostics()
         if args.command == "institution-diagnostics": return repo.institutional_diagnostics()
         if args.command == "workspace-export":
             payload = repo.export_record(args.record) if args.record else repo.export_project(args.project)
@@ -315,6 +343,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser(); args = parser.parse_args(argv)
     try:
         if args.command == "profile": _write(DEFAULT_METHODOLOGY_PROFILE, args.output); return 0
+        if args.command == "platform-verify":
+            _write(ConnectedPlatformService.verify_portable_bundle(_read_json(args.input)))
+            return 0
         if args.command in {"validate", "generate", "migrate-request", "migrate-record"}:
             data = _read_json(args.input)
             if args.command == "validate": _write(validate_request(data), args.output); return 0

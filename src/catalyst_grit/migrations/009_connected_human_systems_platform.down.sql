@@ -1,0 +1,15 @@
+DROP TRIGGER IF EXISTS platform_sync_events_guard_delete;
+DROP TRIGGER IF EXISTS platform_sync_events_no_update;
+DROP TRIGGER IF EXISTS portable_platform_snapshots_guard_delete;
+DROP TRIGGER IF EXISTS portable_platform_snapshots_no_update;
+DROP TRIGGER IF EXISTS artifact_connection_events_guard_delete;
+DROP TRIGGER IF EXISTS artifact_connection_events_no_update;
+DROP TRIGGER IF EXISTS connected_workflow_events_guard_delete;
+DROP TRIGGER IF EXISTS connected_workflow_events_no_update;
+DROP TABLE IF EXISTS platform_sync_events;
+DROP TABLE IF EXISTS portable_platform_snapshots;
+DROP TABLE IF EXISTS artifact_connection_events;
+DROP TABLE IF EXISTS artifact_connections;
+DROP TABLE IF EXISTS connected_workflow_events;
+DROP TABLE IF EXISTS connected_workflow_steps;
+DROP TABLE IF EXISTS connected_workflows;

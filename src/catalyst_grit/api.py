@@ -1,4 +1,4 @@
-"""Dependency-free institutional API service contract for Catalyst Grit v1.9.0."""
+"""Dependency-free institutional API service contract for Catalyst Grit v2.0.0."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,9 +7,10 @@ import json
 from typing import Any, Mapping
 
 from .publication import PublicationService
+from .platform import ConnectedPlatformService
 from .version import __version__
 
-API_CONTRACT = "catalyst-grit-api/1.0"
+API_CONTRACT = "catalyst-grit-api/2.0"
 
 
 @dataclass(frozen=True)
@@ -57,8 +58,9 @@ class InstitutionalAPI:
         clean_path = "/" + path.strip("/")
         parts = clean_path.strip("/").split("/")
         request_hash = hashlib.sha256(json.dumps({"method": method, "path": clean_path, "body": body or {}, "query": query or {}}, sort_keys=True).encode()).hexdigest()
-        if clean_path == "/v1/health" and method == "GET":
-            return self._response(200, {"contract": API_CONTRACT, "version": __version__, "health": self.repository.institutional_diagnostics()})
+        if clean_path in {"/v1/health", "/v2/health"} and method == "GET":
+            service = ConnectedPlatformService(self.repository)
+            return self._response(200, {"contract": API_CONTRACT, "version": __version__, "health": self.repository.institutional_diagnostics(), "connected_platform": service.diagnostics()})
         try:
             client = self.repository.authenticate_api_token(token or "")
         except Exception as exc:
@@ -123,6 +125,37 @@ class InstitutionalAPI:
                 scope = "audit:read"; denied = require(scope, project_id)
                 if denied: return denied
                 result = self.repository.audit_log("project", project_id) + self.repository.list_api_audit_events(project_id=project_id)
+            elif method == "GET" and len(parts) == 4 and parts[:2] == ["v2", "projects"] and parts[3] == "platform":
+                scope = "platform:read"; denied = require(scope, project_id)
+                if denied: return denied
+                result = ConnectedPlatformService(self.repository).platform_overview(project_id)
+            elif method == "GET" and len(parts) == 4 and parts[:2] == ["v2", "projects"] and parts[3] == "workflows":
+                scope = "platform:read"; denied = require(scope, project_id)
+                if denied: return denied
+                result = ConnectedPlatformService(self.repository).list_workflows(project_id)
+            elif method == "GET" and len(parts) == 3 and parts[:2] == ["v2", "workflows"]:
+                scope = "platform:read"; workflow = ConnectedPlatformService(self.repository).get_workflow(parts[2]); project_id = workflow["project_id"]; denied = require(scope, project_id)
+                if denied: return denied
+                result = workflow
+            elif method == "POST" and clean_path == "/v2/workflows":
+                record_id = str((body or {}).get("record_id") or ""); record = self.repository.get_record(record_id); project_id = record["project_id"]
+                scope = "platform:write"; denied = require(scope, project_id)
+                if denied: return denied
+                result = ConnectedPlatformService(self.repository).create_workflow(record_id, actor_id=client["client_id"])
+            elif method == "POST" and len(parts) == 5 and parts[:2] == ["v2", "workflows"] and parts[3] == "steps":
+                workflow = ConnectedPlatformService(self.repository).get_workflow(parts[2]); project_id = workflow["project_id"]
+                scope = "platform:review"; denied = require(scope, project_id)
+                if denied: return denied
+                result = ConnectedPlatformService(self.repository).review_step(parts[2], parts[4], reviewer_id=client["client_id"], notes=str((body or {}).get("notes") or ""))
+            elif method == "POST" and len(parts) == 4 and parts[:2] == ["v2", "projects"] and parts[3] == "portable-snapshots":
+                project_id = parts[2]; scope = "platform:export"; denied = require(scope, project_id)
+                if denied: return denied
+                generated = ConnectedPlatformService(self.repository).create_portable_snapshot(project_id, record_id=(body or {}).get("record_id"), actor_id=client["client_id"])
+                result = {"metadata": generated.metadata, "bundle": generated.bundle}
+            elif method == "GET" and len(parts) == 4 and parts[:2] == ["v2", "projects"] and parts[3] == "connections":
+                scope = "platform:read"; denied = require(scope, project_id)
+                if denied: return denied
+                result = ConnectedPlatformService(self.repository).list_connections(project_id)
             elif method == "POST" and clean_path == "/v1/publications":
                 scope = "publications:write"; project_id = str((body or {}).get("project_id") or ""); denied = require(scope, project_id)
                 if denied: return denied

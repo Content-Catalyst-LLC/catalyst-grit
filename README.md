@@ -1,24 +1,24 @@
 # Catalyst Grit
 
-**Current release: v1.9.0 — Publication, Export, API, and Institutional Integration**
+**Current release: v2.0.0 — Connected Human-Systems Resilience Platform**
 
-Catalyst Grit is a private, structured human-systems recovery and learning environment. It documents setbacks, conditions, actions, evidence, assumptions, team review, learning, monitoring, and institutional handoffs without diagnosing, ranking, or predicting people.
+Catalyst Grit is a private, structured human-systems recovery and learning environment. It connects setbacks, conditions, actions, checkpoints, evidence, learning, decisions, monitoring, and governed publication without diagnosing, ranking, predicting, or automating decisions about people.
 
-## v1.9.0 capabilities
+## v2.0.0 capabilities
 
-- Seven governed publication types: recovery brief, facilitated-review brief, action plan, learning-loop report, adaptation proposal, monitoring summary, and Decision Studio handoff packet
-- Canonical JSON, JSON-LD, Markdown, HTML, approved tabular CSV, platform PDF-render requests, and deterministic publication bundles
-- Private, internal, and public redaction policies with deterministic masking and human-review requirements
-- Framework-neutral institutional API with bearer-token hashing, scopes, project allowlists, rate limits, and append-only request audits
-- Read routes for records, revisions, actions, checkpoints, reviews, evidence, patterns, monitoring, handoffs, and audit history
-- Versioned retention, export/redaction, access-review, methodology-governance, and schema-deprecation policies
-- Append-only access reviews and publication lifecycle events
-- Methodology registry, schema compatibility checks, and administrative diagnostics
-- Migration 008 with complete compatibility for v1.0.x through v1.8.0 workspaces
+- Twelve-stage connected workflow from setback through publication
+- Provenance-preserving artifact graph across Sustainable Catalyst products
+- Human-review gates for assessment, reassessment, learning, adaptation, decision handoff, monitoring, and publication
+- Offline-verifiable portable project snapshots and restore
+- Connected-platform API routes with explicit read, write, review, and export scopes
+- Cross-product synchronization history and conflict visibility
+- Accessible WordPress workflow summary with responsive cards, live status, visible focus, and reduced-motion support
+- Migration 009 with compatibility for existing v1.0.x through v1.9.0 workspaces
+- All v1.9 publication, export, institutional API, policy, access-review, methodology, and schema-governance capabilities retained
 
 ## Governance boundaries
 
-Catalyst Grit is not mental-health advice, diagnosis, character scoring, personality inference, employee ranking, hidden performance evaluation, automated eligibility, or an outcome guarantee. Public and internal publication artifacts require human review.
+Catalyst Grit is not mental-health advice, diagnosis, character scoring, personality inference, employee ranking, hidden performance evaluation, automated eligibility, or an outcome guarantee. Connected workflow completion never substitutes for human judgment.
 
 ## Quick validation
 
@@ -33,26 +33,15 @@ grit init --database catalyst-grit.sqlite3
 grit project-create --database catalyst-grit.sqlite3 --title "Recovery project"
 grit record-save --database catalyst-grit.sqlite3 PROJECT_ID examples/grit_record_input.json
 
-grit publication-generate --database catalyst-grit.sqlite3 \
-  PROJECT_ID recovery_brief --record RECORD_ID \
-  --format markdown --redaction internal --output recovery-brief.md
-
-grit api-client-create --database catalyst-grit.sqlite3 \
-  --name "Institutional reader" --scope records:read --project PROJECT_ID
-
-grit policy-set --database catalyst-grit.sqlite3 \
-  export_redaction policy.json --project PROJECT_ID
-
-grit institution-diagnostics --database catalyst-grit.sqlite3
+grit platform-workflow-start --database catalyst-grit.sqlite3 RECORD_ID --actor owner
+grit platform-overview --database catalyst-grit.sqlite3 PROJECT_ID
+grit platform-snapshot --database catalyst-grit.sqlite3 PROJECT_ID --record RECORD_ID --output portable-project.json
+grit platform-verify portable-project.json
 ```
 
 ## WordPress
 
 - `[catalyst_grit_demo]` — non-persistent public recovery-record demo
-- `[catalyst_grit_workspace]` — authenticated per-user private workspace with publication and governance guidance
+- `[catalyst_grit_workspace]` — authenticated per-user connected resilience workspace
 
-## Architecture
-
-The installable Python package contains the canonical engine, persistence, publication, and API service contracts. SQLite is the portable private-workspace implementation. The institutional API is framework-neutral so deployments can attach it to an approved web layer without duplicating domain authorization.
-
-See `docs/` for the record contract, persistence, monitoring, publication, API, governance, migration, and integration specifications.
+See `docs/connected-platform.md`, `docs/accessibility-portability.md`, and the remaining `docs/` specifications.

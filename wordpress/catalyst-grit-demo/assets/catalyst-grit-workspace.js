@@ -6,7 +6,7 @@
   function defaultWorkspace() {
     return {
       format: "catalyst-grit-workspace/1.0",
-      product_version: config.version || "1.9.0",
+      product_version: config.version || "2.0.0",
       visibility: "private",
       projects: [],
       team_members: [],
@@ -19,7 +19,11 @@
       institutional_policies: [],
       access_reviews: [],
       publication_artifacts: [],
-      methodology_registry: []
+      methodology_registry: [],
+      connected_workflows: [],
+      artifact_connections: [],
+      portable_platform_snapshots: [],
+      platform_sync_events: []
     };
   }
 
@@ -50,9 +54,25 @@
     var load = root.querySelector("[data-cg-workspace-load]");
     var save = root.querySelector("[data-cg-workspace-save]");
     var clear = root.querySelector("[data-cg-workspace-clear]");
+    var platformSummary = root.querySelector("[data-cg-platform-summary]");
     if (!field || !status) return;
     field.value = JSON.stringify(defaultWorkspace(), null, 2);
+    renderPlatformSummary(defaultWorkspace());
 
+
+    function renderPlatformSummary(value) {
+      if (!platformSummary) return;
+      var workflows = Array.isArray(value.connected_workflows) ? value.connected_workflows : [];
+      var connections = Array.isArray(value.artifact_connections) ? value.artifact_connections : [];
+      var snapshots = Array.isArray(value.portable_platform_snapshots) ? value.portable_platform_snapshots : [];
+      var completed = workflows.filter(function (item) { return item && item.status === "completed"; }).length;
+      var needsReview = workflows.filter(function (item) { return item && item.status === "needs_review"; }).length;
+      platformSummary.textContent = workflows.length + " workflow(s): " + completed + " completed, " + needsReview + " need review · " + connections.length + " artifact connection(s) · " + snapshots.length + " portable snapshot(s).";
+    }
+
+    function readAndRender() {
+      try { renderPlatformSummary(JSON.parse(field.value)); } catch (error) { platformSummary.textContent = "Workspace JSON is invalid; connected workflow summary unavailable."; }
+    }
     function setStatus(message, error) {
       status.textContent = message;
       status.dataset.state = error ? "error" : "ok";
@@ -62,6 +82,7 @@
       setStatus("Loading private workspace…", false);
       request("catalyst_grit_workspace_load").then(function (data) {
         field.value = JSON.stringify(data.workspace, null, 2);
+        renderPlatformSummary(data.workspace);
         setStatus("Private workspace loaded.", false);
       }).catch(function (error) { setStatus(error.message, true); });
     });
@@ -73,16 +94,20 @@
       if ((value.visibility || "private") !== "private") { setStatus("Workspace visibility must remain private.", true); return; }
       if (new Blob([JSON.stringify(value)]).size > Number(config.maxBytes || 524288)) { setStatus("Workspace exceeds the 512 KB account-storage limit.", true); return; }
       value.visibility = "private";
+      renderPlatformSummary(value);
       setStatus("Saving private workspace…", false);
       request("catalyst_grit_workspace_save", value).then(function (data) {
         setStatus(data.message || "Private workspace saved.", false);
       }).catch(function (error) { setStatus(error.message, true); });
     });
 
+    field.addEventListener("input", readAndRender);
+
     clear.addEventListener("click", function () {
       if (!window.confirm("Delete the saved private Catalyst Grit workspace for this account?")) return;
       request("catalyst_grit_workspace_clear").then(function (data) {
         field.value = JSON.stringify(defaultWorkspace(), null, 2);
+        renderPlatformSummary(defaultWorkspace());
         setStatus(data.message || "Saved workspace deleted.", false);
       }).catch(function (error) { setStatus(error.message, true); });
     });

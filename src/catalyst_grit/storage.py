@@ -2124,6 +2124,18 @@ class SQLiteWorkspaceRepository:
             "methodology_registry": self.list_methodologies(),
             "schema_compatibility": self.schema_compatibility("catalyst_grit_record", SCHEMA_VERSION),
             "institutional_diagnostics": self.institutional_diagnostics(),
+            "connected_platform": self._connected_platform_export(project_id),
+        }
+
+    def _connected_platform_export(self, project_id: str) -> dict[str, Any]:
+        from .platform import ConnectedPlatformService
+        service = ConnectedPlatformService(self)
+        return {
+            "contract": "catalyst-grit-connected-platform/2.0",
+            "workflows": service.list_workflows(project_id),
+            "artifact_connections": service.list_connections(project_id),
+            "sync_events": service.list_sync_events(project_id),
+            "portable_snapshots": service.list_portable_snapshots(project_id),
         }
 
     def import_payload(self, payload: Mapping[str, Any], *, project_id: str | None = None, actor_id: str = "self") -> dict[str, Any]:
@@ -2916,6 +2928,12 @@ class SQLiteWorkspaceRepository:
             "private_by_default": True,
             "api_authentication_required": True,
             "audit_append_only": True,
+            "connected_platform": {
+                "workflow_count": int(self.connection.execute("SELECT COUNT(*) FROM connected_workflows").fetchone()[0]),
+                "artifact_connection_count": int(self.connection.execute("SELECT COUNT(*) FROM artifact_connections").fetchone()[0]),
+                "portable_snapshot_count": int(self.connection.execute("SELECT COUNT(*) FROM portable_platform_snapshots").fetchone()[0]),
+                "offline_restore_supported": True,
+            },
         }
 
     def write_export(self, payload: Mapping[str, Any], path: str | Path) -> Path:
@@ -2927,7 +2945,7 @@ class SQLiteWorkspaceRepository:
     def health(self) -> dict[str, Any]:
         integrity = self.connection.execute("PRAGMA integrity_check").fetchone()[0]
         counts = {}
-        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events", "monitoring_snapshots", "monitoring_snapshot_events", "monitoring_reviews", "institutional_policies", "access_reviews", "api_clients", "api_rate_windows", "api_audit_events", "publication_artifacts", "publication_events", "methodology_registry", "schema_deprecations", "checkpoints", "reviews", "status_history", "audit_events"):
+        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events", "monitoring_snapshots", "monitoring_snapshot_events", "monitoring_reviews", "institutional_policies", "access_reviews", "api_clients", "api_rate_windows", "api_audit_events", "publication_artifacts", "publication_events", "methodology_registry", "schema_deprecations", "connected_workflows", "connected_workflow_steps", "connected_workflow_events", "artifact_connections", "artifact_connection_events", "portable_platform_snapshots", "platform_sync_events", "checkpoints", "reviews", "status_history", "audit_events"):
             try:
                 counts[table] = self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             except sqlite3.OperationalError:

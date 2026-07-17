@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the complete Catalyst Grit v1.7.0 release contract."""
+"""Run the complete Catalyst Grit v1.8.0 release contract."""
 from __future__ import annotations
 
 import json
@@ -64,13 +64,13 @@ def main() -> int:
 import json, tempfile
 from pathlib import Path
 import catalyst_grit
-assert catalyst_grit.__version__ == '1.7.0'
-assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4, 5, 6]
+assert catalyst_grit.__version__ == '1.8.0'
+assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4, 5, 6, 7]
 with tempfile.TemporaryDirectory() as d:
     with catalyst_grit.SQLiteWorkspaceRepository(Path(d)/'installed.sqlite3') as repo:
         project=repo.create_project('Installed wheel')
         assert project['visibility']=='private'
-        assert repo.health()['migrations']['current']==6
+        assert repo.health()['migrations']['current']==7
         saved=repo.save_record(project['project_id'], json.loads({example_payload!r}))
         record_id=saved['record']['record_id']
         assert repo.list_actions(record_id)
@@ -95,6 +95,13 @@ with tempfile.TemporaryDirectory() as d:
         assert repo.evidence_ledger(project['project_id'])['evidence_count']==1
         assert repo.assumption_matrix(project['project_id'])['assumption_count']==1
         assert repo.list_handoffs(project['project_id'], target_product='Decision Studio')
+        first=repo.capture_monitoring_snapshot(record_id, observed_at='2026-07-18T12:00:00Z')
+        assert first['source_revision_hash']==saved['revision']['content_sha256']
+        dashboard=repo.record_monitoring_dashboard(record_id)
+        assert dashboard['data_state']=='sparse'
+        assert dashboard['governance']['individual_ranking_allowed'] is False
+        project_dashboard=repo.project_monitoring_dashboard(project['project_id'])
+        assert project_dashboard['aggregate']['snapshot_count']==1
 print(catalyst_grit.__version__)
 """
         run("Import installed package and migrations", [sys.executable, "-c", code], cwd=Path(temp), env=wheel_env)
@@ -103,7 +110,7 @@ print(catalyst_grit.__version__)
     for generated in ROOT.glob("src/*.egg-info"):
         shutil.rmtree(generated, ignore_errors=True)
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    print("Catalyst Grit v1.7.0 release contract passed.")
+    print("Catalyst Grit v1.8.0 release contract passed.")
     return 0
 
 

@@ -1,10 +1,10 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.7.0",
-  "schema_version": "1.7.0",
-  "engine_version": "1.7.0",
-  "release": "Evidence, Assumptions, and Decision Handoffs",
+  "version": "1.8.0",
+  "schema_version": "1.8.0",
+  "engine_version": "1.8.0",
+  "release": "Monitoring, Trends, and Resilience Signals",
   "canonical_product_model": "recovery-record",
   "methodology_profile": "cg-recovery-conditions@1.7.0",
   "workspace_format": "catalyst-grit-workspace/1.0",
@@ -244,5 +244,11 @@
       "conflict"
     ],
     "decision_packet": "sustainable-catalyst-decision-handoff/1.0"
-  }
+  },
+  "capabilities": [
+    "longitudinal_monitoring",
+    "privacy_thresholded_dashboards",
+    "signal_governance",
+    "traceable_trends"
+  ]
 }

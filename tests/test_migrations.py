@@ -5,20 +5,20 @@ from catalyst_grit import MigrationManager, SQLiteWorkspaceRepository
 
 def test_packaged_migrations_are_ordered_and_complete():
     migrations = MigrationManager.available()
-    assert [item.version for item in migrations] == [1, 2, 3, 4, 5, 6]
-    assert [item.name for item in migrations] == ["core_workspace", "checkpoints_reviews_audit", "recovery_plans_actions_reassessment", "learning_loops_adaptation_patterns", "team_recovery_facilitated_review", "evidence_assumptions_handoffs"]
+    assert [item.version for item in migrations] == [1, 2, 3, 4, 5, 6, 7]
+    assert [item.name for item in migrations] == ["core_workspace", "checkpoints_reviews_audit", "recovery_plans_actions_reassessment", "learning_loops_adaptation_patterns", "team_recovery_facilitated_review", "evidence_assumptions_handoffs", "monitoring_trends_resilience_signals"]
     assert all(item.up_sql.strip() and item.down_sql.strip() for item in migrations)
 
 
 def test_clean_install_rollback_and_remigration(tmp_path: Path):
     database = tmp_path / "workspace.sqlite3"
     with SQLiteWorkspaceRepository(database, auto_migrate=False) as repo:
-        assert repo.migrations.status() == {"current": 0, "latest": 6, "applied": [], "pending": [1, 2, 3, 4, 5, 6]}
-        assert repo.migrations.migrate() == [1, 2, 3, 4, 5, 6]
+        assert repo.migrations.status() == {"current": 0, "latest": 7, "applied": [], "pending": [1, 2, 3, 4, 5, 6, 7]}
+        assert repo.migrations.migrate() == [1, 2, 3, 4, 5, 6, 7]
+        assert repo.migrations.status()["current"] == 7
+        assert repo.migrations.rollback(1) == [7]
         assert repo.migrations.status()["current"] == 6
-        assert repo.migrations.rollback(1) == [6]
-        assert repo.migrations.status()["current"] == 5
-        assert repo.migrations.migrate() == [6]
+        assert repo.migrations.migrate() == [7]
         assert repo.health()["integrity"] == "ok"
 
 
@@ -44,3 +44,6 @@ def test_migrate_to_explicit_target(tmp_path: Path):
         assert repo.migrations.migrate(6) == [6]
         tables = {row[0] for row in repo.connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         assert {"evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events"} <= tables
+        assert repo.migrations.migrate(7) == [7]
+        tables = {row[0] for row in repo.connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert {"monitoring_snapshots", "monitoring_snapshot_events", "monitoring_reviews"} <= tables

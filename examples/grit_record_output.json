@@ -286,10 +286,10 @@
     ],
     "calculation_provenance": {
       "calculated_at": "2026-07-17T12:00:00Z",
-      "engine_version": "1.7.0",
+      "engine_version": "1.8.0",
       "profile_id": "cg-recovery-conditions",
-      "profile_version": "1.7.0",
-      "schema_version": "1.7.0"
+      "profile_version": "1.8.0",
+      "schema_version": "1.8.0"
     },
     "component_scores": {
       "action_readiness": {
@@ -969,7 +969,7 @@
         "support_capacity": 15.0
       },
       "profile_id": "cg-recovery-conditions",
-      "profile_version": "1.7.0",
+      "profile_version": "1.8.0",
       "thresholds": {
         "focused_support": 55.0,
         "fragile": 35.0,
@@ -1263,16 +1263,16 @@
   },
   "metadata": {
     "created_at": "2026-07-17T12:00:00Z",
-    "engine_version": "1.7.0",
+    "engine_version": "1.8.0",
     "provenance": {
       "created_by": "example-user",
       "notes": "Canonical recovery-record example.",
       "source": "direct_entry",
       "source_record_id": null,
-      "source_schema_version": "1.7.0"
+      "source_schema_version": "1.8.0"
     },
     "record_id": "cgr_11111111111111111111111111111111",
-    "schema_version": "1.7.0",
+    "schema_version": "1.8.0",
     "status": "draft",
     "updated_at": "2026-07-17T12:00:00Z"
   },

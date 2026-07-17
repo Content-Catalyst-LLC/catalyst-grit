@@ -1,5 +1,21 @@
 # Catalyst Grit
 
+**Current release: v1.8.0 — Monitoring, Trends, and Resilience Signals**
+
+Catalyst Grit is a private, structured human-systems recovery and learning environment. It records setbacks, conditions, actions, evidence, assumptions, learning, team review, and longitudinal change without diagnosing or ranking people.
+
+## v1.8.0 capabilities
+
+- Immutable, revision-linked monitoring snapshots
+- Recovery score and component history with original engine provenance
+- Pressure, support, clarity, energy, and capacity trends
+- Action, blocker, checkpoint, reopened-setback, and system-change outcomes
+- Personal/private, project, and privacy-thresholded team/system dashboards
+- Explicit sparse-data, confidence, completeness, and human-review states
+- No predictive claims, hidden scoring, employee ranking, or individual comparison
+
+# Catalyst Grit
+
 **Current release: v1.7.0 — Evidence, Assumptions, and Decision Handoffs**
 
 Catalyst Grit is a private-by-default human-systems recovery and learning engine. It documents setbacks, the conditions shaping recovery, owned actions, checkpoints, reassessments, retrospectives, and proposed system changes without scoring character, diagnosing health, or ranking people.

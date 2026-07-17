@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0 — Monitoring, Trends, and Resilience Signals
+
+- Added immutable monitoring snapshots linked to exact record revisions and source hashes.
+- Added traceable score, component, pressure, support, clarity, energy, and capacity trends.
+- Added workflow outcome measures for actions, blockers, checkpoints, reopened setbacks, repeated friction, and system changes.
+- Added private record and project dashboards plus privacy-thresholded team/system aggregation.
+- Added explicit sparse-data confidence, aggregation privacy, no-ranking, no-prediction, and human-review governance.
+- Added migration 007, monitoring CLI workflows, WordPress workspace collections, export/import support, OpenAPI paths, tests, and release tooling.
+
 ## 1.7.0 — Evidence, Assumptions, and Decision Handoffs
 
 - Added traceable evidence items, review events, source links, files, quotes, observations, datasets, analyses, methods, and reference documents.

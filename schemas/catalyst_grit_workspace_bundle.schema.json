@@ -3,7 +3,7 @@
   "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit-workspace-v1.0.json",
   "title": "Catalyst Grit Workspace Bundle",
   "type": "object",
-  "x-catalyst-grit-version": "1.7.0",
+  "x-catalyst-grit-version": "1.8.0",
   "required": [
     "format",
     "product_version",
@@ -166,6 +166,24 @@
       "additionalProperties": true
     },
     "assumption_matrix": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "monitoring_snapshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "monitoring_reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "monitoring_dashboard": {
       "type": "object",
       "additionalProperties": true
     }

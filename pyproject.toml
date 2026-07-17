@@ -1,7 +1,7 @@
 [project]
 name = "catalyst-grit"
-version = "1.7.0"
-description = "Structured recovery records for setbacks, recovery conditions, actions, and learning loops"
+version = "1.8.0"
+description = "Structured recovery records for setbacks, recovery conditions, actions, learning loops, and longitudinal monitoring"
 authors = [{name = "Tariq Ahmad", email = "tariq@thecontentcatalyst.net"}]
 readme = "README.md"
 requires-python = ">=3.9"

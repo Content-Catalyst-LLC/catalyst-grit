@@ -1,6 +1,6 @@
 # Export Specification
 
-Catalyst Grit v1.7.0 exports canonical JSON, an optional Markdown review brief, private `catalyst-grit-workspace/1.0` bundles, and a Decision Studio handoff packet.
+Catalyst Grit v1.8.0 exports canonical JSON, an optional Markdown review brief, private `catalyst-grit-workspace/1.0` bundles, and a Decision Studio handoff packet.
 
 Record workspace exports preserve revisions, actions, action events, blockers, reassessments, retrospectives, checkpoints, reviews, team perspectives, evidence items and review events, assumptions and lifecycle events, handoffs and validation events, status history, and audit events.
 

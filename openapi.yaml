@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Catalyst Grit Recovery Record API
-  version: 1.7.0
+  version: 1.8.0
   summary: Canonical recovery-record validation and generation contract
   description: >-
-    Catalyst Grit v1.7.0 validates, migrates, and generates recovery records
+    Catalyst Grit v1.8.0 validates, migrates, and generates recovery records
     containing condition maps, executable recovery plans, structured retrospectives,
     source-linked adaptation-pattern candidates, uncertainty, and human review.
     The private workspace contract also supports explicit team roles, consent-aware
@@ -107,6 +107,49 @@ paths:
                 $ref: '#/components/schemas/DecisionHandoff'
         '400':
           $ref: '#/components/responses/ValidationFailure'
+  /api/grit/v1/monitoring/snapshots:
+    post:
+      summary: Capture an immutable, revision-linked monitoring snapshot
+      operationId: captureMonitoringSnapshot
+      responses:
+        '201':
+          description: Monitoring snapshot captured
+  /api/grit/v1/monitoring/records/{record_id}:
+    get:
+      summary: Return traceable record trends, confidence, and sparse-data state
+      operationId: getRecordMonitoringDashboard
+      parameters:
+        - in: path
+          name: record_id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Private record monitoring dashboard
+  /api/grit/v1/monitoring/projects/{project_id}:
+    get:
+      summary: Return a project conditions dashboard
+      operationId: getProjectMonitoringDashboard
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Project monitoring dashboard
+  /api/grit/v1/monitoring/projects/{project_id}/team-system:
+    get:
+      summary: Return privacy-thresholded team and system conditions
+      operationId: getTeamSystemConditionsDashboard
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Aggregated conditions or an explicit privacy suppression state
 components:
   responses:
     ValidationFailure:

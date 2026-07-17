@@ -5,7 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var VERSION = '1.7.0';
+  var VERSION = '1.8.0';
   var METHOD_PATH = ['context', 'trigger', 'impact', 'pressure', 'constraints', 'supports', 'capacity', 'response', 'learning', 'retrospective', 'adaptation patterns', 'next steps', 'human review'];
   var DEFAULT_ACTIONS = ['Name the smallest recoverable next step', 'Review support and constraints', 'Schedule a short follow-up review'];
   var DOMAINS = ['work', 'learning', 'health_wellbeing', 'relationship', 'project', 'career', 'community', 'organization', 'other'];
@@ -31,7 +31,7 @@
   ];
   var DEFAULT_PROFILE = {
     profile_id: 'cg-recovery-conditions',
-    profile_version: '1.7.0',
+    profile_version: '1.8.0',
     calculation_spec: 'weighted-components-v1',
     component_weights: {
       impact_buffer: 15, pressure_buffer: 15, energy_capacity: 15, support_capacity: 15,
@@ -265,8 +265,8 @@
     rejectUnknown(metadata, ['record_id', 'schema_version', 'engine_version', 'created_at', 'updated_at', 'status', 'provenance'], '$.metadata');
     var recordId = text(metadata.record_id, '$.metadata.record_id', randomRecordId(), false);
     if (!/^cgr_[0-9a-f]{32}$/.test(recordId)) fail('$.metadata.record_id', 'record_id', 'Must match cgr_ followed by 32 lowercase hexadecimal characters.', recordId);
-    if (metadata.schema_version && [VERSION, '1.4.0', '1.3.0', '1.2.0', '1.1.0', '1.0.1'].indexOf(String(metadata.schema_version)) === -1) fail('$.metadata.schema_version', 'schema_version', 'Unsupported source schema version: ' + metadata.schema_version + '.', metadata.schema_version);
-    if (metadata.engine_version && String(metadata.engine_version) !== VERSION) fail('$.metadata.engine_version', 'engine_version', 'Requests may not select a different engine version.', metadata.engine_version);
+    if (metadata.schema_version && [VERSION, '1.7.0', '1.6.0', '1.5.0', '1.4.0', '1.3.0', '1.2.0', '1.1.0', '1.0.1'].indexOf(String(metadata.schema_version)) === -1) fail('$.metadata.schema_version', 'schema_version', 'Unsupported source schema version: ' + metadata.schema_version + '.', metadata.schema_version);
+    if (metadata.engine_version && [VERSION, '1.7.0', '1.6.0', '1.5.0', '1.4.0', '1.3.0', '1.2.0', '1.1.0', '1.0.1'].indexOf(String(metadata.engine_version)) === -1) fail('$.metadata.engine_version', 'engine_version', 'Unsupported source engine version.', metadata.engine_version);
     var created = normalizeTimestamp(metadata.created_at, '$.metadata.created_at', nowISO());
     var updated = normalizeTimestamp(metadata.updated_at, '$.metadata.updated_at', created);
     if (updated < created) fail('$.metadata.updated_at', 'chronology', 'Must not be earlier than created_at.', updated);

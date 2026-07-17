@@ -70,7 +70,7 @@ def test_v14_input_gets_visible_learning_defaults():
     for key in ["what_happened", "what_was_expected", "what_changed", "what_helped", "what_hindered", "what_was_learned", "repeat", "redesign", "uncertainties", "pattern_reviews"]:
         value["input"]["learning"].pop(key)
     record = generate_record(value)
-    assert record.metadata["schema_version"] == "1.7.0"
+    assert record.metadata["schema_version"] == "1.8.0"
     assert record.normalized_input["learning"]["pattern_reviews"] == []
     assert record.findings["retrospective"]["what_happened"] == value["input"]["trigger"]["summary"]
 

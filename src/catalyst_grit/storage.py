@@ -1664,6 +1664,390 @@ class SQLiteWorkspaceRepository:
         packet["handoff_id"]=handoff["handoff_id"]
         return packet
 
+    # --- v1.8 longitudinal monitoring and resilience signals ---------------
+
+    @staticmethod
+    def _decode_monitoring_snapshot(row: Mapping[str, Any]) -> dict[str, Any]:
+        item = dict(row)
+        for source, target in (
+            ("component_scores_json", "component_scores"),
+            ("condition_metrics_json", "condition_metrics"),
+            ("action_counts_json", "action_counts"),
+            ("blocker_counts_json", "blocker_counts"),
+            ("checkpoint_counts_json", "checkpoint_counts"),
+            ("pattern_keys_json", "pattern_keys"),
+            ("system_change_counts_json", "system_change_counts"),
+            ("source_trace_json", "source_trace"),
+        ):
+            item[target] = json.loads(item.pop(source))
+        return item
+
+    @staticmethod
+    def monitoring_governance(*, minimum_points: int = 2, privacy_threshold: int = 3) -> dict[str, Any]:
+        return {
+            "minimum_points": max(2, int(minimum_points)),
+            "aggregation_privacy_threshold": max(3, int(privacy_threshold)),
+            "predictive_claims_allowed": False,
+            "individual_ranking_allowed": False,
+            "hidden_scoring_allowed": False,
+            "institutional_interpretation_requires_human_review": True,
+            "historical_calculation_policy": "Use the recorded engine, schema, methodology, source revision, and exact stored values; do not silently recalculate history.",
+            "interpretation": "Signals describe recorded recovery conditions and workflow outcomes, not character, diagnosis, employability, or future performance.",
+        }
+
+    @staticmethod
+    def _count_by_status(items: Sequence[Mapping[str, Any]], statuses: Sequence[str]) -> dict[str, int]:
+        result = {status: 0 for status in statuses}
+        for item in items:
+            status = str(item.get("status") or "")
+            if status in result:
+                result[status] += 1
+        result["total"] = len(items)
+        return result
+
+    def capture_monitoring_snapshot(
+        self,
+        record_id: str,
+        *,
+        observed_at: str | None = None,
+        note: str = "",
+        actor_id: str = "self",
+        snapshot_id: str | None = None,
+    ) -> dict[str, Any]:
+        record = self.get_record(record_id, include_canonical=True)
+        canonical = record["canonical"]
+        revision = self.get_revision(record["current_revision_id"])
+        observed_at = observed_at or _utc_now()
+        try:
+            datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise WorkspaceError("observed_at must be an ISO-8601 datetime") from exc
+        findings = canonical.get("findings") or {}
+        normalized = canonical.get("normalized_input") or {}
+        pressure = normalized.get("pressure") or {}
+        supports = normalized.get("supports") or {}
+        capacity = normalized.get("capacity") or {}
+        capacity_values = [capacity.get(key) for key in ("energy_level", "clarity_level", "attention_level", "coordination_capacity")]
+        capacity_values = [float(value) for value in capacity_values if value is not None]
+        condition_metrics = {
+            "pressure": float(pressure.get("level") or 0),
+            "support": float(supports.get("level") or 0),
+            "clarity": float(capacity.get("clarity_level") or 0),
+            "energy": float(capacity.get("energy_level") or 0),
+            "capacity": round(sum(capacity_values) / len(capacity_values), 2) if capacity_values else 0.0,
+        }
+        actions = self.list_actions(record_id, revision_number=revision["revision_number"], as_of=observed_at[:10])
+        blockers = self.list_blockers(record_id)
+        checkpoints = self.list_checkpoints(record["project_id"], record_id=record_id)
+        action_counts = self._count_by_status(actions, ("planned", "in_progress", "blocked", "completed", "paused", "deferred", "cancelled"))
+        blocker_counts = self._count_by_status(blockers, ("open", "resolved", "escalated"))
+        checkpoint_counts = self._count_by_status(checkpoints, ("planned", "due", "completed", "cancelled"))
+        reopened_count = self.connection.execute(
+            "SELECT COUNT(*) FROM status_history WHERE entity_type='record' AND entity_id=? AND to_status='active' AND from_status IN ('archived','reviewed','under_review')",
+            (record_id,),
+        ).fetchone()[0]
+        pattern_keys = [str(item.get("pattern_key")) for item in findings.get("adaptation_patterns") or [] if item.get("pattern_key")]
+        changes = [item for item in self.list_system_changes(record["project_id"]) if any(source.get("record_id") == record_id for source in item.get("sources") or [])]
+        system_change_counts = {key: 0 for key in ("proposed", "piloting", "adopt", "revise", "defer", "retire")}
+        for change in changes:
+            if change["decision"] in system_change_counts:
+                system_change_counts[change["decision"]] += 1
+        system_change_counts["total"] = len(changes)
+        interpretation = findings.get("interpretation") or {}
+        completeness = interpretation.get("completeness") or {}
+        confidence = interpretation.get("confidence") or {}
+        methodology = findings.get("methodology") or {}
+        threshold = float((methodology.get("thresholds") or {}).get("stable", 75.0))
+        metadata = canonical.get("metadata") or {}
+        profile_version = str((findings.get("calculation_provenance") or {}).get("profile_version") or metadata.get("engine_version") or __version__)
+        snapshot_id = snapshot_id or _id("cgms")
+        now = _utc_now()
+        source_trace = {
+            "record_id": record_id,
+            "revision_id": revision["revision_id"],
+            "revision_number": revision["revision_number"],
+            "canonical_path": "$.findings",
+            "source_paths": {
+                "recovery_score": "$.findings.recovery_score",
+                "component_scores": "$.findings.component_scores",
+                "pressure": "$.normalized_input.pressure.level",
+                "support": "$.normalized_input.supports.level",
+                "clarity": "$.normalized_input.capacity.clarity_level",
+                "energy": "$.normalized_input.capacity.energy_level",
+                "capacity": "$.normalized_input.capacity",
+            },
+        }
+        with self.connection:
+            self.connection.execute(
+                """INSERT INTO monitoring_snapshots(
+                snapshot_id,project_id,record_id,revision_id,revision_number,observed_at,engine_version,schema_version,methodology_profile_version,
+                recovery_score,component_scores_json,condition_metrics_json,completeness_percent,confidence_level,confidence_score,
+                action_counts_json,blocker_counts_json,checkpoint_counts_json,reopened_count,pattern_keys_json,system_change_counts_json,
+                stable_threshold,source_record_hash,source_revision_hash,source_trace_json,note,created_by,created_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    snapshot_id, record["project_id"], record_id, revision["revision_id"], revision["revision_number"], observed_at,
+                    str(metadata.get("engine_version") or revision["engine_version"]), str(metadata.get("schema_version") or revision["schema_version"]), profile_version,
+                    float(findings.get("recovery_score") or 0), _json(findings.get("component_scores") or {}), _json(condition_metrics),
+                    float(completeness.get("percent") or 0), str(confidence.get("level") or "unknown"), float(confidence.get("score") or 0),
+                    _json(action_counts), _json(blocker_counts), _json(checkpoint_counts), int(reopened_count), _json(pattern_keys), _json(system_change_counts),
+                    threshold, str(revision["content_sha256"]), str(revision["content_sha256"]), _json(source_trace), note.strip(), actor_id, now,
+                ),
+            )
+            self.connection.execute(
+                "INSERT INTO monitoring_snapshot_events(event_id,snapshot_id,event_type,signal_key,actor_id,notes,payload_json,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (_id("cgmse"), snapshot_id, "captured", "", actor_id, note.strip(), _json({"record_id": record_id, "revision_id": revision["revision_id"]}), now),
+            )
+            self._audit("monitoring.snapshot_captured", "monitoring_snapshot", snapshot_id, actor_id, {"record_id": record_id, "revision_id": revision["revision_id"]})
+        return self.get_monitoring_snapshot(snapshot_id)
+
+    def get_monitoring_snapshot(self, snapshot_id: str) -> dict[str, Any]:
+        row = _row(self.connection.execute("SELECT * FROM monitoring_snapshots WHERE snapshot_id=?", (snapshot_id,)).fetchone())
+        if not row:
+            raise WorkspaceError(f"monitoring snapshot not found: {snapshot_id}")
+        item = self._decode_monitoring_snapshot(row)
+        item["events"] = [self._decode_monitoring_event(event) for event in self.connection.execute("SELECT * FROM monitoring_snapshot_events WHERE snapshot_id=? ORDER BY created_at,rowid", (snapshot_id,))]
+        return item
+
+    @staticmethod
+    def _decode_monitoring_event(row: Mapping[str, Any]) -> dict[str, Any]:
+        item = dict(row)
+        item["payload"] = json.loads(item.pop("payload_json"))
+        return item
+
+    def list_monitoring_snapshots(self, project_id: str, *, record_id: str | None = None) -> list[dict[str, Any]]:
+        self._require_project(project_id, include_deleted=True)
+        if record_id:
+            rows = self.connection.execute("SELECT * FROM monitoring_snapshots WHERE project_id=? AND record_id=? ORDER BY observed_at,created_at,rowid", (project_id, record_id))
+        else:
+            rows = self.connection.execute("SELECT * FROM monitoring_snapshots WHERE project_id=? ORDER BY observed_at,created_at,rowid", (project_id,))
+        return [self._decode_monitoring_snapshot(row) for row in rows]
+
+    def annotate_monitoring_snapshot(self, snapshot_id: str, notes: str, *, signal_key: str = "", actor_id: str = "self") -> dict[str, Any]:
+        self.get_monitoring_snapshot(snapshot_id)
+        if not notes.strip():
+            raise WorkspaceError("monitoring annotation notes are required")
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO monitoring_snapshot_events(event_id,snapshot_id,event_type,signal_key,actor_id,notes,payload_json,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (_id("cgmse"), snapshot_id, "annotated", signal_key.strip(), actor_id, notes.strip(), "{}", _utc_now()),
+            )
+            self._audit("monitoring.snapshot_annotated", "monitoring_snapshot", snapshot_id, actor_id, {"signal_key": signal_key.strip()})
+        return self.get_monitoring_snapshot(snapshot_id)
+
+    @staticmethod
+    def _trend_direction(values: Sequence[float], *, lower_is_better: bool = False) -> str:
+        if len(values) < 2:
+            return "insufficient_data"
+        delta = float(values[-1]) - float(values[0])
+        if abs(delta) < 0.5:
+            return "stable"
+        improving = delta < 0 if lower_is_better else delta > 0
+        return "improving" if improving else "declining"
+
+    @staticmethod
+    def _days_between(start: str | None, end: str | None) -> float | None:
+        if not start or not end:
+            return None
+        try:
+            a = datetime.fromisoformat(start.replace("Z", "+00:00")); b = datetime.fromisoformat(end.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return round((b - a).total_seconds() / 86400.0, 2)
+
+    def record_trends(self, record_id: str, *, minimum_points: int = 2) -> dict[str, Any]:
+        record = self.get_record(record_id, include_canonical=True, include_deleted=True)
+        snapshots = self.list_monitoring_snapshots(record["project_id"], record_id=record_id)
+        minimum_points = max(2, int(minimum_points))
+        metrics = ("recovery_score", "pressure", "support", "clarity", "energy", "capacity")
+        series: dict[str, list[dict[str, Any]]] = {metric: [] for metric in metrics}
+        for item in snapshots:
+            base = {"snapshot_id": item["snapshot_id"], "record_id": record_id, "revision_id": item["revision_id"], "revision_number": item["revision_number"], "observed_at": item["observed_at"], "engine_version": item["engine_version"], "schema_version": item["schema_version"], "methodology_profile_version": item["methodology_profile_version"], "source_revision_hash": item["source_revision_hash"]}
+            series["recovery_score"].append({**base, "value": item["recovery_score"], "source_path": "$.findings.recovery_score"})
+            for metric in metrics[1:]:
+                series[metric].append({**base, "value": item["condition_metrics"].get(metric), "source_path": item["source_trace"]["source_paths"].get(metric)})
+        trends = {}
+        for metric, points in series.items():
+            values = [float(point["value"]) for point in points if point["value"] is not None]
+            trends[metric] = {
+                "points": points,
+                "direction": self._trend_direction(values, lower_is_better=(metric == "pressure")),
+                "delta": round(values[-1] - values[0], 2) if len(values) >= 2 else None,
+            }
+        average_completeness = round(sum(float(item["completeness_percent"]) for item in snapshots) / len(snapshots), 2) if snapshots else 0.0
+        if len(snapshots) < minimum_points:
+            confidence = {"state": "sparse_data", "level": "low", "score": min(49.0, average_completeness / 2), "rationale": f"At least {minimum_points} traceable snapshots are required; {len(snapshots)} are available."}
+        elif len(snapshots) >= 3 and average_completeness >= 80:
+            confidence = {"state": "usable", "level": "high", "score": average_completeness, "rationale": "Three or more traceable snapshots with strong average completeness are available."}
+        else:
+            confidence = {"state": "usable_with_caution", "level": "moderate", "score": min(79.0, average_completeness), "rationale": "The minimum longitudinal record exists, but interpretation should remain cautious."}
+        checkpoints = self.list_checkpoints(record["project_id"], record_id=record_id)
+        completed = [item for item in checkpoints if item["status"] == "completed" and item.get("completed_at")]
+        first_checkpoint = min(completed, key=lambda item: item["completed_at"]) if completed else None
+        stable_snapshot = next((item for item in snapshots if float(item["recovery_score"]) >= float(item["stable_threshold"])), None)
+        pattern_counts: dict[str, int] = {}
+        for item in snapshots:
+            for key in item["pattern_keys"]:
+                pattern_counts[key] = pattern_counts.get(key, 0) + 1
+        repeated_patterns = [{"pattern_key": key, "snapshot_occurrences": count} for key, count in sorted(pattern_counts.items()) if count >= 2]
+        changes = [item for item in self.list_system_changes(record["project_id"]) if any(source.get("record_id") == record_id for source in item.get("sources") or [])]
+        latest = snapshots[-1] if snapshots else None
+        summary = {
+            "contract": "catalyst-grit-monitoring/1.0",
+            "scope": "record",
+            "record_id": record_id,
+            "project_id": record["project_id"],
+            "generated_at": _utc_now(),
+            "data_state": "sufficient" if len(snapshots) >= minimum_points else "sparse",
+            "snapshot_count": len(snapshots),
+            "minimum_data_met": len(snapshots) >= minimum_points,
+            "confidence": confidence,
+            "trends": trends,
+            "workflow_outcomes": {
+                "latest_action_counts": latest["action_counts"] if latest else {},
+                "latest_blocker_counts": latest["blocker_counts"] if latest else {},
+                "latest_checkpoint_counts": latest["checkpoint_counts"] if latest else {},
+                "reopened_setback_count": max((int(item["reopened_count"]) for item in snapshots), default=0),
+                "time_to_first_completed_checkpoint_days": self._days_between(record.get("created_at"), first_checkpoint.get("completed_at") if first_checkpoint else None),
+                "time_to_first_stable_condition_days": self._days_between(record.get("created_at"), stable_snapshot.get("observed_at") if stable_snapshot else None),
+            },
+            "repeated_friction_patterns": repeated_patterns,
+            "intervention_outcomes": [{"system_change_id": item["system_change_id"], "decision": item["decision"], "review_result": item["review_result"], "source_record_ids": [source["record_id"] for source in item.get("sources") or []]} for item in changes],
+            "traceability": {"snapshot_ids": [item["snapshot_id"] for item in snapshots], "revision_ids": [item["revision_id"] for item in snapshots], "original_engine_versions": sorted({item["engine_version"] for item in snapshots}), "recalculated": False},
+            "governance": self.monitoring_governance(minimum_points=minimum_points),
+        }
+        summary["summary_hash"] = _sha(summary)
+        return summary
+
+    def recovery_timeline(self, record_id: str) -> dict[str, Any]:
+        record = self.get_record(record_id, include_canonical=True, include_deleted=True)
+        events: list[dict[str, Any]] = []
+        for revision in self.list_revisions(record_id):
+            events.append({"occurred_at": revision["created_at"], "event_type": "record_revision", "entity_id": revision["revision_id"], "revision_number": revision["revision_number"], "engine_version": revision["engine_version"], "source_hash": revision["content_sha256"]})
+        for snapshot in self.list_monitoring_snapshots(record["project_id"], record_id=record_id):
+            events.append({"occurred_at": snapshot["observed_at"], "event_type": "monitoring_snapshot", "entity_id": snapshot["snapshot_id"], "revision_id": snapshot["revision_id"], "recovery_score": snapshot["recovery_score"], "source_hash": snapshot["source_revision_hash"]})
+        for row in self.connection.execute("SELECT * FROM action_events WHERE record_id=?", (record_id,)):
+            events.append({"occurred_at": row["created_at"], "event_type": "action_event", "entity_id": row["event_id"], "action_id": row["action_id"], "from_status": row["from_status"], "to_status": row["to_status"]})
+        for checkpoint in self.list_checkpoints(record["project_id"], record_id=record_id):
+            events.append({"occurred_at": checkpoint["completed_at"] or checkpoint["created_at"], "event_type": "checkpoint", "entity_id": checkpoint["checkpoint_id"], "status": checkpoint["status"], "scheduled_for": checkpoint["scheduled_for"]})
+        for reassessment in self.list_reassessments(record_id):
+            events.append({"occurred_at": reassessment["created_at"], "event_type": "reassessment", "entity_id": reassessment["reassessment_id"], "from_revision_id": reassessment["from_revision_id"], "to_revision_id": reassessment["to_revision_id"]})
+        events.sort(key=lambda item: (item.get("occurred_at") or "", item["event_type"], item["entity_id"]))
+        return {"record_id": record_id, "project_id": record["project_id"], "events": events, "event_count": len(events), "governance": self.monitoring_governance()}
+
+    def record_monitoring_dashboard(self, record_id: str, *, minimum_points: int = 2) -> dict[str, Any]:
+        trends = self.record_trends(record_id, minimum_points=minimum_points)
+        trends["dashboard"] = "personal_private"
+        trends["timeline"] = self.recovery_timeline(record_id)
+        trends["publication_state"] = "private"
+        return trends
+
+    def project_monitoring_dashboard(self, project_id: str, *, minimum_points: int = 2) -> dict[str, Any]:
+        project = self.get_project(project_id, include_deleted=True)
+        records = self.list_records(project_id, include_archived=True)
+        record_summaries = [self.record_trends(item["record_id"], minimum_points=minimum_points) for item in records]
+        snapshots = self.list_monitoring_snapshots(project_id)
+        latest_by_record: dict[str, dict[str, Any]] = {}
+        for item in snapshots:
+            latest_by_record[item["record_id"]] = item
+        latest = list(latest_by_record.values())
+        aggregate = {
+            "record_count": len(records),
+            "monitored_record_count": len(latest),
+            "snapshot_count": len(snapshots),
+            "average_latest_recovery_score": round(sum(item["recovery_score"] for item in latest) / len(latest), 2) if latest else None,
+            "action_counts": {},
+            "blocker_counts": {},
+            "checkpoint_counts": {},
+        }
+        for key in ("action_counts", "blocker_counts", "checkpoint_counts"):
+            merged: dict[str, int] = {}
+            for item in latest:
+                for status, count in item[key].items():
+                    merged[status] = merged.get(status, 0) + int(count)
+            aggregate[key] = merged
+        patterns = self.detect_project_patterns(project_id, minimum_occurrences=2)
+        changes = self.list_system_changes(project_id)
+        dashboard = {
+            "contract": "catalyst-grit-monitoring-dashboard/1.0",
+            "dashboard": "project",
+            "project": {"project_id": project_id, "title": project["title"], "visibility": project["visibility"]},
+            "generated_at": _utc_now(),
+            "aggregate": aggregate,
+            "records": [{"record_id": item["record_id"], "data_state": item["data_state"], "snapshot_count": item["snapshot_count"], "summary_hash": item["summary_hash"]} for item in record_summaries],
+            "pattern_summary": {"repeated_pattern_count": len(patterns), "patterns": patterns},
+            "adaptation_summary": {"system_change_count": len(changes), "decisions": {decision: sum(1 for item in changes if item.get("decision") == decision) for decision in ("proposed", "piloting", "adopt", "revise", "defer", "retire")}},
+            "governance": self.monitoring_governance(minimum_points=minimum_points),
+            "human_review": {"required_before_institutional_interpretation": True, "reviews": self.list_monitoring_reviews(project_id, scope="project")},
+        }
+        dashboard["summary_hash"] = _sha(dashboard)
+        return dashboard
+
+    def team_conditions_dashboard(self, project_id: str, *, actor_id: str = "self", minimum_group_size: int = 3) -> dict[str, Any]:
+        self._require_team_role(project_id, actor_id, {"owner", "facilitator", "reviewer"})
+        threshold = max(3, int(minimum_group_size))
+        members = [item for item in self.list_team_members(project_id) if item["status"] == "active" and item["consent_status"] == "granted"]
+        snapshots = self.list_monitoring_snapshots(project_id)
+        latest_by_record: dict[str, dict[str, Any]] = {}
+        for item in snapshots:
+            latest_by_record[item["record_id"]] = item
+        privacy_met = len(members) >= threshold and len(latest_by_record) >= 1
+        dashboard = {
+            "contract": "catalyst-grit-monitoring-dashboard/1.0",
+            "dashboard": "team_system_conditions",
+            "project_id": project_id,
+            "generated_at": _utc_now(),
+            "privacy": {"threshold": threshold, "consented_active_member_count": len(members), "threshold_met": privacy_met, "suppressed": not privacy_met},
+            "individual_comparisons": [],
+            "governance": self.monitoring_governance(privacy_threshold=threshold),
+            "human_review": {"required": True, "reviews": self.list_monitoring_reviews(project_id, scope="team_system")},
+        }
+        if privacy_met:
+            latest = list(latest_by_record.values())
+            dashboard["aggregate_conditions"] = {
+                "record_count": len(latest),
+                "average_recovery_score": round(sum(item["recovery_score"] for item in latest) / len(latest), 2),
+                "average_pressure": round(sum(item["condition_metrics"]["pressure"] for item in latest) / len(latest), 2),
+                "average_support": round(sum(item["condition_metrics"]["support"] for item in latest) / len(latest), 2),
+                "average_clarity": round(sum(item["condition_metrics"]["clarity"] for item in latest) / len(latest), 2),
+                "average_energy": round(sum(item["condition_metrics"]["energy"] for item in latest) / len(latest), 2),
+                "average_capacity": round(sum(item["condition_metrics"]["capacity"] for item in latest) / len(latest), 2),
+                "traceable_snapshot_ids": [item["snapshot_id"] for item in latest],
+            }
+        else:
+            dashboard["aggregate_conditions"] = None
+            dashboard["suppression_reason"] = "Aggregation is withheld until the minimum consented group-size threshold is met."
+        dashboard["summary_hash"] = _sha(dashboard)
+        return dashboard
+
+    def review_monitoring_summary(self, project_id: str, summary_hash: str, *, scope: str, status: str, reviewer_id: str, notes: str = "", record_id: str | None = None) -> dict[str, Any]:
+        self._require_project(project_id, include_deleted=True)
+        if scope not in {"record", "project", "team_system"}:
+            raise WorkspaceError("unsupported monitoring review scope")
+        if status not in {"pending", "reviewed", "changes_requested", "approved"}:
+            raise WorkspaceError("unsupported monitoring review status")
+        if scope == "record":
+            if not record_id:
+                raise WorkspaceError("record_id is required for record monitoring reviews")
+            record = self._require_record(record_id, include_deleted=True)
+            if record["project_id"] != project_id:
+                raise WorkspaceError("monitoring review record must belong to the project")
+        review_id = _id("cgmr")
+        with self.connection:
+            self.connection.execute("INSERT INTO monitoring_reviews(review_id,project_id,record_id,scope,summary_hash,status,reviewer_id,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?)", (review_id, project_id, record_id, scope, summary_hash.strip(), status, reviewer_id, notes.strip(), _utc_now()))
+            self._audit("monitoring.summary_reviewed", "monitoring_review", review_id, reviewer_id, {"scope": scope, "status": status, "summary_hash": summary_hash})
+        return dict(self.connection.execute("SELECT * FROM monitoring_reviews WHERE review_id=?", (review_id,)).fetchone())
+
+    def list_monitoring_reviews(self, project_id: str, *, scope: str | None = None, record_id: str | None = None) -> list[dict[str, Any]]:
+        self._require_project(project_id, include_deleted=True)
+        query = "SELECT * FROM monitoring_reviews WHERE project_id=?"; params: list[Any] = [project_id]
+        if scope:
+            query += " AND scope=?"; params.append(scope)
+        if record_id:
+            query += " AND record_id=?"; params.append(record_id)
+        query += " ORDER BY created_at,rowid"
+        return [dict(row) for row in self.connection.execute(query, params)]
+
     def status_history(self, entity_type: str, entity_id: str) -> list[dict[str, Any]]:
         return [dict(row) for row in self.connection.execute("SELECT * FROM status_history WHERE entity_type=? AND entity_id=? ORDER BY created_at, rowid", (entity_type, entity_id))]
 
@@ -1708,6 +2092,8 @@ class SQLiteWorkspaceRepository:
             "evidence_items": self.list_evidence(project["project_id"], record_id=record_id),
             "assumptions": self.list_assumptions(project["project_id"], record_id=record_id),
             "handoffs": self.list_handoffs(project["project_id"], record_id=record_id),
+            "monitoring_snapshots": self.list_monitoring_snapshots(project["project_id"], record_id=record_id),
+            "monitoring_reviews": self.list_monitoring_reviews(project["project_id"], record_id=record_id),
         }
 
     def export_project(self, project_id: str) -> dict[str, Any]:
@@ -1728,6 +2114,8 @@ class SQLiteWorkspaceRepository:
             "evidence_ledger": self.evidence_ledger(project_id),
             "assumption_matrix": self.assumption_matrix(project_id),
             "handoffs": self.list_handoffs(project_id),
+            "monitoring_dashboard": self.project_monitoring_dashboard(project_id),
+            "monitoring_reviews": self.list_monitoring_reviews(project_id),
         }
 
     def import_payload(self, payload: Mapping[str, Any], *, project_id: str | None = None, actor_id: str = "self") -> dict[str, Any]:
@@ -2095,6 +2483,35 @@ class SQLiteWorkspaceRepository:
             except WorkspaceError:
                 continue
 
+        imported_monitoring_snapshots = 0
+        monitoring_sources = list(payload.get("monitoring_snapshots") or [])
+        for bundle in bundles:
+            monitoring_sources.extend(bundle.get("monitoring_snapshots") or [])
+        for item in monitoring_sources:
+            record_id = str(item.get("record_id") or "")
+            try:
+                record = self._require_record(record_id)
+            except WorkspaceError:
+                continue
+            if record["project_id"] != target_project:
+                continue
+            revision_number = int(item.get("revision_number") or 0)
+            revision = _row(self.connection.execute("SELECT * FROM record_revisions WHERE record_id=? AND revision_number=?", (record_id, revision_number)).fetchone())
+            if not revision:
+                continue
+            try:
+                restored = self.capture_monitoring_snapshot(record_id, observed_at=str(item.get("observed_at") or _utc_now()), note=str(item.get("note") or "Imported monitoring snapshot"), actor_id=actor_id)
+                imported_monitoring_snapshots += 1
+            except WorkspaceError:
+                continue
+        imported_monitoring_reviews = 0
+        for review in payload.get("monitoring_reviews") or []:
+            try:
+                self.review_monitoring_summary(target_project, str(review.get("summary_hash") or "imported"), scope=str(review.get("scope") or "project"), status=str(review.get("status") or "pending"), reviewer_id=actor_id, notes=str(review.get("notes") or "Imported monitoring review"), record_id=review.get("record_id"))
+                imported_monitoring_reviews += 1
+            except WorkspaceError:
+                continue
+
         return {
             "project_id": target_project,
             "imported": imported,
@@ -2107,6 +2524,8 @@ class SQLiteWorkspaceRepository:
             "evidence_items_imported": imported_evidence,
             "assumptions_imported": imported_assumptions,
             "handoffs_imported": imported_handoffs,
+            "monitoring_snapshots_imported": imported_monitoring_snapshots,
+            "monitoring_reviews_imported": imported_monitoring_reviews,
         }
 
     def write_export(self, payload: Mapping[str, Any], path: str | Path) -> Path:
@@ -2118,7 +2537,7 @@ class SQLiteWorkspaceRepository:
     def health(self) -> dict[str, Any]:
         integrity = self.connection.execute("PRAGMA integrity_check").fetchone()[0]
         counts = {}
-        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events", "checkpoints", "reviews", "status_history", "audit_events"):
+        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "team_memberships", "facilitated_sessions", "session_participants", "team_perspectives", "facilitated_agreements", "facilitated_agreement_events", "evidence_items", "evidence_events", "evidence_links", "assumptions", "assumption_events", "handoff_artifacts", "handoff_events", "monitoring_snapshots", "monitoring_snapshot_events", "monitoring_reviews", "checkpoints", "reviews", "status_history", "audit_events"):
             try:
                 counts[table] = self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             except sqlite3.OperationalError:

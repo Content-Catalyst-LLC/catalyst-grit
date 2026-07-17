@@ -1,6 +1,6 @@
 # Repository architecture
 
-Catalyst Grit v1.7.0 uses the recovery-record engine as its only production domain model.
+Catalyst Grit v1.8.0 uses the recovery-record engine as its only production domain model.
 
 ```text
 Public WordPress browser demo ─┐

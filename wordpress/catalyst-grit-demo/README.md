@@ -1,4 +1,4 @@
-# Catalyst Grit WordPress v1.7.0
+# Catalyst Grit WordPress v1.8.0
 
 Shortcodes:
 

@@ -1,0 +1,9 @@
+DROP TRIGGER IF EXISTS monitoring_reviews_guard_delete;
+DROP TRIGGER IF EXISTS monitoring_reviews_no_update;
+DROP TRIGGER IF EXISTS monitoring_snapshot_events_guard_delete;
+DROP TRIGGER IF EXISTS monitoring_snapshot_events_no_update;
+DROP TRIGGER IF EXISTS monitoring_snapshots_guard_delete;
+DROP TRIGGER IF EXISTS monitoring_snapshots_no_update;
+DROP TABLE IF EXISTS monitoring_reviews;
+DROP TABLE IF EXISTS monitoring_snapshot_events;
+DROP TABLE IF EXISTS monitoring_snapshots;

@@ -35,6 +35,6 @@ def test_all_golden_outputs_validate_and_match():
 
 
 def test_default_methodology_file_matches_engine():
-    committed = json.loads((ROOT / "methodology/recovery-profile-v1.7.0.json").read_text())
+    committed = json.loads((ROOT / "methodology/recovery-profile-v1.8.0.json").read_text())
     assert committed == DEFAULT_METHODOLOGY_PROFILE
     jsonschema.validate(committed, PROFILE_SCHEMA)

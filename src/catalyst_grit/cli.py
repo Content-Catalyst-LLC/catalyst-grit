@@ -150,6 +150,16 @@ def build_parser() -> argparse.ArgumentParser:
     handoff_validate = commands.add_parser("handoff-validate", help="Validate a handoff or record stale/conflicting state"); _db_argument(handoff_validate); handoff_validate.add_argument("handoff_id"); handoff_validate.add_argument("--payload", type=Path); handoff_validate.add_argument("--state"); handoff_validate.add_argument("--notes", default=""); handoff_validate.add_argument("--actor", default="self")
     decision_handoff = commands.add_parser("decision-handoff", help="Build a provenance-preserving Decision Studio packet"); _db_argument(decision_handoff); decision_handoff.add_argument("record_id"); decision_handoff.add_argument("--actor", default="self"); decision_handoff.add_argument("--output", type=Path)
 
+    monitor_capture = commands.add_parser("monitor-capture", help="Capture an immutable traceable monitoring snapshot"); _db_argument(monitor_capture); monitor_capture.add_argument("record_id"); monitor_capture.add_argument("--observed-at"); monitor_capture.add_argument("--note", default=""); monitor_capture.add_argument("--actor", default="self")
+    monitor_list = commands.add_parser("monitor-list", help="List monitoring snapshots for a project or record"); _db_argument(monitor_list); monitor_list.add_argument("project_id"); monitor_list.add_argument("--record")
+    monitor_record = commands.add_parser("monitor-record", help="Build a private longitudinal record dashboard"); _db_argument(monitor_record); monitor_record.add_argument("record_id"); monitor_record.add_argument("--minimum-points", type=int, default=2)
+    monitor_project = commands.add_parser("monitor-project", help="Build a project conditions dashboard"); _db_argument(monitor_project); monitor_project.add_argument("project_id"); monitor_project.add_argument("--minimum-points", type=int, default=2)
+    monitor_team = commands.add_parser("monitor-team", help="Build a privacy-thresholded team/system conditions dashboard"); _db_argument(monitor_team); monitor_team.add_argument("project_id"); monitor_team.add_argument("--minimum-group-size", type=int, default=3); monitor_team.add_argument("--actor", default="self")
+    monitor_timeline = commands.add_parser("monitor-timeline", help="Build a traceable recovery timeline"); _db_argument(monitor_timeline); monitor_timeline.add_argument("record_id")
+    monitor_annotate = commands.add_parser("monitor-annotate", help="Append a human annotation to a monitoring snapshot"); _db_argument(monitor_annotate); monitor_annotate.add_argument("snapshot_id"); monitor_annotate.add_argument("--notes", required=True); monitor_annotate.add_argument("--signal-key", default=""); monitor_annotate.add_argument("--actor", default="self")
+    monitor_review = commands.add_parser("monitor-review", help="Record human review of a monitoring summary"); _db_argument(monitor_review); monitor_review.add_argument("project_id"); monitor_review.add_argument("summary_hash"); monitor_review.add_argument("--scope", required=True); monitor_review.add_argument("--status", required=True); monitor_review.add_argument("--record"); monitor_review.add_argument("--reviewer", default="self"); monitor_review.add_argument("--notes", default="")
+    monitor_review_list = commands.add_parser("monitor-review-list", help="List append-only monitoring interpretation reviews"); _db_argument(monitor_review_list); monitor_review_list.add_argument("project_id"); monitor_review_list.add_argument("--scope"); monitor_review_list.add_argument("--record")
+
     export = commands.add_parser("workspace-export", help="Export a record or project bundle"); _db_argument(export); group = export.add_mutually_exclusive_group(required=True); group.add_argument("--record"); group.add_argument("--project"); export.add_argument("--output", type=Path, required=True)
     import_cmd = commands.add_parser("workspace-import", help="Import v1.0/v1.1 records or workspace bundles"); _db_argument(import_cmd); import_cmd.add_argument("input", type=Path); import_cmd.add_argument("--project")
     return parser
@@ -234,6 +244,15 @@ def _workspace_command(args: argparse.Namespace) -> Any:
                 repo.write_export(packet, args.output)
                 return {"output": str(args.output), "handoff_id": packet["handoff_id"], "content_hash": packet["content_hash"]}
             return packet
+        if args.command == "monitor-capture": return repo.capture_monitoring_snapshot(args.record_id, observed_at=args.observed_at, note=args.note, actor_id=args.actor)
+        if args.command == "monitor-list": return repo.list_monitoring_snapshots(args.project_id, record_id=args.record)
+        if args.command == "monitor-record": return repo.record_monitoring_dashboard(args.record_id, minimum_points=args.minimum_points)
+        if args.command == "monitor-project": return repo.project_monitoring_dashboard(args.project_id, minimum_points=args.minimum_points)
+        if args.command == "monitor-team": return repo.team_conditions_dashboard(args.project_id, actor_id=args.actor, minimum_group_size=args.minimum_group_size)
+        if args.command == "monitor-timeline": return repo.recovery_timeline(args.record_id)
+        if args.command == "monitor-annotate": return repo.annotate_monitoring_snapshot(args.snapshot_id, args.notes, signal_key=args.signal_key, actor_id=args.actor)
+        if args.command == "monitor-review": return repo.review_monitoring_summary(args.project_id, args.summary_hash, scope=args.scope, status=args.status, reviewer_id=args.reviewer, notes=args.notes, record_id=args.record)
+        if args.command == "monitor-review-list": return repo.list_monitoring_reviews(args.project_id, scope=args.scope, record_id=args.record)
         if args.command == "workspace-export":
             payload = repo.export_record(args.record) if args.record else repo.export_project(args.project)
             repo.write_export(payload, args.output)

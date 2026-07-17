@@ -5,7 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var VERSION = '1.2.0';
+  var VERSION = '1.3.0';
   var METHOD_PATH = ['context', 'trigger', 'impact', 'pressure', 'constraints', 'supports', 'capacity', 'response', 'learning', 'next steps', 'human review'];
   var DEFAULT_ACTIONS = ['Name the smallest recoverable next step', 'Review support and constraints', 'Schedule a short follow-up review'];
   var DOMAINS = ['work', 'learning', 'health_wellbeing', 'relationship', 'project', 'career', 'community', 'organization', 'other'];
@@ -15,6 +15,9 @@
   var IMPACT_SCOPES = ['task', 'workstream', 'project', 'team', 'organization', 'personal', 'multi_system', 'other'];
   var CONSTRAINT_TYPES = ['time', 'resource', 'dependency', 'information', 'coordination', 'policy', 'capacity', 'other'];
   var CONTROLLABILITY = ['controllable', 'influence', 'limited', 'unknown'];
+  var CONTROL_ZONES = ['control', 'influence', 'outside_control', 'unknown'];
+  var FRICTION_LAYERS = ['immediate', 'near_term', 'structural'];
+  var SUPPORT_STATUSES = ['active', 'potential', 'unavailable'];
   var SUPPORT_TYPES = ['person', 'team', 'tool', 'process', 'time', 'funding', 'information', 'other'];
   var ACTION_STATUSES = ['planned', 'in_progress', 'completed', 'paused'];
   var PROVENANCE_SOURCES = ['direct_entry', 'browser', 'cli', 'api', 'import', 'migration'];
@@ -26,7 +29,7 @@
   ];
   var DEFAULT_PROFILE = {
     profile_id: 'cg-recovery-conditions',
-    profile_version: '1.2.0',
+    profile_version: '1.3.0',
     calculation_spec: 'weighted-components-v1',
     component_weights: {
       impact_buffer: 15, pressure_buffer: 15, energy_capacity: 15, support_capacity: 15,
@@ -146,6 +149,7 @@
     if (!actions.length && defaultActions) actions = DEFAULT_ACTIONS.map(function (title) { return { title: title, status: 'planned', owner: null, target_date: null }; });
     return actions;
   }
+  function controlZone(controllability) { return { controllable: 'control', influence: 'influence', limited: 'outside_control', unknown: 'unknown' }[controllability]; }
   function normalizeConstraints(value, path) {
     if (value === undefined || value === null || value === '') return [];
     var source = Array.isArray(value) ? value : (typeof value === 'string' ? value.split('\n') : null);
@@ -154,15 +158,20 @@
     source.forEach(function (item, index) {
       var itemPath = path + '[' + index + ']';
       if (isObject(item)) {
-        rejectUnknown(item, ['label', 'type', 'controllability'], itemPath);
+        rejectUnknown(item, ['label', 'type', 'controllability', 'control_zone', 'layer', 'severity', 'notes'], itemPath);
+        var controllability = enumValue(item.controllability, itemPath + '.controllability', CONTROLLABILITY, 'unknown');
         output.push({
           label: text(item.label, itemPath + '.label', '', true),
           type: enumValue(item.type, itemPath + '.type', CONSTRAINT_TYPES, 'other'),
-          controllability: enumValue(item.controllability, itemPath + '.controllability', CONTROLLABILITY, 'unknown')
+          controllability: controllability,
+          control_zone: enumValue(item.control_zone, itemPath + '.control_zone', CONTROL_ZONES, controlZone(controllability)),
+          layer: enumValue(item.layer, itemPath + '.layer', FRICTION_LAYERS, 'immediate'),
+          severity: clampScale(item.severity === undefined ? 5 : item.severity, itemPath + '.severity'),
+          notes: text(item.notes, itemPath + '.notes', '', false)
         });
       } else {
         var label = text(item, itemPath, '', false);
-        if (label) output.push({ label: label, type: 'other', controllability: 'unknown' });
+        if (label) output.push({ label: label, type: 'other', controllability: 'unknown', control_zone: 'unknown', layer: 'immediate', severity: 5, notes: '' });
       }
     });
     return output;
@@ -175,15 +184,19 @@
     source.forEach(function (item, index) {
       var itemPath = path + '[' + index + ']';
       if (isObject(item)) {
-        rejectUnknown(item, ['label', 'type', 'reliability'], itemPath);
+        rejectUnknown(item, ['label', 'type', 'reliability', 'status', 'capacity_contribution', 'notes'], itemPath);
+        var reliability = clampScale(item.reliability === undefined ? 5 : item.reliability, itemPath + '.reliability');
         output.push({
           label: text(item.label, itemPath + '.label', '', true),
           type: enumValue(item.type, itemPath + '.type', SUPPORT_TYPES, 'other'),
-          reliability: clampScale(item.reliability === undefined ? 5 : item.reliability, itemPath + '.reliability')
+          reliability: reliability,
+          status: enumValue(item.status, itemPath + '.status', SUPPORT_STATUSES, 'active'),
+          capacity_contribution: clampScale(item.capacity_contribution === undefined ? reliability : item.capacity_contribution, itemPath + '.capacity_contribution'),
+          notes: text(item.notes, itemPath + '.notes', '', false)
         });
       } else {
         var label = text(item, itemPath, '', false);
-        if (label) output.push({ label: label, type: 'other', reliability: 5 });
+        if (label) output.push({ label: label, type: 'other', reliability: 5, status: 'active', capacity_contribution: 5, notes: '' });
       }
     });
     return output;
@@ -196,12 +209,12 @@
     return {
       metadata: { status: recordStatus, provenance: { created_by: 'self', source: 'migration', source_schema_version: '1.0.1', source_record_id: null, notes: 'Migrated from the v1.0.x flat recovery-record request.' } },
       input: {
-        context: { title: challenge, domain: data.domain || 'project', description: '', stakeholders: [] },
+        context: { title: challenge, domain: data.domain || 'project', description: '', stakeholders: [], affected_work: [] },
         trigger: { summary: challenge, type: 'setback', occurred_at: null },
         impact: { severity: data.impact_severity === undefined ? 5 : data.impact_severity, scope: 'project', description: '' },
-        pressure: { level: data.pressure_level === undefined ? 5 : data.pressure_level, sources: [] },
+        pressure: { level: data.pressure_level === undefined ? 5 : data.pressure_level, sources: [], competing_demands: [], decision_ambiguity: 5, dependency_friction: 5, stakeholder_friction: 5 },
         constraints: { items: [] }, supports: { level: data.support_level === undefined ? 5 : data.support_level, available: [] },
-        capacity: { energy_level: data.energy_level === undefined ? 5 : data.energy_level, clarity_level: data.clarity_level === undefined ? 5 : data.clarity_level, available_time_hours: null, time_horizon_days: data.time_horizon_days === undefined ? 14 : data.time_horizon_days },
+        capacity: { energy_level: data.energy_level === undefined ? 5 : data.energy_level, clarity_level: data.clarity_level === undefined ? 5 : data.clarity_level, available_time_hours: null, time_horizon_days: data.time_horizon_days === undefined ? 14 : data.time_horizon_days, attention_level: data.clarity_level === undefined ? 5 : data.clarity_level, coordination_capacity: data.support_level === undefined ? 5 : data.support_level, recovery_time_hours: null, load_level: data.pressure_level === undefined ? 5 : data.pressure_level },
         response: { actions: data.recovery_actions, current_strategy: '' }, learning: { observations: [], assumptions: [], adaptations: [] },
         next_steps: { actions: [], checkpoint_date: null, success_signal: '' }
       },
@@ -214,7 +227,7 @@
     rejectUnknown(metadata, ['record_id', 'schema_version', 'engine_version', 'created_at', 'updated_at', 'status', 'provenance'], '$.metadata');
     var recordId = text(metadata.record_id, '$.metadata.record_id', randomRecordId(), false);
     if (!/^cgr_[0-9a-f]{32}$/.test(recordId)) fail('$.metadata.record_id', 'record_id', 'Must match cgr_ followed by 32 lowercase hexadecimal characters.', recordId);
-    if (metadata.schema_version && [VERSION, '1.0.1'].indexOf(String(metadata.schema_version)) === -1) fail('$.metadata.schema_version', 'schema_version', 'Unsupported source schema version: ' + metadata.schema_version + '.', metadata.schema_version);
+    if (metadata.schema_version && [VERSION, '1.2.0', '1.1.0', '1.0.1'].indexOf(String(metadata.schema_version)) === -1) fail('$.metadata.schema_version', 'schema_version', 'Unsupported source schema version: ' + metadata.schema_version + '.', metadata.schema_version);
     if (metadata.engine_version && String(metadata.engine_version) !== VERSION) fail('$.metadata.engine_version', 'engine_version', 'Requests may not select a different engine version.', metadata.engine_version);
     var created = normalizeTimestamp(metadata.created_at, '$.metadata.created_at', nowISO());
     var updated = normalizeTimestamp(metadata.updated_at, '$.metadata.updated_at', created);
@@ -246,32 +259,21 @@
     return { review_status: status, reviewer: reviewer, reviewed_at: reviewedAt, notes: text(review.notes, '$.human_review.notes', '', false), accepted_findings: stringList(review.accepted_findings, '$.human_review.accepted_findings'), rejected_findings: stringList(review.rejected_findings, '$.human_review.rejected_findings'), override_state: override };
   }
   function normalizeSections(value) {
-    var input = mapping(value, '$.input');
-    var required = ['context', 'trigger', 'impact', 'pressure', 'constraints', 'supports', 'capacity', 'response', 'learning', 'next_steps'];
-    rejectUnknown(input, required, '$.input');
-    var missing = required.filter(function (key) { return !Object.prototype.hasOwnProperty.call(input, key); });
-    if (missing.length) fail('$.input', 'required', 'Missing section(s): ' + missing.join(', ') + '.', missing);
-    var context = mapping(input.context, '$.input.context'); rejectUnknown(context, ['title', 'domain', 'description', 'stakeholders'], '$.input.context');
-    var trigger = mapping(input.trigger, '$.input.trigger'); rejectUnknown(trigger, ['summary', 'type', 'occurred_at'], '$.input.trigger');
-    var impact = mapping(input.impact, '$.input.impact'); rejectUnknown(impact, ['severity', 'scope', 'description'], '$.input.impact');
-    var pressure = mapping(input.pressure, '$.input.pressure'); rejectUnknown(pressure, ['level', 'sources'], '$.input.pressure');
-    var constraints = mapping(input.constraints, '$.input.constraints'); rejectUnknown(constraints, ['items'], '$.input.constraints');
-    var supports = mapping(input.supports, '$.input.supports'); rejectUnknown(supports, ['level', 'available'], '$.input.supports');
-    var capacity = mapping(input.capacity, '$.input.capacity'); rejectUnknown(capacity, ['energy_level', 'clarity_level', 'available_time_hours', 'time_horizon_days'], '$.input.capacity');
-    var response = mapping(input.response, '$.input.response'); rejectUnknown(response, ['actions', 'current_strategy'], '$.input.response');
-    var learning = mapping(input.learning, '$.input.learning'); rejectUnknown(learning, ['observations', 'assumptions', 'adaptations'], '$.input.learning');
-    var next = mapping(input.next_steps, '$.input.next_steps'); rejectUnknown(next, ['actions', 'checkpoint_date', 'success_signal'], '$.input.next_steps');
+    var input = mapping(value, '$.input'); var required = ['context','trigger','impact','pressure','constraints','supports','capacity','response','learning','next_steps'];
+    rejectUnknown(input, required, '$.input'); required.forEach(function (key) { if (!Object.prototype.hasOwnProperty.call(input, key)) fail('$.input', 'required', 'Missing section(s): ' + key + '.', [key]); });
+    var context=mapping(input.context,'$.input.context'), trigger=mapping(input.trigger,'$.input.trigger'), impact=mapping(input.impact,'$.input.impact'), pressure=mapping(input.pressure,'$.input.pressure'), constraints=mapping(input.constraints,'$.input.constraints'), supports=mapping(input.supports,'$.input.supports'), capacity=mapping(input.capacity,'$.input.capacity'), response=mapping(input.response,'$.input.response'), learning=mapping(input.learning,'$.input.learning'), next=mapping(input.next_steps,'$.input.next_steps');
+    rejectUnknown(context,['title','domain','description','stakeholders','affected_work'],'$.input.context'); rejectUnknown(trigger,['summary','type','occurred_at'],'$.input.trigger'); rejectUnknown(impact,['severity','scope','description'],'$.input.impact');
+    rejectUnknown(pressure,['level','sources','competing_demands','decision_ambiguity','dependency_friction','stakeholder_friction'],'$.input.pressure'); rejectUnknown(constraints,['items'],'$.input.constraints'); rejectUnknown(supports,['level','available'],'$.input.supports');
+    rejectUnknown(capacity,['energy_level','clarity_level','available_time_hours','time_horizon_days','attention_level','coordination_capacity','recovery_time_hours','load_level'],'$.input.capacity'); rejectUnknown(response,['actions','current_strategy'],'$.input.response'); rejectUnknown(learning,['observations','assumptions','adaptations'],'$.input.learning'); rejectUnknown(next,['actions','checkpoint_date','success_signal'],'$.input.next_steps');
+    var supportLevel=clampScale(supports.level,'$.input.supports.level'); var clarity=clampScale(capacity.clarity_level,'$.input.capacity.clarity_level'); var pressureLevel=clampScale(pressure.level,'$.input.pressure.level');
     return {
-      context: { title: text(context.title, '$.input.context.title', '', true), domain: enumValue(context.domain, '$.input.context.domain', DOMAINS, 'project'), description: text(context.description, '$.input.context.description', '', false), stakeholders: stringList(context.stakeholders, '$.input.context.stakeholders') },
-      trigger: { summary: text(trigger.summary, '$.input.trigger.summary', '', true), type: enumValue(trigger.type, '$.input.trigger.type', TRIGGER_TYPES, 'setback'), occurred_at: optionalTimestamp(trigger.occurred_at, '$.input.trigger.occurred_at') },
-      impact: { severity: clampScale(impact.severity, '$.input.impact.severity'), scope: enumValue(impact.scope, '$.input.impact.scope', IMPACT_SCOPES, 'project'), description: text(impact.description, '$.input.impact.description', '', false) },
-      pressure: { level: clampScale(pressure.level, '$.input.pressure.level'), sources: stringList(pressure.sources, '$.input.pressure.sources') },
-      constraints: { items: normalizeConstraints(constraints.items, '$.input.constraints.items') },
-      supports: { level: clampScale(supports.level, '$.input.supports.level'), available: normalizeSupports(supports.available, '$.input.supports.available') },
-      capacity: { energy_level: clampScale(capacity.energy_level, '$.input.capacity.energy_level'), clarity_level: clampScale(capacity.clarity_level, '$.input.capacity.clarity_level'), available_time_hours: nullableNumber(capacity.available_time_hours, '$.input.capacity.available_time_hours'), time_horizon_days: integer(capacity.time_horizon_days, '$.input.capacity.time_horizon_days', 14) },
-      response: { actions: normalizeActions(response.actions, '$.input.response.actions', true), current_strategy: text(response.current_strategy, '$.input.response.current_strategy', '', false) },
-      learning: { observations: stringList(learning.observations, '$.input.learning.observations'), assumptions: stringList(learning.assumptions, '$.input.learning.assumptions'), adaptations: stringList(learning.adaptations, '$.input.learning.adaptations') },
-      next_steps: { actions: normalizeActions(next.actions, '$.input.next_steps.actions', false), checkpoint_date: optionalDate(next.checkpoint_date, '$.input.next_steps.checkpoint_date'), success_signal: text(next.success_signal, '$.input.next_steps.success_signal', '', false) }
+      context:{title:text(context.title,'$.input.context.title','',true),domain:enumValue(context.domain,'$.input.context.domain',DOMAINS,'project'),description:text(context.description,'$.input.context.description','',false),stakeholders:stringList(context.stakeholders,'$.input.context.stakeholders'),affected_work:stringList(context.affected_work,'$.input.context.affected_work')},
+      trigger:{summary:text(trigger.summary,'$.input.trigger.summary','',true),type:enumValue(trigger.type,'$.input.trigger.type',TRIGGER_TYPES,'setback'),occurred_at:optionalTimestamp(trigger.occurred_at,'$.input.trigger.occurred_at')},
+      impact:{severity:clampScale(impact.severity,'$.input.impact.severity'),scope:enumValue(impact.scope,'$.input.impact.scope',IMPACT_SCOPES,'project'),description:text(impact.description,'$.input.impact.description','',false)},
+      pressure:{level:pressureLevel,sources:stringList(pressure.sources,'$.input.pressure.sources'),competing_demands:stringList(pressure.competing_demands,'$.input.pressure.competing_demands'),decision_ambiguity:clampScale(pressure.decision_ambiguity === undefined ? 5 : pressure.decision_ambiguity,'$.input.pressure.decision_ambiguity'),dependency_friction:clampScale(pressure.dependency_friction === undefined ? 5 : pressure.dependency_friction,'$.input.pressure.dependency_friction'),stakeholder_friction:clampScale(pressure.stakeholder_friction === undefined ? 5 : pressure.stakeholder_friction,'$.input.pressure.stakeholder_friction')},
+      constraints:{items:normalizeConstraints(constraints.items,'$.input.constraints.items')}, supports:{level:supportLevel,available:normalizeSupports(supports.available,'$.input.supports.available')},
+      capacity:{energy_level:clampScale(capacity.energy_level,'$.input.capacity.energy_level'),clarity_level:clarity,available_time_hours:nullableNumber(capacity.available_time_hours,'$.input.capacity.available_time_hours'),time_horizon_days:integer(capacity.time_horizon_days,'$.input.capacity.time_horizon_days',14),attention_level:clampScale(capacity.attention_level === undefined ? clarity : capacity.attention_level,'$.input.capacity.attention_level'),coordination_capacity:clampScale(capacity.coordination_capacity === undefined ? supportLevel : capacity.coordination_capacity,'$.input.capacity.coordination_capacity'),recovery_time_hours:nullableNumber(capacity.recovery_time_hours,'$.input.capacity.recovery_time_hours'),load_level:clampScale(capacity.load_level === undefined ? pressureLevel : capacity.load_level,'$.input.capacity.load_level')},
+      response:{actions:normalizeActions(response.actions,'$.input.response.actions',true),current_strategy:text(response.current_strategy,'$.input.response.current_strategy','',false)}, learning:{observations:stringList(learning.observations,'$.input.learning.observations'),assumptions:stringList(learning.assumptions,'$.input.learning.assumptions'),adaptations:stringList(learning.adaptations,'$.input.learning.adaptations')}, next_steps:{actions:normalizeActions(next.actions,'$.input.next_steps.actions',false),checkpoint_date:optionalDate(next.checkpoint_date,'$.input.next_steps.checkpoint_date'),success_signal:text(next.success_signal,'$.input.next_steps.success_signal','',false)}
     };
   }
   function normalizeProfile(value) {
@@ -318,17 +320,43 @@
     var scores = {}; Object.keys(profile.component_weights).forEach(function (key) { var weight = Number(profile.component_weights[key]); scores[key] = { input_value: raw[key][0], normalized_value: round(raw[key][1], 4), weight: weight, weighted_score: round(raw[key][1] * weight, 1), explanation: raw[key][2] }; }); return scores;
   }
   function stateFromScore(score, profile) { var thresholds = normalizeProfile(profile).thresholds; if (score >= thresholds.stable) return 'stable recovery conditions'; if (score >= thresholds.focused_support) return 'recoverable with focused support'; if (score >= thresholds.fragile) return 'fragile recovery conditions'; return 'high-friction recovery conditions'; }
+  function buildConditionMap(input) {
+    var pressure=[
+      {code:'overall_pressure',label:'Overall pressure',value:input.pressure.level,source_path:'$.input.pressure.level',layer:'immediate',control_zone:'influence'},
+      {code:'decision_ambiguity',label:'Decision ambiguity',value:input.pressure.decision_ambiguity,source_path:'$.input.pressure.decision_ambiguity',layer:'near_term',control_zone:'influence'},
+      {code:'dependency_friction',label:'Dependency friction',value:input.pressure.dependency_friction,source_path:'$.input.pressure.dependency_friction',layer:'near_term',control_zone:'influence'},
+      {code:'stakeholder_friction',label:'Stakeholder friction',value:input.pressure.stakeholder_friction,source_path:'$.input.pressure.stakeholder_friction',layer:'near_term',control_zone:'influence'},
+      {code:'load_level',label:'Competing load',value:input.capacity.load_level,source_path:'$.input.capacity.load_level',layer:'immediate',control_zone:'control'}
+    ];
+    var constraints=input.constraints.items.map(function(item,index){var copy=clone(item);copy.source_path='$.input.constraints.items['+index+']';return copy;});
+    var supports=input.supports.available.map(function(item,index){var copy=clone(item);copy.source_path='$.input.supports.available['+index+']';return copy;});
+    var capacity=[{code:'energy',label:'Energy capacity',value:input.capacity.energy_level,source_path:'$.input.capacity.energy_level'},{code:'clarity',label:'Decision clarity',value:input.capacity.clarity_level,source_path:'$.input.capacity.clarity_level'},{code:'attention',label:'Attention capacity',value:input.capacity.attention_level,source_path:'$.input.capacity.attention_level'},{code:'coordination',label:'Coordination capacity',value:input.capacity.coordination_capacity,source_path:'$.input.capacity.coordination_capacity'},{code:'support_access',label:'Support access',value:input.supports.level,source_path:'$.input.supports.level'}];
+    var control={control:[],influence:[],outside_control:[],unknown:[]}; constraints.forEach(function(item){control[item.control_zone].push({label:item.label,source_path:item.source_path,kind:'constraint'});}); pressure.forEach(function(item){control[item.control_zone].push({label:item.label,source_path:item.source_path,kind:'pressure'});});
+    var layers={immediate:[],near_term:[],structural:[]}; constraints.forEach(function(item){layers[item.layer].push({label:item.label,severity:item.severity,source_path:item.source_path});}); pressure.forEach(function(item){layers[item.layer].push({label:item.label,severity:item.value,source_path:item.source_path});});
+    return {pressure_map:pressure,constraint_map:constraints,support_map:supports,capacity_profile:capacity,control_view:control,friction_layers:layers};
+  }
+  function buildInterpretation(input) {
+    var checks=[['$.input.context.description',Boolean(input.context.description),'Describe the affected situation and work.'],['$.input.context.affected_work',Boolean(input.context.affected_work.length),'List the work, decisions, or relationships affected.'],['$.input.pressure.sources',Boolean(input.pressure.sources.length),'Name the main pressure sources.'],['$.input.pressure.competing_demands',Boolean(input.pressure.competing_demands.length),'Record competing demands that consume capacity.'],['$.input.constraints.items',Boolean(input.constraints.items.length),'Map at least one constraint and its control zone.'],['$.input.supports.available',Boolean(input.supports.available.length),'Identify available or potential support channels.'],['$.input.capacity.available_time_hours',input.capacity.available_time_hours!==null,'Estimate available work time.'],['$.input.capacity.recovery_time_hours',input.capacity.recovery_time_hours!==null,'Estimate protected recovery time.'],['$.input.next_steps.checkpoint_date',input.next_steps.checkpoint_date!==null,'Set a checkpoint date.'],['$.input.next_steps.success_signal',Boolean(input.next_steps.success_signal),'Define an observable success signal.']];
+    var missing=checks.filter(function(item){return !item[1];}).map(function(item){return {path:item[0],prompt:item[2]};}); var percent=round((checks.length-missing.length)/checks.length*100,1); var contradictions=[];
+    function add(code,paths,message,prompt){contradictions.push({code:code,source_paths:paths,message:message,review_prompt:prompt});}
+    if(input.supports.level>=8&&!input.supports.available.length)add('support_without_channel',['$.input.supports.level','$.input.supports.available'],'High support access is recorded without a named support channel.','Name the support channel or revise the support level.');
+    if(input.capacity.clarity_level>=8&&input.pressure.decision_ambiguity>=8)add('clarity_ambiguity_conflict',['$.input.capacity.clarity_level','$.input.pressure.decision_ambiguity'],'High clarity and high decision ambiguity are both recorded.','Clarify whether personal task clarity differs from system-level decision ambiguity.');
+    if(input.capacity.available_time_hours!==null&&input.capacity.recovery_time_hours!==null&&input.capacity.recovery_time_hours>input.capacity.available_time_hours)add('recovery_time_exceeds_available',['$.input.capacity.recovery_time_hours','$.input.capacity.available_time_hours'],'Protected recovery time exceeds total available time.','Revise the estimates or explain the separate time windows.');
+    if(input.pressure.level>=8&&input.capacity.load_level<=3)add('pressure_load_conflict',['$.input.pressure.level','$.input.capacity.load_level'],'High pressure is recorded alongside low competing load.','Explain whether pressure is driven by urgency, consequences, or external uncertainty rather than workload.');
+    var score=Math.max(0,percent-contradictions.length*10), level=score>=80?'high':score>=55?'moderate':'low';
+    return {completeness:{percent:percent,present_fields:checks.length-missing.length,total_fields:checks.length,missing_context:missing},confidence:{level:level,score:round(score,1),rationale:'Confidence reflects recorded context completeness and unresolved contradictions, not certainty about future outcomes.'},contradictions:contradictions,review_required:Boolean(missing.length||contradictions.length),score_display_policy:{mode:'component_context_required',message:'The composite conditions score must be shown with component explanations and condition maps.'}};
+  }
   function buildFlags(input) {
-    var flags = []; function add(code, severity, section, message, rationale) { flags.push({ code: code, severity: severity, section: section, message: message, rationale: rationale }); }
-    if (input.impact.severity >= 8) add('high_impact', 'high', 'impact', 'Reduce scope and protect recovery time.', 'Impact severity is recorded at 8 or above.');
-    if (input.pressure.level >= 8) add('high_pressure', 'high', 'pressure', 'Clarify what can pause, wait, or be delegated.', 'Pressure is recorded at 8 or above.');
-    if (input.capacity.energy_level <= 3) add('low_energy_capacity', 'high', 'capacity', 'Avoid overloading the next action plan.', 'Energy capacity is recorded at 3 or below.');
-    if (input.supports.level <= 3) add('low_support_capacity', 'high', 'supports', 'Identify one concrete support channel before expanding work.', 'Support capacity is recorded at 3 or below.');
-    if (input.capacity.clarity_level <= 3) add('low_clarity_capacity', 'high', 'capacity', 'Define the decision, owner, and next checkpoint.', 'Clarity is recorded at 3 or below.');
-    if (input.capacity.time_horizon_days <= 3) add('short_horizon', 'medium', 'capacity', 'Choose a recovery action that can be completed quickly.', 'The time horizon is three days or less.');
-    var limited = input.constraints.items.filter(function (item) { return item.controllability === 'limited'; }).length;
-    if (limited >= 2) add('limited_constraints', 'medium', 'constraints', 'Separate controllable work from constraints that require escalation or accommodation.', 'Two or more constraints are recorded as having limited controllability.');
-    return flags;
+    var flags=[]; function add(code,severity,section,message,rationale,paths,conditions){flags.push({code:code,severity:severity,section:section,message:message,rationale:rationale,source_paths:paths,input_conditions:conditions});}
+    if(input.impact.severity>=8)add('high_impact','high','impact','Reduce scope and protect recovery time.','Impact severity is recorded at 8 or above.',['$.input.impact.severity'],{impact_severity:input.impact.severity});
+    if(input.pressure.level>=8)add('high_pressure','high','pressure','Clarify what can pause, wait, or be delegated.','Pressure is recorded at 8 or above.',['$.input.pressure.level'],{pressure_level:input.pressure.level});
+    if(input.pressure.decision_ambiguity>=8)add('decision_ambiguity','high','pressure','Name the decision, owner, and information still needed.','Decision ambiguity is recorded at 8 or above.',['$.input.pressure.decision_ambiguity'],{decision_ambiguity:input.pressure.decision_ambiguity});
+    if(input.pressure.dependency_friction>=8)add('dependency_friction','high','constraints','Route the dependency to an owner or escalation path.','Dependency friction is recorded at 8 or above.',['$.input.pressure.dependency_friction'],{dependency_friction:input.pressure.dependency_friction});
+    if(input.capacity.energy_level<=3)add('low_energy_capacity','high','capacity','Avoid overloading the next action plan.','Energy capacity is recorded at 3 or below.',['$.input.capacity.energy_level'],{energy_level:input.capacity.energy_level});
+    if(input.supports.level<=3)add('low_support_capacity','high','supports','Identify one concrete support channel before expanding work.','Support capacity is recorded at 3 or below.',['$.input.supports.level'],{support_level:input.supports.level});
+    if(input.capacity.clarity_level<=3)add('low_clarity_capacity','high','capacity','Define the decision, owner, and next checkpoint.','Clarity is recorded at 3 or below.',['$.input.capacity.clarity_level'],{clarity_level:input.capacity.clarity_level});
+    if(input.capacity.time_horizon_days<=3)add('short_horizon','medium','capacity','Choose a recovery action that can be completed quickly.','The time horizon is three days or less.',['$.input.capacity.time_horizon_days'],{time_horizon_days:input.capacity.time_horizon_days});
+    var paths=[];input.constraints.items.forEach(function(item,index){if(item.control_zone==='outside_control')paths.push('$.input.constraints.items['+index+']');});if(paths.length>=2)add('outside_control_constraints','medium','constraints','Separate adaptation work from constraints requiring accommodation or escalation.','Two or more constraints are outside direct control.',paths,{count:paths.length}); return flags;
   }
   function buildNextActions(input) {
     var output = []; var seen = {};
@@ -344,15 +372,15 @@
   function generateRecord(data, methodologyProfile) {
     var canonical = normalizeInput(data); var input = canonical.input; var profile = normalizeProfile(methodologyProfile || canonical.methodology_profile);
     var components = calculateComponentScores(input, profile); var total = 0; Object.keys(components).forEach(function (key) { total += components[key].normalized_value * components[key].weight; }); var score = round(total, 1);
-    var generatedState = stateFromScore(score, profile); var override = canonical.human_review.override_state; var effective = override || generatedState;
+    var generatedState = stateFromScore(score, profile); var override = canonical.human_review.override_state; var effective = override || generatedState; var conditionMap=buildConditionMap(input); var interpretation=buildInterpretation(input);
     return {
       metadata: canonical.metadata,
       user_input: canonical.user_input,
       normalized_input: input,
       findings: {
-        methodology: profile, component_scores: components, recovery_score: score, generated_state: generatedState, effective_state: effective,
+        methodology: profile, condition_map: conditionMap, interpretation: interpretation, component_scores: components, recovery_score: score, generated_state: generatedState, effective_state: effective,
         human_override_applied: Boolean(override), flags: buildFlags(input), recommended_actions: buildNextActions(input),
-        decision_note: 'Recorded recovery conditions are assessed as ' + generatedState + ' with a conditions score of ' + score + '/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.',
+        decision_note: 'Recorded recovery conditions are assessed as ' + generatedState + '. The composite conditions score is ' + score + '/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.',
         method_path: METHOD_PATH.slice(), interpretation_limits: INTERPRETATION_LIMITS.slice(),
         calculation_provenance: { schema_version: VERSION, engine_version: VERSION, profile_id: profile.profile_id, profile_version: profile.profile_version, calculated_at: canonical.metadata.updated_at }
       },
@@ -367,12 +395,12 @@
     return {
       metadata: { record_id: form.dataset.recordId || randomRecordId(), created_at: form.dataset.createdAt || now, updated_at: now, status: form.record_status.value, provenance: { created_by: 'browser user', source: 'browser', source_schema_version: VERSION, source_record_id: null, notes: '' } },
       input: {
-        context: { title: form.title.value, domain: form.domain.value, description: form.description.value, stakeholders: lines(form.stakeholders.value) },
+        context: { title: form.title.value, domain: form.domain.value, description: form.description.value, stakeholders: lines(form.stakeholders.value), affected_work: lines(form.affected_work.value) },
         trigger: { summary: form.trigger_summary.value, type: form.trigger_type.value, occurred_at: null },
         impact: { severity: form.impact_severity.value, scope: form.impact_scope.value, description: form.impact_description.value },
-        pressure: { level: form.pressure_level.value, sources: lines(form.pressure_sources.value) },
+        pressure: { level: form.pressure_level.value, sources: lines(form.pressure_sources.value), competing_demands: lines(form.competing_demands.value), decision_ambiguity: form.decision_ambiguity.value, dependency_friction: form.dependency_friction.value, stakeholder_friction: form.stakeholder_friction.value },
         constraints: { items: lines(form.constraints.value) }, supports: { level: form.support_level.value, available: lines(form.supports_available.value) },
-        capacity: { energy_level: form.energy_level.value, clarity_level: form.clarity_level.value, available_time_hours: form.available_time_hours.value, time_horizon_days: form.time_horizon_days.value },
+        capacity: { energy_level: form.energy_level.value, clarity_level: form.clarity_level.value, available_time_hours: form.available_time_hours.value, time_horizon_days: form.time_horizon_days.value, attention_level: form.attention_level.value, coordination_capacity: form.coordination_capacity.value, recovery_time_hours: form.recovery_time_hours.value, load_level: form.load_level.value },
         response: { actions: lines(form.response_actions.value), current_strategy: form.current_strategy.value },
         learning: { observations: lines(form.learning_observations.value), assumptions: lines(form.learning_assumptions.value), adaptations: lines(form.learning_adaptations.value) },
         next_steps: { actions: lines(form.next_actions.value), checkpoint_date: form.checkpoint_date.value || null, success_signal: form.success_signal.value }
@@ -390,8 +418,8 @@
     try {
       var output = generateRecord(collect(widget.querySelector('[data-cg-form]'))); var form = widget.querySelector('[data-cg-form]'); form.dataset.recordId = output.metadata.record_id; form.dataset.createdAt = output.metadata.created_at;
       widget.querySelector('[data-cg-score]').textContent = output.findings.recovery_score + '/100'; widget.querySelector('[data-cg-state]').textContent = output.findings.generated_state;
-      widget.querySelector('[data-cg-profile]').textContent = output.findings.methodology.profile_id + ' v' + output.findings.methodology.profile_version;
-      renderComponents(widget.querySelector('[data-cg-components]'), output.findings.component_scores);
+      widget.querySelector('[data-cg-profile]').textContent = output.findings.methodology.profile_id + ' v' + output.findings.methodology.profile_version; widget.querySelector('[data-cg-completeness]').textContent=output.findings.interpretation.completeness.percent+'%'; widget.querySelector('[data-cg-confidence]').textContent=output.findings.interpretation.confidence.level+' ('+output.findings.interpretation.confidence.score+'/100)';
+      renderComponents(widget.querySelector('[data-cg-components]'), output.findings.component_scores); list(widget.querySelector('[data-cg-pressure-map]'), output.findings.condition_map.pressure_map, function(item){return item.label+': '+item.value+'/10 · '+item.source_path;}, 'No pressure conditions mapped.'); list(widget.querySelector('[data-cg-constraint-map]'), output.findings.condition_map.constraint_map, function(item){return item.label+': '+item.control_zone.replace(/_/g,' ')+' · '+item.layer.replace(/_/g,' ')+' · '+item.severity+'/10';}, 'No constraints mapped.'); list(widget.querySelector('[data-cg-support-map]'), output.findings.condition_map.support_map, function(item){return item.label+': '+item.status+' · reliability '+item.reliability+'/10';}, 'No supports mapped.'); list(widget.querySelector('[data-cg-missing]'), output.findings.interpretation.completeness.missing_context, function(item){return item.path+': '+item.prompt;}, 'No missing-context prompts.'); list(widget.querySelector('[data-cg-contradictions]'), output.findings.interpretation.contradictions, function(item){return item.message+' '+item.review_prompt;}, 'No contradictions detected.');
       list(widget.querySelector('[data-cg-flags]'), output.findings.flags, function (item) { return item.severity.toUpperCase() + ' · ' + item.section + ': ' + item.message; }, 'No major review flags generated.');
       list(widget.querySelector('[data-cg-actions]'), output.findings.recommended_actions, function (item) { return item.priority.toUpperCase() + ': ' + item.title + ' — ' + item.rationale; }, 'No actions generated.');
       widget.querySelector('[data-cg-note]').textContent = output.findings.decision_note; widget.querySelector('[data-cg-json]').textContent = JSON.stringify(output, null, 2); widget._cgOutput = output; return output;
@@ -407,5 +435,5 @@
     });
   }
   if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize); else initialize(); }
-  return { VERSION: VERSION, DEFAULT_PROFILE: clone(DEFAULT_PROFILE), ValidationError: ValidationError, migrateV1Request: migrateV1Request, normalizeInput: normalizeInput, normalizeProfile: normalizeProfile, calculateComponentScores: calculateComponentScores, stateFromScore: stateFromScore, buildFlags: buildFlags, buildNextActions: buildNextActions, generateRecord: generateRecord };
+  return { VERSION: VERSION, DEFAULT_PROFILE: clone(DEFAULT_PROFILE), ValidationError: ValidationError, migrateV1Request: migrateV1Request, normalizeInput: normalizeInput, normalizeProfile: normalizeProfile, calculateComponentScores: calculateComponentScores, stateFromScore: stateFromScore, buildConditionMap: buildConditionMap, buildInterpretation: buildInterpretation, buildFlags: buildFlags, buildNextActions: buildNextActions, generateRecord: generateRecord };
 });

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Portable, dependency-free Catalyst Grit v1.2.0 smoke test."""
+"""Portable, dependency-free Catalyst Grit v1.3.0 smoke test."""
 from __future__ import annotations
 
 import json
+import os
 import py_compile
 import re
 import shutil
@@ -40,12 +41,12 @@ def main() -> int:
         f"local package import mismatch: imported {imported_file}; expected under {expected_package}",
     )
     check(
-        version == __version__ == "1.2.0",
+        version == __version__ == "1.3.0",
         f"version identity mismatch: VERSION={version!r}, imported={__version__!r}, module={imported_file}",
     )
     manifest = json.loads((ROOT / "catalyst_grit_manifest.json").read_text())
     check(manifest["version"] == manifest["schema_version"] == manifest["engine_version"] == version, "manifest version mismatch")
-    check(json.loads((ROOT / "methodology/recovery-profile-v1.2.0.json").read_text()) == DEFAULT_METHODOLOGY_PROFILE, "methodology profile mismatch")
+    check(json.loads((ROOT / "methodology/recovery-profile-v1.3.0.json").read_text()) == DEFAULT_METHODOLOGY_PROFILE, "methodology profile mismatch")
     schema_names = [
         "catalyst_grit_record.schema.json",
         "catalyst_grit_request.schema.json",
@@ -61,11 +62,14 @@ def main() -> int:
     plugin = (ROOT / "wordpress/catalyst-grit-demo/catalyst-grit-demo.php").read_text()
     check(bool(re.search(r"Version:\s*" + re.escape(version), plugin)), "plugin version mismatch")
     check("wp_ajax_nopriv_catalyst_grit_workspace" not in plugin, "private workspace exposes an anonymous AJAX action")
-    check("check_ajax_referer('catalyst_grit_workspace_v120', 'nonce')" in plugin, "workspace nonce guard missing")
+    check("check_ajax_referer('catalyst_grit_workspace_v130', 'nonce')" in plugin, "workspace nonce guard missing")
 
     request = json.loads((ROOT / "examples/grit_record_input.json").read_text())
     expected = json.loads((ROOT / "examples/grit_record_output.json").read_text())
-    check(generate_record(request).to_dict() == expected, "Python output parity failed")
+    generated = generate_record(request).to_dict()
+    check(generated == expected, "Python output parity failed")
+    check(generated["findings"]["interpretation"]["score_display_policy"]["mode"] == "component_context_required", "score display policy missing")
+    check(all(item.get("source_paths") for item in generated["findings"]["flags"]), "flag source paths missing")
 
     with tempfile.TemporaryDirectory(prefix="catalyst-grit-smoke-") as temp:
         database = Path(temp) / "workspace.sqlite3"
@@ -89,15 +93,20 @@ def main() -> int:
         subprocess.run(["node", "--check", "wordpress/catalyst-grit-demo/assets/catalyst-grit-workspace.js"], cwd=ROOT, check=True)
     if shutil.which("php"):
         subprocess.run(["php", "-l", "wordpress/catalyst-grit-demo/catalyst-grit-demo.php"], cwd=ROOT, check=True)
+    allow_local_state = os.environ.get("CATALYST_GRIT_ALLOW_LOCAL_STATE") == "1"
     forbidden = []
     for path in ROOT.rglob("*"):
         rel = path.relative_to(ROOT)
         if any(part in {".git", "dist", "build", "__pycache__", ".pytest_cache"} for part in rel.parts):
             continue
-        if path.is_file() and (path.suffix in {".db", ".sqlite", ".sqlite3"} or ".egg-info" in rel.parts):
+        if not path.is_file():
+            continue
+        if ".egg-info" in rel.parts:
+            forbidden.append(str(rel))
+        elif path.suffix in {".db", ".sqlite", ".sqlite3"} and not allow_local_state:
             forbidden.append(str(rel))
     check(not forbidden, "forbidden repository artifacts: " + ", ".join(forbidden))
-    print("Catalyst Grit v1.2.0 portable release smoke tests passed.")
+    print("Catalyst Grit v1.3.0 portable release smoke tests passed.")
     return 0
 
 

@@ -14,12 +14,45 @@
 
 The workstream lost momentum after conflicting stakeholder feedback and a missed internal checkpoint.
 
+## Condition maps
+
+### Pressure map
+
+- **Overall pressure:** 8.0/10 — `$.input.pressure.level`
+- **Decision ambiguity:** 7.0/10 — `$.input.pressure.decision_ambiguity`
+- **Dependency friction:** 8.0/10 — `$.input.pressure.dependency_friction`
+- **Stakeholder friction:** 7.0/10 — `$.input.pressure.stakeholder_friction`
+- **Competing load:** 8.0/10 — `$.input.capacity.load_level`
+
+### Constraint map
+
+- **Final approval dependency:** influence · near term · 8.0/10
+- **Limited review window:** outside control · immediate · 7.0/10
+
+### Support map
+
+- **Project lead:** active · reliability 8.0/10 · contribution 8.0/10
+- **Decision log:** active · reliability 7.0/10 · contribution 6.0/10
+
+### Completeness and review
+
+- **Completeness:** 100.0%
+- **Confidence:** high (100.0/100)
+
+#### Missing-context prompts
+
+- No required context prompts remain.
+
+#### Contradictions
+
+- No contradictions detected.
+
 ## Recovery conditions
 
-- **Score:** 47.8/100
+- **Score (component context required):** 47.8/100
 - **Generated state:** fragile recovery conditions
 - **Effective state:** fragile recovery conditions
-- **Methodology:** cg-recovery-conditions v1.2.0
+- **Methodology:** cg-recovery-conditions v1.3.0
 
 ## Component scores
 
@@ -34,6 +67,7 @@ The workstream lost momentum after conflicting stakeholder feedback and a missed
 ## Review flags
 
 - **High · pressure:** Clarify what can pause, wait, or be delegated.
+- **High · constraints:** Route the dependency to an owner or escalation path.
 
 ## Recommended actions
 
@@ -46,7 +80,7 @@ The workstream lost momentum after conflicting stakeholder feedback and a missed
 
 ## Decision note
 
-Recorded recovery conditions are assessed as fragile recovery conditions with a conditions score of 47.8/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.
+Recorded recovery conditions are assessed as fragile recovery conditions. The composite conditions score is 47.8/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.
 
 ## Human review
 
@@ -63,6 +97,6 @@ Recorded recovery conditions are assessed as fragile recovery conditions with a 
 
 ## Release provenance
 
-- **Schema version:** 1.2.0
-- **Engine version:** 1.2.0
+- **Schema version:** 1.3.0
+- **Engine version:** 1.3.0
 - **Method path:** context → trigger → impact → pressure → constraints → supports → capacity → response → learning → next steps → human review

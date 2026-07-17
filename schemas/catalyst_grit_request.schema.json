@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.2.0/recovery-record-request.schema.json",
+  "$id": "https://sustainablecatalyst.com/schemas/catalyst-grit/1.3.0/recovery-record-request.schema.json",
   "title": "Catalyst Grit Recovery Record Request",
-  "description": "Strict canonical request for the Catalyst Grit v1.2 shared engine.",
-  "x-catalyst-grit-version": "1.2.0",
+  "description": "Strict canonical request for the Catalyst Grit v1.3 shared engine.",
+  "x-catalyst-grit-version": "1.3.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,11 +22,13 @@
           "type": "string",
           "enum": [
             "1.0.1",
-            "1.2.0"
+            "1.1.0",
+            "1.2.0",
+            "1.3.0"
           ]
         },
         "engine_version": {
-          "const": "1.2.0"
+          "const": "1.3.0"
         },
         "created_at": {
           "type": "string",
@@ -139,6 +141,12 @@
                   "type": "string"
                 }
               ]
+            },
+            "affected_work": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         },
@@ -243,6 +251,27 @@
                   "type": "string"
                 }
               ]
+            },
+            "competing_demands": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "decision_ambiguity": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "dependency_friction": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "stakeholder_friction": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
             }
           }
         },
@@ -295,6 +324,36 @@
                               "limited",
                               "unknown"
                             ]
+                          },
+                          "control_zone": {
+                            "type": "string",
+                            "enum": [
+                              "control",
+                              "influence",
+                              "outside_control",
+                              "unknown"
+                            ]
+                          },
+                          "layer": {
+                            "type": "string",
+                            "enum": [
+                              "immediate",
+                              "near_term",
+                              "structural"
+                            ]
+                          },
+                          "severity": {
+                            "oneOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "notes": {
+                            "type": "string"
                           }
                         }
                       }
@@ -369,6 +428,27 @@
                                 "type": "string"
                               }
                             ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "potential",
+                              "unavailable"
+                            ]
+                          },
+                          "capacity_contribution": {
+                            "oneOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "notes": {
+                            "type": "string"
                           }
                         }
                       }
@@ -434,6 +514,28 @@
                   "type": "string"
                 }
               ]
+            },
+            "attention_level": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "coordination_capacity": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "recovery_time_hours": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "load_level": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
             }
           }
         },

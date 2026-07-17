@@ -77,6 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     record_save = commands.add_parser("record-save", help="Generate/import and persist a record"); _db_argument(record_save); record_save.add_argument("project_id"); record_save.add_argument("input", type=Path); record_save.add_argument("--reason", default="saved")
     record_revise = commands.add_parser("record-revise", help="Create an append-only record revision"); _db_argument(record_revise); record_revise.add_argument("record_id"); record_revise.add_argument("input", type=Path); record_revise.add_argument("--reason", default="reassessment")
     record_show = commands.add_parser("record-show", help="Reopen a saved recovery record"); _db_argument(record_show); record_show.add_argument("record_id"); record_show.add_argument("--canonical", action="store_true")
+    record_map = commands.add_parser("record-map", help="Inspect saved condition maps, completeness, contradictions, and flags"); _db_argument(record_map); record_map.add_argument("record_id")
     record_list = commands.add_parser("record-list", help="List records in a project"); _db_argument(record_list); record_list.add_argument("project_id"); record_list.add_argument("--all", action="store_true")
     revisions = commands.add_parser("record-revisions", help="Inspect append-only revision history"); _db_argument(revisions); revisions.add_argument("record_id")
     compare = commands.add_parser("record-compare", help="Compare two revisions"); _db_argument(compare); compare.add_argument("record_id"); compare.add_argument("--from", dest="from_revision", type=int, required=True); compare.add_argument("--to", dest="to_revision", type=int, required=True)
@@ -112,6 +113,9 @@ def _workspace_command(args: argparse.Namespace) -> Any:
         if args.command == "record-save": return repo.save_record(args.project_id, _read_json(args.input), reason=args.reason)
         if args.command == "record-revise": return repo.revise_record(args.record_id, _read_json(args.input), reason=args.reason)
         if args.command == "record-show": return repo.get_record(args.record_id, include_canonical=args.canonical, include_deleted=True)
+        if args.command == "record-map":
+            canonical = repo.get_record(args.record_id, include_canonical=True, include_deleted=True)["canonical"]
+            return {"record_id": args.record_id, "condition_map": canonical["findings"]["condition_map"], "interpretation": canonical["findings"]["interpretation"], "flags": canonical["findings"]["flags"]}
         if args.command == "record-list": return repo.list_records(args.project_id, include_archived=args.all, include_deleted=args.all)
         if args.command == "record-revisions": return repo.list_revisions(args.record_id)
         if args.command == "record-compare": return repo.compare_revisions(args.record_id, args.from_revision, args.to_revision)

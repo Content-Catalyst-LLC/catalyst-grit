@@ -1,59 +1,35 @@
 # Catalyst Grit
 
-**Current release: v1.2.0 — Persistent Records, Projects, and Review Checkpoints**
+**Current release: v1.3.0 — Pressure, Constraint, Support, and Capacity Mapping**
 
-Catalyst Grit is a Sustainable Catalyst human-systems module for documenting setbacks, recovery conditions, response choices, learning, and review checkpoints. It evaluates recovery conditions—not character, worth, motivation, or clinical state.
+Catalyst Grit is a private-by-default human-systems recovery and learning engine. It documents setbacks, the conditions shaping recovery, actions, checkpoints, and learning without scoring character, diagnosing health, or ranking people.
 
-## v1.2 private workspace
+## v1.3.0 capabilities
 
-The installable package now includes a local-first SQLite repository with:
+- Pressure map covering overall pressure, competing load, decision ambiguity, dependency friction, and stakeholder friction
+- Constraint map with type, severity, control zone, and immediate / near-term / structural layer
+- Support map with availability status, reliability, and capacity contribution
+- Recovery-capacity profile for energy, clarity, attention, coordination, time, and support access
+- Control / influence / outside-control routing view
+- Completeness prompts, contradiction detection, and confidence indicators
+- Review flags that cite the exact input paths and values that caused them
+- Composite score displayed only with component and condition context
+- Persistent SQLite projects, append-only revisions, checkpoints, reviews, audit history, retention, import, and export
+- Public non-persistent browser demo and authenticated private WordPress workspace
 
-- private recovery projects and records;
-- append-only revisions with exact inputs, outputs, versions, hashes, actors, and reasons;
-- saved actions, checkpoints, human reviews, status history, and audit events;
-- reopen, compare, duplicate, archive, delete, retention, and guarded purge operations;
-- v1.0/v1.1/v1.2 import and `catalyst-grit-workspace/1.0` export/import;
-- ordered reversible migrations packaged inside the Python wheel.
-
-The canonical recovery record still contains `metadata`, `user_input`, `normalized_input`, `findings`, `human_review`, and `extensions`. The `cg-recovery-conditions@1.2.0` methodology remains explainable and non-diagnostic.
-
-## Install and validate
+## Quick validation
 
 ```bash
-python3 -m pip install -e '.[dev]'
 python3 scripts/release_contract.py
 ```
 
-## Generate a one-time record
+## CLI
 
 ```bash
-grit validate examples/grit_record_input.json
-grit generate examples/grit_record_input.json --format json
-grit generate examples/grit_record_input.json --format markdown
+grit generate examples/grit_record_input.json
+grit init --database catalyst-grit.sqlite3
+grit project-create --database catalyst-grit.sqlite3 --title "Recovery project"
+grit record-map --database catalyst-grit.sqlite3 RECORD_ID
 ```
 
-## Create a private workspace
-
-```bash
-grit init --database ~/catalyst-grit.sqlite3
-grit project-create --database ~/catalyst-grit.sqlite3 --title "Reporting recovery"
-grit record-save --database ~/catalyst-grit.sqlite3 PROJECT_ID examples/grit_record_input.json
-grit record-show --database ~/catalyst-grit.sqlite3 RECORD_ID --canonical
-grit checkpoint-add --database ~/catalyst-grit.sqlite3 PROJECT_ID --record RECORD_ID --title "72-hour review" --date 2026-07-20
-grit workspace-export --database ~/catalyst-grit.sqlite3 --record RECORD_ID --output recovery-workspace.json
-```
-
-Use `grit --help` for revision comparison, duplication, archiving, deletion, retention, purge, review, migration, and import commands.
-
-## WordPress
-
-- `[catalyst_grit_demo]` — public browser demo; no persistence by default.
-- `[catalyst_grit_workspace]` — authenticated private per-user workspace with nonce-protected save, load, and delete actions.
-
-## Boundaries
-
-Catalyst Grit is educational and analytical infrastructure. It is not mental-health advice, diagnosis, personality or character scoring, employee evaluation, ranking, automated eligibility, professional care, or an outcome guarantee. Consequential interpretation requires human review.
-
-## License
-
-MIT. See `LICENSE`.
+Catalyst Grit is educational and analytical infrastructure. It is not diagnosis, mental-health advice, employee evaluation, automated eligibility, or an outcome guarantee.

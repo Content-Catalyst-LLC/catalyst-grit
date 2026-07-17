@@ -4,14 +4,14 @@
     "input": {
       "metadata": {
         "record_id": "cgr_11111111111111111111111111111111",
-        "schema_version": "1.2.0",
+        "schema_version": "1.3.0",
         "created_at": "2026-07-17T12:00:00Z",
         "updated_at": "2026-07-17T12:00:00Z",
         "status": "draft",
         "provenance": {
           "created_by": "example-user",
           "source": "direct_entry",
-          "source_schema_version": "1.2.0",
+          "source_schema_version": "1.3.0",
           "source_record_id": null,
           "notes": "Canonical recovery-record example."
         }
@@ -140,15 +140,15 @@
     "expected": {
       "metadata": {
         "record_id": "cgr_11111111111111111111111111111111",
-        "schema_version": "1.2.0",
-        "engine_version": "1.2.0",
+        "schema_version": "1.3.0",
+        "engine_version": "1.3.0",
         "created_at": "2026-07-17T12:00:00Z",
         "updated_at": "2026-07-17T12:00:00Z",
         "status": "draft",
         "provenance": {
           "created_by": "example-user",
           "source": "direct_entry",
-          "source_schema_version": "1.2.0",
+          "source_schema_version": "1.3.0",
           "source_record_id": null,
           "notes": "Canonical recovery-record example."
         }
@@ -272,7 +272,8 @@
             "project lead",
             "reporting team",
             "reviewers"
-          ]
+          ],
+          "affected_work": []
         },
         "trigger": {
           "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
@@ -289,19 +290,31 @@
           "sources": [
             "publication deadline",
             "stakeholder disagreement"
-          ]
+          ],
+          "competing_demands": [],
+          "decision_ambiguity": 5.0,
+          "dependency_friction": 5.0,
+          "stakeholder_friction": 5.0
         },
         "constraints": {
           "items": [
             {
               "label": "Final approval dependency",
               "type": "dependency",
-              "controllability": "influence"
+              "controllability": "influence",
+              "control_zone": "influence",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": ""
             },
             {
               "label": "Limited review window",
               "type": "time",
-              "controllability": "limited"
+              "controllability": "limited",
+              "control_zone": "outside_control",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": ""
             }
           ]
         },
@@ -311,12 +324,18 @@
             {
               "label": "Project lead",
               "type": "person",
-              "reliability": 8.0
+              "reliability": 8.0,
+              "status": "active",
+              "capacity_contribution": 8.0,
+              "notes": ""
             },
             {
               "label": "Decision log",
               "type": "process",
-              "reliability": 7.0
+              "reliability": 7.0,
+              "status": "active",
+              "capacity_contribution": 7.0,
+              "notes": ""
             }
           ]
         },
@@ -324,7 +343,11 @@
           "energy_level": 5.0,
           "clarity_level": 4.0,
           "available_time_hours": 12.0,
-          "time_horizon_days": 14
+          "time_horizon_days": 14,
+          "attention_level": 4.0,
+          "coordination_capacity": 6.0,
+          "recovery_time_hours": null,
+          "load_level": 8.0
         },
         "response": {
           "actions": [
@@ -376,7 +399,7 @@
       "findings": {
         "methodology": {
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.2.0",
+          "profile_version": "1.3.0",
           "calculation_spec": "weighted-components-v1",
           "component_weights": {
             "impact_buffer": 15.0,
@@ -391,6 +414,242 @@
             "stable": 75.0,
             "focused_support": 55.0,
             "fragile": 35.0
+          }
+        },
+        "condition_map": {
+          "pressure_map": [
+            {
+              "code": "overall_pressure",
+              "label": "Overall pressure",
+              "value": 8.0,
+              "source_path": "$.input.pressure.level",
+              "layer": "immediate",
+              "control_zone": "influence"
+            },
+            {
+              "code": "decision_ambiguity",
+              "label": "Decision ambiguity",
+              "value": 5.0,
+              "source_path": "$.input.pressure.decision_ambiguity",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "dependency_friction",
+              "label": "Dependency friction",
+              "value": 5.0,
+              "source_path": "$.input.pressure.dependency_friction",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "stakeholder_friction",
+              "label": "Stakeholder friction",
+              "value": 5.0,
+              "source_path": "$.input.pressure.stakeholder_friction",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "load_level",
+              "label": "Competing load",
+              "value": 8.0,
+              "source_path": "$.input.capacity.load_level",
+              "layer": "immediate",
+              "control_zone": "control"
+            }
+          ],
+          "constraint_map": [
+            {
+              "label": "Final approval dependency",
+              "type": "dependency",
+              "controllability": "influence",
+              "control_zone": "influence",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": "",
+              "source_path": "$.input.constraints.items[0]"
+            },
+            {
+              "label": "Limited review window",
+              "type": "time",
+              "controllability": "limited",
+              "control_zone": "outside_control",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": "",
+              "source_path": "$.input.constraints.items[1]"
+            }
+          ],
+          "support_map": [
+            {
+              "label": "Project lead",
+              "type": "person",
+              "reliability": 8.0,
+              "status": "active",
+              "capacity_contribution": 8.0,
+              "notes": "",
+              "source_path": "$.input.supports.available[0]"
+            },
+            {
+              "label": "Decision log",
+              "type": "process",
+              "reliability": 7.0,
+              "status": "active",
+              "capacity_contribution": 7.0,
+              "notes": "",
+              "source_path": "$.input.supports.available[1]"
+            }
+          ],
+          "capacity_profile": [
+            {
+              "code": "energy",
+              "label": "Energy capacity",
+              "value": 5.0,
+              "source_path": "$.input.capacity.energy_level"
+            },
+            {
+              "code": "clarity",
+              "label": "Decision clarity",
+              "value": 4.0,
+              "source_path": "$.input.capacity.clarity_level"
+            },
+            {
+              "code": "attention",
+              "label": "Attention capacity",
+              "value": 4.0,
+              "source_path": "$.input.capacity.attention_level"
+            },
+            {
+              "code": "coordination",
+              "label": "Coordination capacity",
+              "value": 6.0,
+              "source_path": "$.input.capacity.coordination_capacity"
+            },
+            {
+              "code": "support_access",
+              "label": "Support access",
+              "value": 6.0,
+              "source_path": "$.input.supports.level"
+            }
+          ],
+          "control_view": {
+            "control": [
+              {
+                "label": "Competing load",
+                "source_path": "$.input.capacity.load_level",
+                "kind": "pressure"
+              }
+            ],
+            "influence": [
+              {
+                "label": "Final approval dependency",
+                "source_path": "$.input.constraints.items[0]",
+                "kind": "constraint"
+              },
+              {
+                "label": "Overall pressure",
+                "source_path": "$.input.pressure.level",
+                "kind": "pressure"
+              },
+              {
+                "label": "Decision ambiguity",
+                "source_path": "$.input.pressure.decision_ambiguity",
+                "kind": "pressure"
+              },
+              {
+                "label": "Dependency friction",
+                "source_path": "$.input.pressure.dependency_friction",
+                "kind": "pressure"
+              },
+              {
+                "label": "Stakeholder friction",
+                "source_path": "$.input.pressure.stakeholder_friction",
+                "kind": "pressure"
+              }
+            ],
+            "outside_control": [
+              {
+                "label": "Limited review window",
+                "source_path": "$.input.constraints.items[1]",
+                "kind": "constraint"
+              }
+            ],
+            "unknown": []
+          },
+          "friction_layers": {
+            "immediate": [
+              {
+                "label": "Final approval dependency",
+                "severity": 5.0,
+                "source_path": "$.input.constraints.items[0]"
+              },
+              {
+                "label": "Limited review window",
+                "severity": 5.0,
+                "source_path": "$.input.constraints.items[1]"
+              },
+              {
+                "label": "Overall pressure",
+                "severity": 8.0,
+                "source_path": "$.input.pressure.level"
+              },
+              {
+                "label": "Competing load",
+                "severity": 8.0,
+                "source_path": "$.input.capacity.load_level"
+              }
+            ],
+            "near_term": [
+              {
+                "label": "Decision ambiguity",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.decision_ambiguity"
+              },
+              {
+                "label": "Dependency friction",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.dependency_friction"
+              },
+              {
+                "label": "Stakeholder friction",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.stakeholder_friction"
+              }
+            ],
+            "structural": []
+          }
+        },
+        "interpretation": {
+          "completeness": {
+            "percent": 70.0,
+            "present_fields": 7,
+            "total_fields": 10,
+            "missing_context": [
+              {
+                "path": "$.input.context.affected_work",
+                "prompt": "List the work, decisions, or relationships affected."
+              },
+              {
+                "path": "$.input.pressure.competing_demands",
+                "prompt": "Record competing demands that consume capacity."
+              },
+              {
+                "path": "$.input.capacity.recovery_time_hours",
+                "prompt": "Estimate protected recovery time."
+              }
+            ]
+          },
+          "confidence": {
+            "level": "moderate",
+            "score": 70.0,
+            "rationale": "Confidence reflects recorded context completeness and unresolved contradictions, not certainty about future outcomes."
+          },
+          "contradictions": [],
+          "review_required": true,
+          "score_display_policy": {
+            "mode": "component_context_required",
+            "message": "The composite conditions score must be shown with component explanations and condition maps."
           }
         },
         "component_scores": {
@@ -454,7 +713,13 @@
             "severity": "high",
             "section": "pressure",
             "message": "Clarify what can pause, wait, or be delegated.",
-            "rationale": "Pressure is recorded at 8 or above."
+            "rationale": "Pressure is recorded at 8 or above.",
+            "source_paths": [
+              "$.input.pressure.level"
+            ],
+            "input_conditions": {
+              "pressure_level": 8.0
+            }
           }
         ],
         "recommended_actions": [
@@ -501,7 +766,7 @@
             "priority": "high"
           }
         ],
-        "decision_note": "Recorded recovery conditions are assessed as fragile recovery conditions with a conditions score of 47.8/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
+        "decision_note": "Recorded recovery conditions are assessed as fragile recovery conditions. The composite conditions score is 47.8/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
         "method_path": [
           "context",
           "trigger",
@@ -522,10 +787,10 @@
           "Generated findings require human review when used for consequential decisions."
         ],
         "calculation_provenance": {
-          "schema_version": "1.2.0",
-          "engine_version": "1.2.0",
+          "schema_version": "1.3.0",
+          "engine_version": "1.3.0",
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.2.0",
+          "profile_version": "1.3.0",
           "calculated_at": "2026-07-17T12:00:00Z"
         }
       },
@@ -546,14 +811,14 @@
     "input": {
       "metadata": {
         "record_id": "cgr_22222222222222222222222222222222",
-        "schema_version": "1.2.0",
+        "schema_version": "1.3.0",
         "created_at": "2026-07-10T10:00:00Z",
         "updated_at": "2026-07-17T13:00:00Z",
         "status": "reviewed",
         "provenance": {
           "created_by": "example-user",
           "source": "direct_entry",
-          "source_schema_version": "1.2.0",
+          "source_schema_version": "1.3.0",
           "source_record_id": null,
           "notes": "Canonical recovery-record example."
         }
@@ -665,15 +930,15 @@
     "expected": {
       "metadata": {
         "record_id": "cgr_22222222222222222222222222222222",
-        "schema_version": "1.2.0",
-        "engine_version": "1.2.0",
+        "schema_version": "1.3.0",
+        "engine_version": "1.3.0",
         "created_at": "2026-07-10T10:00:00Z",
         "updated_at": "2026-07-17T13:00:00Z",
         "status": "reviewed",
         "provenance": {
           "created_by": "example-user",
           "source": "direct_entry",
-          "source_schema_version": "1.2.0",
+          "source_schema_version": "1.3.0",
           "source_record_id": null,
           "notes": "Canonical recovery-record example."
         }
@@ -778,7 +1043,8 @@
             "project lead",
             "reporting team",
             "reviewers"
-          ]
+          ],
+          "affected_work": []
         },
         "trigger": {
           "summary": "A delayed handoff was resolved.",
@@ -792,7 +1058,11 @@
         },
         "pressure": {
           "level": 2.0,
-          "sources": []
+          "sources": [],
+          "competing_demands": [],
+          "decision_ambiguity": 5.0,
+          "dependency_friction": 5.0,
+          "stakeholder_friction": 5.0
         },
         "constraints": {
           "items": []
@@ -803,7 +1073,10 @@
             {
               "label": "Delivery team",
               "type": "team",
-              "reliability": 9.0
+              "reliability": 9.0,
+              "status": "active",
+              "capacity_contribution": 9.0,
+              "notes": ""
             }
           ]
         },
@@ -811,7 +1084,11 @@
           "energy_level": 9.0,
           "clarity_level": 9.0,
           "available_time_hours": 30.0,
-          "time_horizon_days": 21
+          "time_horizon_days": 21,
+          "attention_level": 9.0,
+          "coordination_capacity": 9.0,
+          "recovery_time_hours": null,
+          "load_level": 2.0
         },
         "response": {
           "actions": [
@@ -863,7 +1140,7 @@
       "findings": {
         "methodology": {
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.2.0",
+          "profile_version": "1.3.0",
           "calculation_spec": "weighted-components-v1",
           "component_weights": {
             "impact_buffer": 15.0,
@@ -878,6 +1155,199 @@
             "stable": 75.0,
             "focused_support": 55.0,
             "fragile": 35.0
+          }
+        },
+        "condition_map": {
+          "pressure_map": [
+            {
+              "code": "overall_pressure",
+              "label": "Overall pressure",
+              "value": 2.0,
+              "source_path": "$.input.pressure.level",
+              "layer": "immediate",
+              "control_zone": "influence"
+            },
+            {
+              "code": "decision_ambiguity",
+              "label": "Decision ambiguity",
+              "value": 5.0,
+              "source_path": "$.input.pressure.decision_ambiguity",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "dependency_friction",
+              "label": "Dependency friction",
+              "value": 5.0,
+              "source_path": "$.input.pressure.dependency_friction",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "stakeholder_friction",
+              "label": "Stakeholder friction",
+              "value": 5.0,
+              "source_path": "$.input.pressure.stakeholder_friction",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "load_level",
+              "label": "Competing load",
+              "value": 2.0,
+              "source_path": "$.input.capacity.load_level",
+              "layer": "immediate",
+              "control_zone": "control"
+            }
+          ],
+          "constraint_map": [],
+          "support_map": [
+            {
+              "label": "Delivery team",
+              "type": "team",
+              "reliability": 9.0,
+              "status": "active",
+              "capacity_contribution": 9.0,
+              "notes": "",
+              "source_path": "$.input.supports.available[0]"
+            }
+          ],
+          "capacity_profile": [
+            {
+              "code": "energy",
+              "label": "Energy capacity",
+              "value": 9.0,
+              "source_path": "$.input.capacity.energy_level"
+            },
+            {
+              "code": "clarity",
+              "label": "Decision clarity",
+              "value": 9.0,
+              "source_path": "$.input.capacity.clarity_level"
+            },
+            {
+              "code": "attention",
+              "label": "Attention capacity",
+              "value": 9.0,
+              "source_path": "$.input.capacity.attention_level"
+            },
+            {
+              "code": "coordination",
+              "label": "Coordination capacity",
+              "value": 9.0,
+              "source_path": "$.input.capacity.coordination_capacity"
+            },
+            {
+              "code": "support_access",
+              "label": "Support access",
+              "value": 9.0,
+              "source_path": "$.input.supports.level"
+            }
+          ],
+          "control_view": {
+            "control": [
+              {
+                "label": "Competing load",
+                "source_path": "$.input.capacity.load_level",
+                "kind": "pressure"
+              }
+            ],
+            "influence": [
+              {
+                "label": "Overall pressure",
+                "source_path": "$.input.pressure.level",
+                "kind": "pressure"
+              },
+              {
+                "label": "Decision ambiguity",
+                "source_path": "$.input.pressure.decision_ambiguity",
+                "kind": "pressure"
+              },
+              {
+                "label": "Dependency friction",
+                "source_path": "$.input.pressure.dependency_friction",
+                "kind": "pressure"
+              },
+              {
+                "label": "Stakeholder friction",
+                "source_path": "$.input.pressure.stakeholder_friction",
+                "kind": "pressure"
+              }
+            ],
+            "outside_control": [],
+            "unknown": []
+          },
+          "friction_layers": {
+            "immediate": [
+              {
+                "label": "Overall pressure",
+                "severity": 2.0,
+                "source_path": "$.input.pressure.level"
+              },
+              {
+                "label": "Competing load",
+                "severity": 2.0,
+                "source_path": "$.input.capacity.load_level"
+              }
+            ],
+            "near_term": [
+              {
+                "label": "Decision ambiguity",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.decision_ambiguity"
+              },
+              {
+                "label": "Dependency friction",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.dependency_friction"
+              },
+              {
+                "label": "Stakeholder friction",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.stakeholder_friction"
+              }
+            ],
+            "structural": []
+          }
+        },
+        "interpretation": {
+          "completeness": {
+            "percent": 50.0,
+            "present_fields": 5,
+            "total_fields": 10,
+            "missing_context": [
+              {
+                "path": "$.input.context.affected_work",
+                "prompt": "List the work, decisions, or relationships affected."
+              },
+              {
+                "path": "$.input.pressure.sources",
+                "prompt": "Name the main pressure sources."
+              },
+              {
+                "path": "$.input.pressure.competing_demands",
+                "prompt": "Record competing demands that consume capacity."
+              },
+              {
+                "path": "$.input.constraints.items",
+                "prompt": "Map at least one constraint and its control zone."
+              },
+              {
+                "path": "$.input.capacity.recovery_time_hours",
+                "prompt": "Estimate protected recovery time."
+              }
+            ]
+          },
+          "confidence": {
+            "level": "low",
+            "score": 50.0,
+            "rationale": "Confidence reflects recorded context completeness and unresolved contradictions, not certainty about future outcomes."
+          },
+          "contradictions": [],
+          "review_required": true,
+          "score_display_policy": {
+            "mode": "component_context_required",
+            "message": "The composite conditions score must be shown with component explanations and condition maps."
           }
         },
         "component_scores": {
@@ -966,7 +1436,7 @@
             "priority": "medium"
           }
         ],
-        "decision_note": "Recorded recovery conditions are assessed as stable recovery conditions with a conditions score of 91.7/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
+        "decision_note": "Recorded recovery conditions are assessed as stable recovery conditions. The composite conditions score is 91.7/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
         "method_path": [
           "context",
           "trigger",
@@ -987,10 +1457,10 @@
           "Generated findings require human review when used for consequential decisions."
         ],
         "calculation_provenance": {
-          "schema_version": "1.2.0",
-          "engine_version": "1.2.0",
+          "schema_version": "1.3.0",
+          "engine_version": "1.3.0",
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.2.0",
+          "profile_version": "1.3.0",
           "calculated_at": "2026-07-17T13:00:00Z"
         }
       },
@@ -1013,14 +1483,14 @@
     "input": {
       "metadata": {
         "record_id": "cgr_33333333333333333333333333333333",
-        "schema_version": "1.2.0",
+        "schema_version": "1.3.0",
         "created_at": "2026-07-17T08:00:00Z",
         "updated_at": "2026-07-17T08:00:00Z",
         "status": "under_review",
         "provenance": {
           "created_by": "example-user",
           "source": "direct_entry",
-          "source_schema_version": "1.2.0",
+          "source_schema_version": "1.3.0",
           "source_record_id": null,
           "notes": "Canonical recovery-record example."
         }
@@ -1106,15 +1576,15 @@
     "expected": {
       "metadata": {
         "record_id": "cgr_33333333333333333333333333333333",
-        "schema_version": "1.2.0",
-        "engine_version": "1.2.0",
+        "schema_version": "1.3.0",
+        "engine_version": "1.3.0",
         "created_at": "2026-07-17T08:00:00Z",
         "updated_at": "2026-07-17T08:00:00Z",
         "status": "under_review",
         "provenance": {
           "created_by": "example-user",
           "source": "direct_entry",
-          "source_schema_version": "1.2.0",
+          "source_schema_version": "1.3.0",
           "source_record_id": null,
           "notes": "Canonical recovery-record example."
         }
@@ -1195,7 +1665,8 @@
             "project lead",
             "reporting team",
             "reviewers"
-          ]
+          ],
+          "affected_work": []
         },
         "trigger": {
           "summary": "The handoff failed before a fixed deadline.",
@@ -1212,19 +1683,31 @@
           "sources": [
             "fixed deadline",
             "unresolved dependency"
-          ]
+          ],
+          "competing_demands": [],
+          "decision_ambiguity": 5.0,
+          "dependency_friction": 5.0,
+          "stakeholder_friction": 5.0
         },
         "constraints": {
           "items": [
             {
               "label": "External approval",
               "type": "dependency",
-              "controllability": "limited"
+              "controllability": "limited",
+              "control_zone": "outside_control",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": ""
             },
             {
               "label": "Fixed deadline",
               "type": "time",
-              "controllability": "limited"
+              "controllability": "limited",
+              "control_zone": "outside_control",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": ""
             }
           ]
         },
@@ -1236,7 +1719,11 @@
           "energy_level": 1,
           "clarity_level": 1,
           "available_time_hours": 1.0,
-          "time_horizon_days": 2
+          "time_horizon_days": 2,
+          "attention_level": 1,
+          "coordination_capacity": 1,
+          "recovery_time_hours": null,
+          "load_level": 10
         },
         "response": {
           "actions": [
@@ -1275,7 +1762,7 @@
       "findings": {
         "methodology": {
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.2.0",
+          "profile_version": "1.3.0",
           "calculation_spec": "weighted-components-v1",
           "component_weights": {
             "impact_buffer": 15.0,
@@ -1290,6 +1777,235 @@
             "stable": 75.0,
             "focused_support": 55.0,
             "fragile": 35.0
+          }
+        },
+        "condition_map": {
+          "pressure_map": [
+            {
+              "code": "overall_pressure",
+              "label": "Overall pressure",
+              "value": 10,
+              "source_path": "$.input.pressure.level",
+              "layer": "immediate",
+              "control_zone": "influence"
+            },
+            {
+              "code": "decision_ambiguity",
+              "label": "Decision ambiguity",
+              "value": 5.0,
+              "source_path": "$.input.pressure.decision_ambiguity",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "dependency_friction",
+              "label": "Dependency friction",
+              "value": 5.0,
+              "source_path": "$.input.pressure.dependency_friction",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "stakeholder_friction",
+              "label": "Stakeholder friction",
+              "value": 5.0,
+              "source_path": "$.input.pressure.stakeholder_friction",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "load_level",
+              "label": "Competing load",
+              "value": 10,
+              "source_path": "$.input.capacity.load_level",
+              "layer": "immediate",
+              "control_zone": "control"
+            }
+          ],
+          "constraint_map": [
+            {
+              "label": "External approval",
+              "type": "dependency",
+              "controllability": "limited",
+              "control_zone": "outside_control",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": "",
+              "source_path": "$.input.constraints.items[0]"
+            },
+            {
+              "label": "Fixed deadline",
+              "type": "time",
+              "controllability": "limited",
+              "control_zone": "outside_control",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": "",
+              "source_path": "$.input.constraints.items[1]"
+            }
+          ],
+          "support_map": [],
+          "capacity_profile": [
+            {
+              "code": "energy",
+              "label": "Energy capacity",
+              "value": 1,
+              "source_path": "$.input.capacity.energy_level"
+            },
+            {
+              "code": "clarity",
+              "label": "Decision clarity",
+              "value": 1,
+              "source_path": "$.input.capacity.clarity_level"
+            },
+            {
+              "code": "attention",
+              "label": "Attention capacity",
+              "value": 1,
+              "source_path": "$.input.capacity.attention_level"
+            },
+            {
+              "code": "coordination",
+              "label": "Coordination capacity",
+              "value": 1,
+              "source_path": "$.input.capacity.coordination_capacity"
+            },
+            {
+              "code": "support_access",
+              "label": "Support access",
+              "value": 1,
+              "source_path": "$.input.supports.level"
+            }
+          ],
+          "control_view": {
+            "control": [
+              {
+                "label": "Competing load",
+                "source_path": "$.input.capacity.load_level",
+                "kind": "pressure"
+              }
+            ],
+            "influence": [
+              {
+                "label": "Overall pressure",
+                "source_path": "$.input.pressure.level",
+                "kind": "pressure"
+              },
+              {
+                "label": "Decision ambiguity",
+                "source_path": "$.input.pressure.decision_ambiguity",
+                "kind": "pressure"
+              },
+              {
+                "label": "Dependency friction",
+                "source_path": "$.input.pressure.dependency_friction",
+                "kind": "pressure"
+              },
+              {
+                "label": "Stakeholder friction",
+                "source_path": "$.input.pressure.stakeholder_friction",
+                "kind": "pressure"
+              }
+            ],
+            "outside_control": [
+              {
+                "label": "External approval",
+                "source_path": "$.input.constraints.items[0]",
+                "kind": "constraint"
+              },
+              {
+                "label": "Fixed deadline",
+                "source_path": "$.input.constraints.items[1]",
+                "kind": "constraint"
+              }
+            ],
+            "unknown": []
+          },
+          "friction_layers": {
+            "immediate": [
+              {
+                "label": "External approval",
+                "severity": 5.0,
+                "source_path": "$.input.constraints.items[0]"
+              },
+              {
+                "label": "Fixed deadline",
+                "severity": 5.0,
+                "source_path": "$.input.constraints.items[1]"
+              },
+              {
+                "label": "Overall pressure",
+                "severity": 10,
+                "source_path": "$.input.pressure.level"
+              },
+              {
+                "label": "Competing load",
+                "severity": 10,
+                "source_path": "$.input.capacity.load_level"
+              }
+            ],
+            "near_term": [
+              {
+                "label": "Decision ambiguity",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.decision_ambiguity"
+              },
+              {
+                "label": "Dependency friction",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.dependency_friction"
+              },
+              {
+                "label": "Stakeholder friction",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.stakeholder_friction"
+              }
+            ],
+            "structural": []
+          }
+        },
+        "interpretation": {
+          "completeness": {
+            "percent": 40.0,
+            "present_fields": 4,
+            "total_fields": 10,
+            "missing_context": [
+              {
+                "path": "$.input.context.affected_work",
+                "prompt": "List the work, decisions, or relationships affected."
+              },
+              {
+                "path": "$.input.pressure.competing_demands",
+                "prompt": "Record competing demands that consume capacity."
+              },
+              {
+                "path": "$.input.supports.available",
+                "prompt": "Identify available or potential support channels."
+              },
+              {
+                "path": "$.input.capacity.recovery_time_hours",
+                "prompt": "Estimate protected recovery time."
+              },
+              {
+                "path": "$.input.next_steps.checkpoint_date",
+                "prompt": "Set a checkpoint date."
+              },
+              {
+                "path": "$.input.next_steps.success_signal",
+                "prompt": "Define an observable success signal."
+              }
+            ]
+          },
+          "confidence": {
+            "level": "low",
+            "score": 40.0,
+            "rationale": "Confidence reflects recorded context completeness and unresolved contradictions, not certainty about future outcomes."
+          },
+          "contradictions": [],
+          "review_required": true,
+          "score_display_policy": {
+            "mode": "component_context_required",
+            "message": "The composite conditions score must be shown with component explanations and condition maps."
           }
         },
         "component_scores": {
@@ -1353,49 +2069,92 @@
             "severity": "high",
             "section": "impact",
             "message": "Reduce scope and protect recovery time.",
-            "rationale": "Impact severity is recorded at 8 or above."
+            "rationale": "Impact severity is recorded at 8 or above.",
+            "source_paths": [
+              "$.input.impact.severity"
+            ],
+            "input_conditions": {
+              "impact_severity": 10
+            }
           },
           {
             "code": "high_pressure",
             "severity": "high",
             "section": "pressure",
             "message": "Clarify what can pause, wait, or be delegated.",
-            "rationale": "Pressure is recorded at 8 or above."
+            "rationale": "Pressure is recorded at 8 or above.",
+            "source_paths": [
+              "$.input.pressure.level"
+            ],
+            "input_conditions": {
+              "pressure_level": 10
+            }
           },
           {
             "code": "low_energy_capacity",
             "severity": "high",
             "section": "capacity",
             "message": "Avoid overloading the next action plan.",
-            "rationale": "Energy capacity is recorded at 3 or below."
+            "rationale": "Energy capacity is recorded at 3 or below.",
+            "source_paths": [
+              "$.input.capacity.energy_level"
+            ],
+            "input_conditions": {
+              "energy_level": 1
+            }
           },
           {
             "code": "low_support_capacity",
             "severity": "high",
             "section": "supports",
             "message": "Identify one concrete support channel before expanding work.",
-            "rationale": "Support capacity is recorded at 3 or below."
+            "rationale": "Support capacity is recorded at 3 or below.",
+            "source_paths": [
+              "$.input.supports.level"
+            ],
+            "input_conditions": {
+              "support_level": 1
+            }
           },
           {
             "code": "low_clarity_capacity",
             "severity": "high",
             "section": "capacity",
             "message": "Define the decision, owner, and next checkpoint.",
-            "rationale": "Clarity is recorded at 3 or below."
+            "rationale": "Clarity is recorded at 3 or below.",
+            "source_paths": [
+              "$.input.capacity.clarity_level"
+            ],
+            "input_conditions": {
+              "clarity_level": 1
+            }
           },
           {
             "code": "short_horizon",
             "severity": "medium",
             "section": "capacity",
             "message": "Choose a recovery action that can be completed quickly.",
-            "rationale": "The time horizon is three days or less."
+            "rationale": "The time horizon is three days or less.",
+            "source_paths": [
+              "$.input.capacity.time_horizon_days"
+            ],
+            "input_conditions": {
+              "time_horizon_days": 2
+            }
           },
           {
-            "code": "limited_constraints",
+            "code": "outside_control_constraints",
             "severity": "medium",
             "section": "constraints",
-            "message": "Separate controllable work from constraints that require escalation or accommodation.",
-            "rationale": "Two or more constraints are recorded as having limited controllability."
+            "message": "Separate adaptation work from constraints requiring accommodation or escalation.",
+            "rationale": "Two or more constraints are outside direct control.",
+            "source_paths": [
+              "$.input.constraints.items[0]",
+              "$.input.constraints.items[1]"
+            ],
+            "input_conditions": {
+              "count": 2
+            }
           }
         ],
         "recommended_actions": [
@@ -1442,7 +2201,7 @@
             "priority": "high"
           }
         ],
-        "decision_note": "Recorded recovery conditions are assessed as high-friction recovery conditions with a conditions score of 13.8/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
+        "decision_note": "Recorded recovery conditions are assessed as high-friction recovery conditions. The composite conditions score is 13.8/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
         "method_path": [
           "context",
           "trigger",
@@ -1463,10 +2222,10 @@
           "Generated findings require human review when used for consequential decisions."
         ],
         "calculation_provenance": {
-          "schema_version": "1.2.0",
-          "engine_version": "1.2.0",
+          "schema_version": "1.3.0",
+          "engine_version": "1.3.0",
           "profile_id": "cg-recovery-conditions",
-          "profile_version": "1.2.0",
+          "profile_version": "1.3.0",
           "calculated_at": "2026-07-17T08:00:00Z"
         }
       },
@@ -1487,14 +2246,14 @@
     "input": {
       "metadata": {
         "record_id": "cgr_44444444444444444444444444444444",
-        "schema_version": "1.2.0",
+        "schema_version": "1.3.0",
         "created_at": "2026-07-17T14:00:00Z",
         "updated_at": "2026-07-17T14:00:00Z",
         "status": "active",
         "provenance": {
           "created_by": "example-user",
           "source": "direct_entry",
-          "source_schema_version": "1.2.0",
+          "source_schema_version": "1.3.0",
           "source_record_id": null,
           "notes": "Canonical recovery-record example."
         }
@@ -1644,15 +2403,15 @@
     "expected": {
       "metadata": {
         "record_id": "cgr_44444444444444444444444444444444",
-        "schema_version": "1.2.0",
-        "engine_version": "1.2.0",
+        "schema_version": "1.3.0",
+        "engine_version": "1.3.0",
         "created_at": "2026-07-17T14:00:00Z",
         "updated_at": "2026-07-17T14:00:00Z",
         "status": "active",
         "provenance": {
           "created_by": "example-user",
           "source": "direct_entry",
-          "source_schema_version": "1.2.0",
+          "source_schema_version": "1.3.0",
           "source_record_id": null,
           "notes": "Canonical recovery-record example."
         }
@@ -1776,7 +2535,8 @@
             "project lead",
             "reporting team",
             "reviewers"
-          ]
+          ],
+          "affected_work": []
         },
         "trigger": {
           "summary": "Conflicting feedback changed the expected deliverable after the checkpoint was missed.",
@@ -1793,19 +2553,31 @@
           "sources": [
             "publication deadline",
             "stakeholder disagreement"
-          ]
+          ],
+          "competing_demands": [],
+          "decision_ambiguity": 5.0,
+          "dependency_friction": 5.0,
+          "stakeholder_friction": 5.0
         },
         "constraints": {
           "items": [
             {
               "label": "Final approval dependency",
               "type": "dependency",
-              "controllability": "influence"
+              "controllability": "influence",
+              "control_zone": "influence",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": ""
             },
             {
               "label": "Limited review window",
               "type": "time",
-              "controllability": "limited"
+              "controllability": "limited",
+              "control_zone": "outside_control",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": ""
             }
           ]
         },
@@ -1815,12 +2587,18 @@
             {
               "label": "Project lead",
               "type": "person",
-              "reliability": 8.0
+              "reliability": 8.0,
+              "status": "active",
+              "capacity_contribution": 8.0,
+              "notes": ""
             },
             {
               "label": "Decision log",
               "type": "process",
-              "reliability": 7.0
+              "reliability": 7.0,
+              "status": "active",
+              "capacity_contribution": 7.0,
+              "notes": ""
             }
           ]
         },
@@ -1828,7 +2606,11 @@
           "energy_level": 5.0,
           "clarity_level": 4.0,
           "available_time_hours": 12.0,
-          "time_horizon_days": 14
+          "time_horizon_days": 14,
+          "attention_level": 4.0,
+          "coordination_capacity": 6.0,
+          "recovery_time_hours": null,
+          "load_level": 8.0
         },
         "response": {
           "actions": [
@@ -1897,6 +2679,242 @@
             "fragile": 15.0
           }
         },
+        "condition_map": {
+          "pressure_map": [
+            {
+              "code": "overall_pressure",
+              "label": "Overall pressure",
+              "value": 8.0,
+              "source_path": "$.input.pressure.level",
+              "layer": "immediate",
+              "control_zone": "influence"
+            },
+            {
+              "code": "decision_ambiguity",
+              "label": "Decision ambiguity",
+              "value": 5.0,
+              "source_path": "$.input.pressure.decision_ambiguity",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "dependency_friction",
+              "label": "Dependency friction",
+              "value": 5.0,
+              "source_path": "$.input.pressure.dependency_friction",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "stakeholder_friction",
+              "label": "Stakeholder friction",
+              "value": 5.0,
+              "source_path": "$.input.pressure.stakeholder_friction",
+              "layer": "near_term",
+              "control_zone": "influence"
+            },
+            {
+              "code": "load_level",
+              "label": "Competing load",
+              "value": 8.0,
+              "source_path": "$.input.capacity.load_level",
+              "layer": "immediate",
+              "control_zone": "control"
+            }
+          ],
+          "constraint_map": [
+            {
+              "label": "Final approval dependency",
+              "type": "dependency",
+              "controllability": "influence",
+              "control_zone": "influence",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": "",
+              "source_path": "$.input.constraints.items[0]"
+            },
+            {
+              "label": "Limited review window",
+              "type": "time",
+              "controllability": "limited",
+              "control_zone": "outside_control",
+              "layer": "immediate",
+              "severity": 5.0,
+              "notes": "",
+              "source_path": "$.input.constraints.items[1]"
+            }
+          ],
+          "support_map": [
+            {
+              "label": "Project lead",
+              "type": "person",
+              "reliability": 8.0,
+              "status": "active",
+              "capacity_contribution": 8.0,
+              "notes": "",
+              "source_path": "$.input.supports.available[0]"
+            },
+            {
+              "label": "Decision log",
+              "type": "process",
+              "reliability": 7.0,
+              "status": "active",
+              "capacity_contribution": 7.0,
+              "notes": "",
+              "source_path": "$.input.supports.available[1]"
+            }
+          ],
+          "capacity_profile": [
+            {
+              "code": "energy",
+              "label": "Energy capacity",
+              "value": 5.0,
+              "source_path": "$.input.capacity.energy_level"
+            },
+            {
+              "code": "clarity",
+              "label": "Decision clarity",
+              "value": 4.0,
+              "source_path": "$.input.capacity.clarity_level"
+            },
+            {
+              "code": "attention",
+              "label": "Attention capacity",
+              "value": 4.0,
+              "source_path": "$.input.capacity.attention_level"
+            },
+            {
+              "code": "coordination",
+              "label": "Coordination capacity",
+              "value": 6.0,
+              "source_path": "$.input.capacity.coordination_capacity"
+            },
+            {
+              "code": "support_access",
+              "label": "Support access",
+              "value": 6.0,
+              "source_path": "$.input.supports.level"
+            }
+          ],
+          "control_view": {
+            "control": [
+              {
+                "label": "Competing load",
+                "source_path": "$.input.capacity.load_level",
+                "kind": "pressure"
+              }
+            ],
+            "influence": [
+              {
+                "label": "Final approval dependency",
+                "source_path": "$.input.constraints.items[0]",
+                "kind": "constraint"
+              },
+              {
+                "label": "Overall pressure",
+                "source_path": "$.input.pressure.level",
+                "kind": "pressure"
+              },
+              {
+                "label": "Decision ambiguity",
+                "source_path": "$.input.pressure.decision_ambiguity",
+                "kind": "pressure"
+              },
+              {
+                "label": "Dependency friction",
+                "source_path": "$.input.pressure.dependency_friction",
+                "kind": "pressure"
+              },
+              {
+                "label": "Stakeholder friction",
+                "source_path": "$.input.pressure.stakeholder_friction",
+                "kind": "pressure"
+              }
+            ],
+            "outside_control": [
+              {
+                "label": "Limited review window",
+                "source_path": "$.input.constraints.items[1]",
+                "kind": "constraint"
+              }
+            ],
+            "unknown": []
+          },
+          "friction_layers": {
+            "immediate": [
+              {
+                "label": "Final approval dependency",
+                "severity": 5.0,
+                "source_path": "$.input.constraints.items[0]"
+              },
+              {
+                "label": "Limited review window",
+                "severity": 5.0,
+                "source_path": "$.input.constraints.items[1]"
+              },
+              {
+                "label": "Overall pressure",
+                "severity": 8.0,
+                "source_path": "$.input.pressure.level"
+              },
+              {
+                "label": "Competing load",
+                "severity": 8.0,
+                "source_path": "$.input.capacity.load_level"
+              }
+            ],
+            "near_term": [
+              {
+                "label": "Decision ambiguity",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.decision_ambiguity"
+              },
+              {
+                "label": "Dependency friction",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.dependency_friction"
+              },
+              {
+                "label": "Stakeholder friction",
+                "severity": 5.0,
+                "source_path": "$.input.pressure.stakeholder_friction"
+              }
+            ],
+            "structural": []
+          }
+        },
+        "interpretation": {
+          "completeness": {
+            "percent": 70.0,
+            "present_fields": 7,
+            "total_fields": 10,
+            "missing_context": [
+              {
+                "path": "$.input.context.affected_work",
+                "prompt": "List the work, decisions, or relationships affected."
+              },
+              {
+                "path": "$.input.pressure.competing_demands",
+                "prompt": "Record competing demands that consume capacity."
+              },
+              {
+                "path": "$.input.capacity.recovery_time_hours",
+                "prompt": "Estimate protected recovery time."
+              }
+            ]
+          },
+          "confidence": {
+            "level": "moderate",
+            "score": 70.0,
+            "rationale": "Confidence reflects recorded context completeness and unresolved contradictions, not certainty about future outcomes."
+          },
+          "contradictions": [],
+          "review_required": true,
+          "score_display_policy": {
+            "mode": "component_context_required",
+            "message": "The composite conditions score must be shown with component explanations and condition maps."
+          }
+        },
         "component_scores": {
           "impact_buffer": {
             "input_value": 7.0,
@@ -1958,7 +2976,13 @@
             "severity": "high",
             "section": "pressure",
             "message": "Clarify what can pause, wait, or be delegated.",
-            "rationale": "Pressure is recorded at 8 or above."
+            "rationale": "Pressure is recorded at 8 or above.",
+            "source_paths": [
+              "$.input.pressure.level"
+            ],
+            "input_conditions": {
+              "pressure_level": 8.0
+            }
           }
         ],
         "recommended_actions": [
@@ -2005,7 +3029,7 @@
             "priority": "high"
           }
         ],
-        "decision_note": "Recorded recovery conditions are assessed as stable recovery conditions with a conditions score of 49.5/100. Review the component explanations, protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
+        "decision_note": "Recorded recovery conditions are assessed as stable recovery conditions. The composite conditions score is 49.5/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.",
         "method_path": [
           "context",
           "trigger",
@@ -2026,8 +3050,8 @@
           "Generated findings require human review when used for consequential decisions."
         ],
         "calculation_provenance": {
-          "schema_version": "1.2.0",
-          "engine_version": "1.2.0",
+          "schema_version": "1.3.0",
+          "engine_version": "1.3.0",
           "profile_id": "cg-pilot-thresholds",
           "profile_version": "1.2.0-pilot",
           "calculated_at": "2026-07-17T14:00:00Z"

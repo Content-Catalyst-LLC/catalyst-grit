@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 — Pressure, Constraint, Support, and Capacity Mapping
+
+- Added inspectable condition maps, source-linked flags, completeness, contradiction detection, and accessible mapping controls.
+- Preserved persistence, revision, import/export, and checksum-safe installation.
+
 ## 1.2.0 — Persistent Records, Projects, and Review Checkpoints
 
 - Added a private SQLite workspace and packaged migration framework.

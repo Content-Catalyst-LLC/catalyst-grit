@@ -2,10 +2,10 @@
 set -euo pipefail
 
 PRODUCT="Catalyst Grit"
-VERSION="1.2.0"
-RELEASE_NAME="Persistent Records, Projects, and Review Checkpoints"
-INSTALLER_REVISION="REPAIRED_V3"
-ARCHIVE_NAME="catalyst-grit-v${VERSION}-repository-REPAIRED_V3.zip"
+VERSION="1.3.0"
+RELEASE_NAME="Pressure, Constraint, Support, and Capacity Mapping"
+INSTALLER_REVISION="CHECKSUM_SYNC_STATE_SAFE_V1"
+ARCHIVE_NAME="catalyst-grit-v${VERSION}-repository.zip"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 say() { printf '\n==> %s\n' "$1"; }
@@ -58,7 +58,7 @@ printf 'Release archive: %s\n' "$ARCHIVE"
 printf 'Git repository: %s\n' "$REPO"
 printf 'Remote: %s\n' "$(git -C "$REPO" remote get-url origin 2>/dev/null || echo '(none)')"
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/catalyst-grit-v120.XXXXXX")"
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/catalyst-grit-v130.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 unzip -q "$ARCHIVE" -d "$TMP"
 SOURCE="$TMP/catalyst-grit-v$VERSION"
@@ -97,7 +97,7 @@ PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || true)}"
 [ -n "$PYTHON_BIN" ] || fail "Python 3 is required."
 (
   cd "$REPO"
-  env -u PYTHONPATH -u PYTHONHOME PYTHONNOUSERSITE=1 "$PYTHON_BIN" -I -S scripts/smoke_test.py
+  env -u PYTHONPATH -u PYTHONHOME PYTHONNOUSERSITE=1 CATALYST_GRIT_ALLOW_LOCAL_STATE=1 "$PYTHON_BIN" -I -S scripts/smoke_test.py
 )
 
 say "Recording Git release"

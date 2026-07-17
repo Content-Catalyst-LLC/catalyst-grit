@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the complete Catalyst Grit v1.2.0 release contract."""
+"""Run the complete Catalyst Grit v1.3.0 release contract."""
 from __future__ import annotations
 
 import json
@@ -63,7 +63,7 @@ def main() -> int:
 import json, tempfile
 from pathlib import Path
 import catalyst_grit
-assert catalyst_grit.__version__ == '1.2.0'
+assert catalyst_grit.__version__ == '1.3.0'
 assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2]
 with tempfile.TemporaryDirectory() as d:
     with catalyst_grit.SQLiteWorkspaceRepository(Path(d)/'installed.sqlite3') as repo:
@@ -78,7 +78,7 @@ print(catalyst_grit.__version__)
     for generated in ROOT.glob("src/*.egg-info"):
         shutil.rmtree(generated, ignore_errors=True)
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    print("Catalyst Grit v1.2.0 release contract passed.")
+    print("Catalyst Grit v1.3.0 release contract passed.")
     return 0
 
 

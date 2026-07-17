@@ -1,6 +1,6 @@
 {
   "profile_id": "cg-recovery-conditions",
-  "profile_version": "1.2.0",
+  "profile_version": "1.3.0",
   "calculation_spec": "weighted-components-v1",
   "component_weights": {
     "impact_buffer": 15.0,

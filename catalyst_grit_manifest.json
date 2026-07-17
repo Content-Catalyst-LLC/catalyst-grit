@@ -1,12 +1,12 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.2.0",
-  "schema_version": "1.2.0",
-  "engine_version": "1.2.0",
-  "release": "Persistent Records, Projects, and Review Checkpoints",
+  "version": "1.3.0",
+  "schema_version": "1.3.0",
+  "engine_version": "1.3.0",
+  "release": "Pressure, Constraint, Support, and Capacity Mapping",
   "canonical_product_model": "recovery-record",
-  "methodology_profile": "cg-recovery-conditions@1.2.0",
+  "methodology_profile": "cg-recovery-conditions@1.3.0",
   "workspace_format": "catalyst-grit-workspace/1.0",
   "storage": "SQLite private workspace with ordered packaged migrations",
   "migrations": [

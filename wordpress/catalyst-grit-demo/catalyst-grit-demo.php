@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Catalyst Grit Demo
  * Description: Canonical public recovery-record demo and authenticated private workspace. Provides [catalyst_grit_demo] and [catalyst_grit_workspace].
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: Content Catalyst LLC
  * License: MIT
  */
 
 if (!defined('ABSPATH')) { exit; }
 
-define('CATALYST_GRIT_DEMO_VERSION', '1.2.0');
+define('CATALYST_GRIT_DEMO_VERSION', '1.3.0');
 
 function catalyst_grit_demo_assets() {
     $base = plugin_dir_url(__FILE__);
@@ -25,7 +25,7 @@ function catalyst_grit_demo_shortcode() {
       <header class="cg-demo__header">
         <p class="cg-demo__eyebrow">Catalyst Grit · Canonical contract v<?php echo esc_html(CATALYST_GRIT_DEMO_VERSION); ?></p>
         <h3 id="cg-demo-title">Build a Recovery Record</h3>
-        <p>Document the context, trigger, recovery conditions, response, learning, and next checkpoint. The shared engine returns explainable component scores, review flags, actions, provenance, and a portable JSON record.</p>
+        <p>Document the context, trigger, recovery conditions, response, learning, and next checkpoint. The shared engine returns pressure, constraint, support, capacity, control-zone, and friction-layer maps alongside explainable components, review flags, provenance, and a portable JSON record.</p>
       </header>
       <div class="cg-demo__errors" data-cg-errors role="alert" tabindex="-1" hidden>
         <h4>Review these fields</h4><ul></ul>
@@ -47,6 +47,9 @@ function catalyst_grit_demo_shortcode() {
             <label><span>Stakeholders, one per line</span><textarea name="stakeholders" rows="2">project lead
 reporting team
 reviewers</textarea></label>
+            <label><span>Affected work, decisions, or relationships, one per line</span><textarea name="affected_work" rows="2">publication timeline
+approval decision
+review workflow</textarea></label>
           </fieldset>
 
           <fieldset><legend>Impact, pressure, supports, and capacity</legend>
@@ -64,11 +67,24 @@ reviewers</textarea></label>
             <label><span>Impact description</span><textarea name="impact_description" rows="2">The publication timeline moved and ownership became unclear.</textarea></label>
             <label><span>Pressure sources, one per line</span><textarea name="pressure_sources" rows="2">publication deadline
 stakeholder disagreement</textarea></label>
+            <label><span>Competing demands, one per line</span><textarea name="competing_demands" rows="2">parallel publication work
+reviewer availability</textarea></label>
+            <div class="cg-demo__sliders">
+              <label><span>Decision ambiguity <strong data-out="decision_ambiguity">7</strong>/10</span><input type="range" name="decision_ambiguity" min="1" max="10" value="7"></label>
+              <label><span>Dependency friction <strong data-out="dependency_friction">8</strong>/10</span><input type="range" name="dependency_friction" min="1" max="10" value="8"></label>
+              <label><span>Stakeholder friction <strong data-out="stakeholder_friction">7</strong>/10</span><input type="range" name="stakeholder_friction" min="1" max="10" value="7"></label>
+              <label><span>Attention capacity <strong data-out="attention_level">5</strong>/10</span><input type="range" name="attention_level" min="1" max="10" value="5"></label>
+              <label><span>Coordination capacity <strong data-out="coordination_capacity">5</strong>/10</span><input type="range" name="coordination_capacity" min="1" max="10" value="5"></label>
+              <label><span>Competing load <strong data-out="load_level">8</strong>/10</span><input type="range" name="load_level" min="1" max="10" value="8"></label>
+            </div>
             <label><span>Constraints, one per line</span><textarea name="constraints" rows="2">Final approval dependency
 Limited review window</textarea></label>
             <label><span>Available supports, one per line</span><textarea name="supports_available" rows="2">Project lead
 Decision log</textarea></label>
-            <label><span>Available time (hours)</span><input type="number" name="available_time_hours" min="0" value="12"></label>
+            <div class="cg-demo__two">
+              <label><span>Available time (hours)</span><input type="number" name="available_time_hours" min="0" value="12"></label>
+              <label><span>Protected recovery time (hours)</span><input type="number" name="recovery_time_hours" min="0" value="4"></label>
+            </div>
           </fieldset>
 
           <fieldset><legend>Response, learning, and next steps</legend>
@@ -89,8 +105,13 @@ Schedule a short stakeholder review</textarea></label>
         </form>
 
         <div class="cg-demo__output" aria-live="polite">
-          <div class="cg-demo__score"><span>Conditions score</span><strong data-cg-score>—</strong></div>
-          <div class="cg-demo__panel"><h4>Generated state</h4><p data-cg-state>Generate a record to view the recovery conditions.</p><p class="cg-demo__method">Method: <span data-cg-profile>cg-recovery-conditions v1.2.0</span></p></div>
+          <div class="cg-demo__score"><span>Conditions score · component context required</span><strong data-cg-score>—</strong></div>
+          <div class="cg-demo__panel"><h4>Generated state</h4><p data-cg-state>Generate a record to view the recovery conditions.</p><p class="cg-demo__method">Method: <span data-cg-profile>cg-recovery-conditions v1.3.0</span></p><p><strong>Completeness:</strong> <span data-cg-completeness>—</span> · <strong>Confidence:</strong> <span data-cg-confidence>—</span></p></div>
+          <div class="cg-demo__panel"><h4>Pressure map</h4><ul data-cg-pressure-map><li>Generate a record to map pressure.</li></ul></div>
+          <div class="cg-demo__panel"><h4>Constraint map</h4><ul data-cg-constraint-map><li>Generate a record to map constraints.</li></ul></div>
+          <div class="cg-demo__panel"><h4>Support map</h4><ul data-cg-support-map><li>Generate a record to map supports.</li></ul></div>
+          <div class="cg-demo__panel"><h4>Missing-context prompts</h4><ul data-cg-missing><li>Generate a record to inspect completeness.</li></ul></div>
+          <div class="cg-demo__panel"><h4>Contradictions</h4><ul data-cg-contradictions><li>Generate a record to inspect contradictions.</li></ul></div>
           <div class="cg-demo__panel"><h4>Component explanations</h4><ul class="cg-demo__components" data-cg-components><li>Generate a record to view weighted components.</li></ul></div>
           <div class="cg-demo__panel"><h4>Review flags</h4><ul data-cg-flags><li>No flags generated yet.</li></ul></div>
           <div class="cg-demo__panel"><h4>Recommended actions</h4><ul data-cg-actions><li>No actions generated yet.</li></ul></div>
@@ -123,7 +144,7 @@ function catalyst_grit_workspace_shortcode() {
     wp_enqueue_script('catalyst-grit-workspace', $base . 'assets/catalyst-grit-workspace.js', array(), CATALYST_GRIT_DEMO_VERSION, true);
     wp_localize_script('catalyst-grit-workspace', 'CatalystGritWorkspace', array(
         'ajaxUrl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('catalyst_grit_workspace_v120'),
+        'nonce' => wp_create_nonce('catalyst_grit_workspace_v130'),
         'version' => CATALYST_GRIT_DEMO_VERSION,
         'maxBytes' => 524288,
     ));
@@ -156,12 +177,12 @@ function catalyst_grit_workspace_authorize() {
     if (!is_user_logged_in() || !current_user_can('read')) {
         wp_send_json_error(array('message' => 'Authentication and read access are required.'), 403);
     }
-    check_ajax_referer('catalyst_grit_workspace_v120', 'nonce');
+    check_ajax_referer('catalyst_grit_workspace_v130', 'nonce');
 }
 
 function catalyst_grit_workspace_load() {
     catalyst_grit_workspace_authorize();
-    $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v120', true);
+    $value = get_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v130', true);
     if (!is_array($value)) {
         $value = array(
             'format' => 'catalyst-grit-workspace/1.0',
@@ -190,14 +211,14 @@ function catalyst_grit_workspace_save() {
     $value['visibility'] = 'private';
     $value['product_version'] = CATALYST_GRIT_DEMO_VERSION;
     $value['saved_at'] = gmdate('c');
-    update_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v120', $value);
+    update_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v130', $value);
     wp_send_json_success(array('message' => 'Private workspace saved.', 'saved_at' => $value['saved_at']));
 }
 add_action('wp_ajax_catalyst_grit_workspace_save', 'catalyst_grit_workspace_save');
 
 function catalyst_grit_workspace_clear() {
     catalyst_grit_workspace_authorize();
-    delete_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v120');
+    delete_user_meta(get_current_user_id(), '_catalyst_grit_workspace_v130');
     wp_send_json_success(array('message' => 'Saved workspace deleted.'));
 }
 add_action('wp_ajax_catalyst_grit_workspace_clear', 'catalyst_grit_workspace_clear');

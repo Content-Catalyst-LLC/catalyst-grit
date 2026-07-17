@@ -79,6 +79,9 @@ ALLOWED_CONSTRAINT_TYPES = {
     "other",
 }
 ALLOWED_CONTROLLABILITY = {"controllable", "influence", "limited", "unknown"}
+ALLOWED_CONTROL_ZONES = {"control", "influence", "outside_control", "unknown"}
+ALLOWED_FRICTION_LAYERS = {"immediate", "near_term", "structural"}
+ALLOWED_SUPPORT_STATUSES = {"active", "potential", "unavailable"}
 ALLOWED_SUPPORT_TYPES = {
     "person",
     "team",
@@ -103,7 +106,7 @@ DEFAULT_ACTIONS = [
 
 DEFAULT_METHODOLOGY_PROFILE: dict[str, Any] = {
     "profile_id": "cg-recovery-conditions",
-    "profile_version": "1.2.0",
+    "profile_version": "1.3.0",
     "calculation_spec": "weighted-components-v1",
     "component_weights": {
         "impact_buffer": 15.0,
@@ -312,6 +315,10 @@ def _normalize_action_list(value: Any, path: str, *, default_actions: bool = Fal
     return actions
 
 
+def _control_zone(controllability: str) -> str:
+    return {"controllable": "control", "influence": "influence", "limited": "outside_control", "unknown": "unknown"}[controllability]
+
+
 def _normalize_constraints(value: Any, path: str) -> list[dict[str, Any]]:
     if value in (None, ""):
         return []
@@ -326,22 +333,20 @@ def _normalize_constraints(value: Any, path: str) -> list[dict[str, Any]]:
     for index, item in enumerate(source):
         item_path = f"{path}[{index}]"
         if isinstance(item, Mapping):
-            _reject_unknown(item, {"label", "type", "controllability"}, item_path)
+            _reject_unknown(item, {"label", "type", "controllability", "control_zone", "layer", "severity", "notes"}, item_path)
             label = _text(item.get("label"), f"{item_path}.label", required=True)
             item_type = _enum(item.get("type"), f"{item_path}.type", ALLOWED_CONSTRAINT_TYPES, "other")
-            controllability = _enum(
-                item.get("controllability"),
-                f"{item_path}.controllability",
-                ALLOWED_CONTROLLABILITY,
-                "unknown",
-            )
+            controllability = _enum(item.get("controllability"), f"{item_path}.controllability", ALLOWED_CONTROLLABILITY, "unknown")
+            control_zone = _enum(item.get("control_zone"), f"{item_path}.control_zone", ALLOWED_CONTROL_ZONES, _control_zone(controllability))
+            layer = _enum(item.get("layer"), f"{item_path}.layer", ALLOWED_FRICTION_LAYERS, "immediate")
+            severity = clamp_scale(item.get("severity", 5), f"{item_path}.severity")
+            notes = _text(item.get("notes"), f"{item_path}.notes")
         else:
             label = _text(item, item_path)
             if not label:
                 continue
-            item_type = "other"
-            controllability = "unknown"
-        output.append({"label": label, "type": item_type, "controllability": controllability})
+            item_type = "other"; controllability = "unknown"; control_zone = "unknown"; layer = "immediate"; severity = 5.0; notes = ""
+        output.append({"label": label, "type": item_type, "controllability": controllability, "control_zone": control_zone, "layer": layer, "severity": severity, "notes": notes})
     return output
 
 
@@ -359,17 +364,19 @@ def _normalize_supports(value: Any, path: str) -> list[dict[str, Any]]:
     for index, item in enumerate(source):
         item_path = f"{path}[{index}]"
         if isinstance(item, Mapping):
-            _reject_unknown(item, {"label", "type", "reliability"}, item_path)
+            _reject_unknown(item, {"label", "type", "reliability", "status", "capacity_contribution", "notes"}, item_path)
             label = _text(item.get("label"), f"{item_path}.label", required=True)
             item_type = _enum(item.get("type"), f"{item_path}.type", ALLOWED_SUPPORT_TYPES, "other")
             reliability = clamp_scale(item.get("reliability", 5), f"{item_path}.reliability")
+            status = _enum(item.get("status"), f"{item_path}.status", ALLOWED_SUPPORT_STATUSES, "active")
+            contribution = clamp_scale(item.get("capacity_contribution", reliability), f"{item_path}.capacity_contribution")
+            notes = _text(item.get("notes"), f"{item_path}.notes")
         else:
             label = _text(item, item_path)
             if not label:
                 continue
-            item_type = "other"
-            reliability = 5.0
-        output.append({"label": label, "type": item_type, "reliability": reliability})
+            item_type = "other"; reliability = 5.0; status = "active"; contribution = 5.0; notes = ""
+        output.append({"label": label, "type": item_type, "reliability": reliability, "status": status, "capacity_contribution": contribution, "notes": notes})
     return output
 
 
@@ -454,6 +461,7 @@ def migrate_v1_request(data: Mapping[str, Any]) -> dict[str, Any]:
                 "domain": data.get("domain", "project"),
                 "description": "",
                 "stakeholders": [],
+                "affected_work": [],
             },
             "trigger": {"summary": challenge, "type": "setback", "occurred_at": None},
             "impact": {
@@ -461,7 +469,7 @@ def migrate_v1_request(data: Mapping[str, Any]) -> dict[str, Any]:
                 "scope": "project",
                 "description": "",
             },
-            "pressure": {"level": data.get("pressure_level", 5), "sources": []},
+            "pressure": {"level": data.get("pressure_level", 5), "sources": [], "competing_demands": [], "decision_ambiguity": 5, "dependency_friction": 5, "stakeholder_friction": 5},
             "constraints": {"items": []},
             "supports": {"level": data.get("support_level", 5), "available": []},
             "capacity": {
@@ -469,6 +477,10 @@ def migrate_v1_request(data: Mapping[str, Any]) -> dict[str, Any]:
                 "clarity_level": data.get("clarity_level", 5),
                 "available_time_hours": None,
                 "time_horizon_days": data.get("time_horizon_days", 14),
+                "attention_level": data.get("clarity_level", 5),
+                "coordination_capacity": data.get("support_level", 5),
+                "recovery_time_hours": None,
+                "load_level": data.get("pressure_level", 5),
             },
             "response": {
                 "actions": actions,
@@ -502,7 +514,7 @@ def _normalize_metadata(value: Any, *, source_schema_version: str) -> dict[str, 
         raise _issue("$.metadata.record_id", "record_id", "Must match cgr_ followed by 32 lowercase hexadecimal characters.", record_id)
 
     supplied_schema = _optional_text(metadata.get("schema_version"))
-    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.1.0", "1.0.1"}:
+    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.2.0", "1.1.0", "1.0.1"}:
         raise _issue("$.metadata.schema_version", "schema_version", f"Unsupported source schema version: {supplied_schema}.", supplied_schema)
     supplied_engine = _optional_text(metadata.get("engine_version"))
     if supplied_engine and supplied_engine != ENGINE_VERSION:
@@ -599,19 +611,19 @@ def _normalize_input_sections(value: Any) -> dict[str, Any]:
         raise _issue("$.input", "required", "Missing section(s): " + ", ".join(missing) + ".", missing)
 
     context = _mapping(input_data["context"], "$.input.context")
-    _reject_unknown(context, {"title", "domain", "description", "stakeholders"}, "$.input.context")
+    _reject_unknown(context, {"title", "domain", "description", "stakeholders", "affected_work"}, "$.input.context")
     trigger = _mapping(input_data["trigger"], "$.input.trigger")
     _reject_unknown(trigger, {"summary", "type", "occurred_at"}, "$.input.trigger")
     impact = _mapping(input_data["impact"], "$.input.impact")
     _reject_unknown(impact, {"severity", "scope", "description"}, "$.input.impact")
     pressure = _mapping(input_data["pressure"], "$.input.pressure")
-    _reject_unknown(pressure, {"level", "sources"}, "$.input.pressure")
+    _reject_unknown(pressure, {"level", "sources", "competing_demands", "decision_ambiguity", "dependency_friction", "stakeholder_friction"}, "$.input.pressure")
     constraints = _mapping(input_data["constraints"], "$.input.constraints")
     _reject_unknown(constraints, {"items"}, "$.input.constraints")
     supports = _mapping(input_data["supports"], "$.input.supports")
     _reject_unknown(supports, {"level", "available"}, "$.input.supports")
     capacity = _mapping(input_data["capacity"], "$.input.capacity")
-    _reject_unknown(capacity, {"energy_level", "clarity_level", "available_time_hours", "time_horizon_days"}, "$.input.capacity")
+    _reject_unknown(capacity, {"energy_level", "clarity_level", "available_time_hours", "time_horizon_days", "attention_level", "coordination_capacity", "recovery_time_hours", "load_level"}, "$.input.capacity")
     response = _mapping(input_data["response"], "$.input.response")
     _reject_unknown(response, {"actions", "current_strategy"}, "$.input.response")
     learning = _mapping(input_data["learning"], "$.input.learning")
@@ -625,6 +637,7 @@ def _normalize_input_sections(value: Any) -> dict[str, Any]:
             "domain": _enum(context.get("domain"), "$.input.context.domain", ALLOWED_DOMAINS, "project"),
             "description": _text(context.get("description"), "$.input.context.description"),
             "stakeholders": _string_list(context.get("stakeholders"), "$.input.context.stakeholders"),
+            "affected_work": _string_list(context.get("affected_work"), "$.input.context.affected_work"),
         },
         "trigger": {
             "summary": _text(trigger.get("summary"), "$.input.trigger.summary", required=True),
@@ -639,6 +652,10 @@ def _normalize_input_sections(value: Any) -> dict[str, Any]:
         "pressure": {
             "level": clamp_scale(pressure.get("level", 5), "$.input.pressure.level"),
             "sources": _string_list(pressure.get("sources"), "$.input.pressure.sources"),
+            "competing_demands": _string_list(pressure.get("competing_demands"), "$.input.pressure.competing_demands"),
+            "decision_ambiguity": clamp_scale(pressure.get("decision_ambiguity", 5), "$.input.pressure.decision_ambiguity"),
+            "dependency_friction": clamp_scale(pressure.get("dependency_friction", 5), "$.input.pressure.dependency_friction"),
+            "stakeholder_friction": clamp_scale(pressure.get("stakeholder_friction", 5), "$.input.pressure.stakeholder_friction"),
         },
         "constraints": {"items": _normalize_constraints(constraints.get("items"), "$.input.constraints.items")},
         "supports": {
@@ -650,6 +667,10 @@ def _normalize_input_sections(value: Any) -> dict[str, Any]:
             "clarity_level": clamp_scale(capacity.get("clarity_level", 5), "$.input.capacity.clarity_level"),
             "available_time_hours": _nullable_number(capacity.get("available_time_hours"), "$.input.capacity.available_time_hours"),
             "time_horizon_days": _integer(capacity.get("time_horizon_days"), "$.input.capacity.time_horizon_days", default=14),
+            "attention_level": clamp_scale(capacity.get("attention_level", capacity.get("clarity_level", 5)), "$.input.capacity.attention_level"),
+            "coordination_capacity": clamp_scale(capacity.get("coordination_capacity", supports.get("level", 5)), "$.input.capacity.coordination_capacity"),
+            "recovery_time_hours": _nullable_number(capacity.get("recovery_time_hours"), "$.input.capacity.recovery_time_hours"),
+            "load_level": clamp_scale(capacity.get("load_level", pressure.get("level", 5)), "$.input.capacity.load_level"),
         },
         "response": {
             "actions": _normalize_action_list(response.get("actions"), "$.input.response.actions", default_actions=True),
@@ -867,27 +888,104 @@ def state_from_score(score: float, profile: Mapping[str, Any] | None = None) -> 
     return "high-friction recovery conditions"
 
 
+def build_condition_map(normalized: Mapping[str, Any]) -> dict[str, Any]:
+    """Build inspectable pressure, constraint, support, capacity, control, and friction maps."""
+    pressure_items = [
+        {"code": "overall_pressure", "label": "Overall pressure", "value": normalized["pressure"]["level"], "source_path": "$.input.pressure.level", "layer": "immediate", "control_zone": "influence"},
+        {"code": "decision_ambiguity", "label": "Decision ambiguity", "value": normalized["pressure"]["decision_ambiguity"], "source_path": "$.input.pressure.decision_ambiguity", "layer": "near_term", "control_zone": "influence"},
+        {"code": "dependency_friction", "label": "Dependency friction", "value": normalized["pressure"]["dependency_friction"], "source_path": "$.input.pressure.dependency_friction", "layer": "near_term", "control_zone": "influence"},
+        {"code": "stakeholder_friction", "label": "Stakeholder friction", "value": normalized["pressure"]["stakeholder_friction"], "source_path": "$.input.pressure.stakeholder_friction", "layer": "near_term", "control_zone": "influence"},
+        {"code": "load_level", "label": "Competing load", "value": normalized["capacity"]["load_level"], "source_path": "$.input.capacity.load_level", "layer": "immediate", "control_zone": "control"},
+    ]
+    constraints = []
+    for index, item in enumerate(normalized["constraints"]["items"]):
+        constraints.append({**item, "source_path": f"$.input.constraints.items[{index}]"})
+    supports = []
+    for index, item in enumerate(normalized["supports"]["available"]):
+        supports.append({**item, "source_path": f"$.input.supports.available[{index}]"})
+    capacity = [
+        {"code": "energy", "label": "Energy capacity", "value": normalized["capacity"]["energy_level"], "source_path": "$.input.capacity.energy_level"},
+        {"code": "clarity", "label": "Decision clarity", "value": normalized["capacity"]["clarity_level"], "source_path": "$.input.capacity.clarity_level"},
+        {"code": "attention", "label": "Attention capacity", "value": normalized["capacity"]["attention_level"], "source_path": "$.input.capacity.attention_level"},
+        {"code": "coordination", "label": "Coordination capacity", "value": normalized["capacity"]["coordination_capacity"], "source_path": "$.input.capacity.coordination_capacity"},
+        {"code": "support_access", "label": "Support access", "value": normalized["supports"]["level"], "source_path": "$.input.supports.level"},
+    ]
+    control_view = {zone: [] for zone in ("control", "influence", "outside_control", "unknown")}
+    for item in constraints:
+        control_view[item["control_zone"]].append({"label": item["label"], "source_path": item["source_path"], "kind": "constraint"})
+    for item in pressure_items:
+        control_view[item["control_zone"]].append({"label": item["label"], "source_path": item["source_path"], "kind": "pressure"})
+    friction_layers = {layer: [] for layer in ("immediate", "near_term", "structural")}
+    for item in constraints:
+        friction_layers[item["layer"]].append({"label": item["label"], "severity": item["severity"], "source_path": item["source_path"]})
+    for item in pressure_items:
+        friction_layers[item["layer"]].append({"label": item["label"], "severity": item["value"], "source_path": item["source_path"]})
+    return {"pressure_map": pressure_items, "constraint_map": constraints, "support_map": supports, "capacity_profile": capacity, "control_view": control_view, "friction_layers": friction_layers}
+
+
+def build_interpretation(normalized: Mapping[str, Any]) -> dict[str, Any]:
+    checks = [
+        ("$.input.context.description", bool(normalized["context"]["description"]), "Describe the affected situation and work."),
+        ("$.input.context.affected_work", bool(normalized["context"]["affected_work"]), "List the work, decisions, or relationships affected."),
+        ("$.input.pressure.sources", bool(normalized["pressure"]["sources"]), "Name the main pressure sources."),
+        ("$.input.pressure.competing_demands", bool(normalized["pressure"]["competing_demands"]), "Record competing demands that consume capacity."),
+        ("$.input.constraints.items", bool(normalized["constraints"]["items"]), "Map at least one constraint and its control zone."),
+        ("$.input.supports.available", bool(normalized["supports"]["available"]), "Identify available or potential support channels."),
+        ("$.input.capacity.available_time_hours", normalized["capacity"]["available_time_hours"] is not None, "Estimate available work time."),
+        ("$.input.capacity.recovery_time_hours", normalized["capacity"]["recovery_time_hours"] is not None, "Estimate protected recovery time."),
+        ("$.input.next_steps.checkpoint_date", normalized["next_steps"]["checkpoint_date"] is not None, "Set a checkpoint date."),
+        ("$.input.next_steps.success_signal", bool(normalized["next_steps"]["success_signal"]), "Define an observable success signal."),
+    ]
+    missing = [{"path": path, "prompt": prompt} for path, present, prompt in checks if not present]
+    percent = _round_half_up((len(checks) - len(missing)) / len(checks) * 100, 1)
+    contradictions = []
+    def contradiction(code: str, paths: list[str], message: str, prompt: str) -> None:
+        contradictions.append({"code": code, "source_paths": paths, "message": message, "review_prompt": prompt})
+    if normalized["supports"]["level"] >= 8 and not normalized["supports"]["available"]:
+        contradiction("support_without_channel", ["$.input.supports.level", "$.input.supports.available"], "High support access is recorded without a named support channel.", "Name the support channel or revise the support level.")
+    if normalized["capacity"]["clarity_level"] >= 8 and normalized["pressure"]["decision_ambiguity"] >= 8:
+        contradiction("clarity_ambiguity_conflict", ["$.input.capacity.clarity_level", "$.input.pressure.decision_ambiguity"], "High clarity and high decision ambiguity are both recorded.", "Clarify whether personal task clarity differs from system-level decision ambiguity.")
+    if normalized["capacity"]["available_time_hours"] is not None and normalized["capacity"]["recovery_time_hours"] is not None and normalized["capacity"]["recovery_time_hours"] > normalized["capacity"]["available_time_hours"]:
+        contradiction("recovery_time_exceeds_available", ["$.input.capacity.recovery_time_hours", "$.input.capacity.available_time_hours"], "Protected recovery time exceeds total available time.", "Revise the estimates or explain the separate time windows.")
+    if normalized["pressure"]["level"] >= 8 and normalized["capacity"]["load_level"] <= 3:
+        contradiction("pressure_load_conflict", ["$.input.pressure.level", "$.input.capacity.load_level"], "High pressure is recorded alongside low competing load.", "Explain whether pressure is driven by urgency, consequences, or external uncertainty rather than workload.")
+    confidence_score = max(0.0, percent - len(contradictions) * 10.0)
+    level = "high" if confidence_score >= 80 else "moderate" if confidence_score >= 55 else "low"
+    return {
+        "completeness": {"percent": percent, "present_fields": len(checks) - len(missing), "total_fields": len(checks), "missing_context": missing},
+        "confidence": {"level": level, "score": _round_half_up(confidence_score, 1), "rationale": "Confidence reflects recorded context completeness and unresolved contradictions, not certainty about future outcomes."},
+        "contradictions": contradictions,
+        "review_required": bool(missing or contradictions),
+        "score_display_policy": {"mode": "component_context_required", "message": "The composite conditions score must be shown with component explanations and condition maps."},
+    }
+
+
 def build_flags(normalized: Mapping[str, Any]) -> list[dict[str, Any]]:
     flags: list[dict[str, Any]] = []
 
-    def add(code: str, severity: str, section: str, message: str, rationale: str) -> None:
-        flags.append({"code": code, "severity": severity, "section": section, "message": message, "rationale": rationale})
+    def add(code: str, severity: str, section: str, message: str, rationale: str, paths: list[str], conditions: dict[str, Any]) -> None:
+        flags.append({"code": code, "severity": severity, "section": section, "message": message, "rationale": rationale, "source_paths": paths, "input_conditions": conditions})
 
     if normalized["impact"]["severity"] >= 8:
-        add("high_impact", "high", "impact", "Reduce scope and protect recovery time.", "Impact severity is recorded at 8 or above.")
+        add("high_impact", "high", "impact", "Reduce scope and protect recovery time.", "Impact severity is recorded at 8 or above.", ["$.input.impact.severity"], {"impact_severity": normalized["impact"]["severity"]})
     if normalized["pressure"]["level"] >= 8:
-        add("high_pressure", "high", "pressure", "Clarify what can pause, wait, or be delegated.", "Pressure is recorded at 8 or above.")
+        add("high_pressure", "high", "pressure", "Clarify what can pause, wait, or be delegated.", "Pressure is recorded at 8 or above.", ["$.input.pressure.level"], {"pressure_level": normalized["pressure"]["level"]})
+    if normalized["pressure"]["decision_ambiguity"] >= 8:
+        add("decision_ambiguity", "high", "pressure", "Name the decision, owner, and information still needed.", "Decision ambiguity is recorded at 8 or above.", ["$.input.pressure.decision_ambiguity"], {"decision_ambiguity": normalized["pressure"]["decision_ambiguity"]})
+    if normalized["pressure"]["dependency_friction"] >= 8:
+        add("dependency_friction", "high", "constraints", "Route the dependency to an owner or escalation path.", "Dependency friction is recorded at 8 or above.", ["$.input.pressure.dependency_friction"], {"dependency_friction": normalized["pressure"]["dependency_friction"]})
     if normalized["capacity"]["energy_level"] <= 3:
-        add("low_energy_capacity", "high", "capacity", "Avoid overloading the next action plan.", "Energy capacity is recorded at 3 or below.")
+        add("low_energy_capacity", "high", "capacity", "Avoid overloading the next action plan.", "Energy capacity is recorded at 3 or below.", ["$.input.capacity.energy_level"], {"energy_level": normalized["capacity"]["energy_level"]})
     if normalized["supports"]["level"] <= 3:
-        add("low_support_capacity", "high", "supports", "Identify one concrete support channel before expanding work.", "Support capacity is recorded at 3 or below.")
+        add("low_support_capacity", "high", "supports", "Identify one concrete support channel before expanding work.", "Support capacity is recorded at 3 or below.", ["$.input.supports.level"], {"support_level": normalized["supports"]["level"]})
     if normalized["capacity"]["clarity_level"] <= 3:
-        add("low_clarity_capacity", "high", "capacity", "Define the decision, owner, and next checkpoint.", "Clarity is recorded at 3 or below.")
+        add("low_clarity_capacity", "high", "capacity", "Define the decision, owner, and next checkpoint.", "Clarity is recorded at 3 or below.", ["$.input.capacity.clarity_level"], {"clarity_level": normalized["capacity"]["clarity_level"]})
     if normalized["capacity"]["time_horizon_days"] <= 3:
-        add("short_horizon", "medium", "capacity", "Choose a recovery action that can be completed quickly.", "The time horizon is three days or less.")
-    limited = sum(1 for item in normalized["constraints"]["items"] if item["controllability"] == "limited")
-    if limited >= 2:
-        add("limited_constraints", "medium", "constraints", "Separate controllable work from constraints that require escalation or accommodation.", "Two or more constraints are recorded as having limited controllability.")
+        add("short_horizon", "medium", "capacity", "Choose a recovery action that can be completed quickly.", "The time horizon is three days or less.", ["$.input.capacity.time_horizon_days"], {"time_horizon_days": normalized["capacity"]["time_horizon_days"]})
+    limited = [item for item in normalized["constraints"]["items"] if item["control_zone"] == "outside_control"]
+    if len(limited) >= 2:
+        paths = [f"$.input.constraints.items[{i}]" for i,item in enumerate(normalized["constraints"]["items"]) if item["control_zone"] == "outside_control"]
+        add("outside_control_constraints", "medium", "constraints", "Separate adaptation work from constraints requiring accommodation or escalation.", "Two or more constraints are outside direct control.", paths, {"count": len(limited)})
     return flags
 
 
@@ -928,7 +1026,7 @@ def generate_record(
     data: Mapping[str, Any],
     methodology_profile: Mapping[str, Any] | None = None,
 ) -> RecoveryRecord:
-    """Generate a canonical v1.2 recovery record."""
+    """Generate a canonical v1.3 recovery record with inspectable condition maps."""
     canonical = normalize_input(data)
     normalized = canonical["input"]
     profile = normalize_methodology_profile(methodology_profile or canonical["methodology_profile"])
@@ -937,15 +1035,19 @@ def generate_record(
     generated_state = state_from_score(score, profile)
     human_state = canonical["human_review"]["override_state"]
     effective_state = human_state or generated_state
+    condition_map = build_condition_map(normalized)
+    interpretation = build_interpretation(normalized)
     flags = build_flags(normalized)
     actions = build_next_actions(normalized)
     note = (
-        f"Recorded recovery conditions are assessed as {generated_state} with a conditions score of {score}/100. "
-        "Review the component explanations, protect available capacity, address the highest-friction condition, "
+        f"Recorded recovery conditions are assessed as {generated_state}. The composite conditions score is {score}/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. "
+        "Protect available capacity, address the highest-friction condition, "
         "and update the record at the next checkpoint."
     )
     findings = {
         "methodology": profile,
+        "condition_map": condition_map,
+        "interpretation": interpretation,
         "component_scores": components,
         "recovery_score": score,
         "generated_state": generated_state,
@@ -1000,6 +1102,12 @@ def to_markdown(output: RecoveryRecord) -> str:
         f"- **{name.replace('_', ' ').title()}:** {item['weighted_score']}/{item['weight']} — {item['explanation']}"
         for name, item in output.findings["component_scores"].items()
     )
+    condition_map = output.findings["condition_map"]
+    pressure_map = "\n".join(f"- **{item['label']}:** {item['value']}/10 — `{item['source_path']}`" for item in condition_map["pressure_map"])
+    constraints_map = "\n".join(f"- **{item['label']}:** {item['control_zone'].replace('_',' ')} · {item['layer'].replace('_',' ')} · {item['severity']}/10" for item in condition_map["constraint_map"]) or "- No constraints mapped."
+    supports_map = "\n".join(f"- **{item['label']}:** {item['status']} · reliability {item['reliability']}/10 · contribution {item['capacity_contribution']}/10" for item in condition_map["support_map"]) or "- No support channels mapped."
+    missing_context = "\n".join(f"- `{item['path']}` — {item['prompt']}" for item in output.findings["interpretation"]["completeness"]["missing_context"]) or "- No required context prompts remain."
+    contradictions = "\n".join(f"- **{item['code']}:** {item['message']}" for item in output.findings["interpretation"]["contradictions"]) or "- No contradictions detected."
     metadata = output.metadata
     context = output.normalized_input["context"]
     return f"""# Catalyst Grit Recovery Brief
@@ -1018,9 +1126,36 @@ def to_markdown(output: RecoveryRecord) -> str:
 
 {context['description'] or output.normalized_input['trigger']['summary']}
 
+## Condition maps
+
+### Pressure map
+
+{pressure_map}
+
+### Constraint map
+
+{constraints_map}
+
+### Support map
+
+{supports_map}
+
+### Completeness and review
+
+- **Completeness:** {output.findings['interpretation']['completeness']['percent']}%
+- **Confidence:** {output.findings['interpretation']['confidence']['level']} ({output.findings['interpretation']['confidence']['score']}/100)
+
+#### Missing-context prompts
+
+{missing_context}
+
+#### Contradictions
+
+{contradictions}
+
 ## Recovery conditions
 
-- **Score:** {output.findings['recovery_score']}/100
+- **Score (component context required):** {output.findings['recovery_score']}/100
 - **Generated state:** {output.findings['generated_state']}
 - **Effective state:** {output.findings['effective_state']}
 - **Methodology:** {output.findings['methodology']['profile_id']} v{output.findings['methodology']['profile_version']}

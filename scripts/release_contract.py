@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the complete Catalyst Grit v1.4.0 release contract."""
+"""Run the complete Catalyst Grit v1.5.0 release contract."""
 from __future__ import annotations
 
 import json
@@ -64,16 +64,24 @@ def main() -> int:
 import json, tempfile
 from pathlib import Path
 import catalyst_grit
-assert catalyst_grit.__version__ == '1.4.0'
-assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3]
+assert catalyst_grit.__version__ == '1.5.0'
+assert [m.version for m in catalyst_grit.MigrationManager.available()] == [1, 2, 3, 4]
 with tempfile.TemporaryDirectory() as d:
     with catalyst_grit.SQLiteWorkspaceRepository(Path(d)/'installed.sqlite3') as repo:
         project=repo.create_project('Installed wheel')
         assert project['visibility']=='private'
-        assert repo.health()['migrations']['current']==3
+        assert repo.health()['migrations']['current']==4
         saved=repo.save_record(project['project_id'], json.loads({example_payload!r}))
         record_id=saved['record']['record_id']
         assert repo.list_actions(record_id)
+        retrospectives=repo.list_retrospectives(record_id)
+        assert retrospectives and retrospectives[0]['content']['uncertainties']
+        patterns=repo.detect_project_patterns(project['project_id'], minimum_occurrences=1, include_singletons=True)
+        pattern=next(item for item in patterns if item['category']=='recurring_pressure')
+        review=repo.review_pattern(project['project_id'], pattern['pattern_key'], decision='accept')
+        assert review['evidence']
+        change=repo.create_system_change(project['project_id'], 'Installed learning change', 'Use one review channel.', source_record_ids=[record_id], decision='piloting')
+        assert change['sources'][0]['record_id']==record_id
 print(catalyst_grit.__version__)
 """
         run("Import installed package and migrations", [sys.executable, "-c", code], cwd=Path(temp), env=wheel_env)
@@ -82,7 +90,7 @@ print(catalyst_grit.__version__)
     for generated in ROOT.glob("src/*.egg-info"):
         shutil.rmtree(generated, ignore_errors=True)
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    print("Catalyst Grit v1.4.0 release contract passed.")
+    print("Catalyst Grit v1.5.0 release contract passed.")
     return 0
 
 

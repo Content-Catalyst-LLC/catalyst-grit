@@ -5,8 +5,8 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var VERSION = '1.4.0';
-  var METHOD_PATH = ['context', 'trigger', 'impact', 'pressure', 'constraints', 'supports', 'capacity', 'response', 'learning', 'next steps', 'human review'];
+  var VERSION = '1.5.0';
+  var METHOD_PATH = ['context', 'trigger', 'impact', 'pressure', 'constraints', 'supports', 'capacity', 'response', 'learning', 'retrospective', 'adaptation patterns', 'next steps', 'human review'];
   var DEFAULT_ACTIONS = ['Name the smallest recoverable next step', 'Review support and constraints', 'Schedule a short follow-up review'];
   var DOMAINS = ['work', 'learning', 'health_wellbeing', 'relationship', 'project', 'career', 'community', 'organization', 'other'];
   var RECORD_STATUSES = ['draft', 'active', 'under_review', 'reviewed', 'archived'];
@@ -31,7 +31,7 @@
   ];
   var DEFAULT_PROFILE = {
     profile_id: 'cg-recovery-conditions',
-    profile_version: '1.4.0',
+    profile_version: '1.5.0',
     calculation_spec: 'weighted-components-v1',
     component_weights: {
       impact_buffer: 15, pressure_buffer: 15, energy_capacity: 15, support_capacity: 15,
@@ -173,6 +173,20 @@
     return actions;
   }
 
+  function normalizePatternReviews(value, path) {
+    if (value === undefined || value === null || value === '') return [];
+    if (!Array.isArray(value)) fail(path, 'type_error', 'Must be an array of pattern review objects.', value);
+    return value.map(function (raw, index) {
+      var itemPath = path + '[' + index + ']'; var item = mapping(raw, itemPath);
+      rejectUnknown(item, ['pattern_key','decision','corrected_label','notes'], itemPath);
+      var decision = enumValue(item.decision, itemPath + '.decision', ['accept','reject','correct'], 'accept');
+      var corrected = text(item.corrected_label, itemPath + '.corrected_label', '', false);
+      if (decision === 'correct' && !corrected) fail(itemPath + '.corrected_label', 'required', 'A corrected pattern requires corrected_label.');
+      return { pattern_key:text(item.pattern_key,itemPath+'.pattern_key','',true), decision:decision, corrected_label:corrected, notes:text(item.notes,itemPath+'.notes','',false) };
+    });
+  }
+  function patternSlug(value) { var slug=String(value).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); return (slug.slice(0,56) || 'unspecified'); }
+
   function controlZone(controllability) { return { controllable: 'control', influence: 'influence', limited: 'outside_control', unknown: 'unknown' }[controllability]; }
   function normalizeConstraints(value, path) {
     if (value === undefined || value === null || value === '') return [];
@@ -239,7 +253,7 @@
         pressure: { level: data.pressure_level === undefined ? 5 : data.pressure_level, sources: [], competing_demands: [], decision_ambiguity: 5, dependency_friction: 5, stakeholder_friction: 5 },
         constraints: { items: [] }, supports: { level: data.support_level === undefined ? 5 : data.support_level, available: [] },
         capacity: { energy_level: data.energy_level === undefined ? 5 : data.energy_level, clarity_level: data.clarity_level === undefined ? 5 : data.clarity_level, available_time_hours: null, time_horizon_days: data.time_horizon_days === undefined ? 14 : data.time_horizon_days, attention_level: data.clarity_level === undefined ? 5 : data.clarity_level, coordination_capacity: data.support_level === undefined ? 5 : data.support_level, recovery_time_hours: null, load_level: data.pressure_level === undefined ? 5 : data.pressure_level },
-        response: { actions: data.recovery_actions, current_strategy: '' }, learning: { observations: [], assumptions: [], adaptations: [] },
+        response: { actions: data.recovery_actions, current_strategy: '' }, learning: { observations: [], assumptions: [], adaptations: [], what_happened:'', what_was_expected:'', what_changed:'', what_helped:[], what_hindered:[], what_was_learned:[], repeat:[], redesign:[], uncertainties:[], pattern_reviews:[] },
         next_steps: { actions: [], checkpoint_date: null, success_signal: '', scope_decision: 'continue', scope_decision_notes: '', blockers: [], escalation_log: [], changed_assumptions: [], reassessment_trigger: '' }
       },
       human_review: { review_status: humanStatus, reviewer: null, reviewed_at: null, notes: '', accepted_findings: [], rejected_findings: [], override_state: null },
@@ -251,7 +265,7 @@
     rejectUnknown(metadata, ['record_id', 'schema_version', 'engine_version', 'created_at', 'updated_at', 'status', 'provenance'], '$.metadata');
     var recordId = text(metadata.record_id, '$.metadata.record_id', randomRecordId(), false);
     if (!/^cgr_[0-9a-f]{32}$/.test(recordId)) fail('$.metadata.record_id', 'record_id', 'Must match cgr_ followed by 32 lowercase hexadecimal characters.', recordId);
-    if (metadata.schema_version && [VERSION, '1.3.0', '1.2.0', '1.1.0', '1.0.1'].indexOf(String(metadata.schema_version)) === -1) fail('$.metadata.schema_version', 'schema_version', 'Unsupported source schema version: ' + metadata.schema_version + '.', metadata.schema_version);
+    if (metadata.schema_version && [VERSION, '1.4.0', '1.3.0', '1.2.0', '1.1.0', '1.0.1'].indexOf(String(metadata.schema_version)) === -1) fail('$.metadata.schema_version', 'schema_version', 'Unsupported source schema version: ' + metadata.schema_version + '.', metadata.schema_version);
     if (metadata.engine_version && String(metadata.engine_version) !== VERSION) fail('$.metadata.engine_version', 'engine_version', 'Requests may not select a different engine version.', metadata.engine_version);
     var created = normalizeTimestamp(metadata.created_at, '$.metadata.created_at', nowISO());
     var updated = normalizeTimestamp(metadata.updated_at, '$.metadata.updated_at', created);
@@ -288,7 +302,7 @@
     var context=mapping(input.context,'$.input.context'), trigger=mapping(input.trigger,'$.input.trigger'), impact=mapping(input.impact,'$.input.impact'), pressure=mapping(input.pressure,'$.input.pressure'), constraints=mapping(input.constraints,'$.input.constraints'), supports=mapping(input.supports,'$.input.supports'), capacity=mapping(input.capacity,'$.input.capacity'), response=mapping(input.response,'$.input.response'), learning=mapping(input.learning,'$.input.learning'), next=mapping(input.next_steps,'$.input.next_steps');
     rejectUnknown(context,['title','domain','description','stakeholders','affected_work'],'$.input.context'); rejectUnknown(trigger,['summary','type','occurred_at'],'$.input.trigger'); rejectUnknown(impact,['severity','scope','description'],'$.input.impact');
     rejectUnknown(pressure,['level','sources','competing_demands','decision_ambiguity','dependency_friction','stakeholder_friction'],'$.input.pressure'); rejectUnknown(constraints,['items'],'$.input.constraints'); rejectUnknown(supports,['level','available'],'$.input.supports');
-    rejectUnknown(capacity,['energy_level','clarity_level','available_time_hours','time_horizon_days','attention_level','coordination_capacity','recovery_time_hours','load_level'],'$.input.capacity'); rejectUnknown(response,['actions','current_strategy'],'$.input.response'); rejectUnknown(learning,['observations','assumptions','adaptations'],'$.input.learning'); rejectUnknown(next,['actions','checkpoint_date','success_signal','scope_decision','scope_decision_notes','blockers','escalation_log','changed_assumptions','reassessment_trigger'],'$.input.next_steps');
+    rejectUnknown(capacity,['energy_level','clarity_level','available_time_hours','time_horizon_days','attention_level','coordination_capacity','recovery_time_hours','load_level'],'$.input.capacity'); rejectUnknown(response,['actions','current_strategy'],'$.input.response'); rejectUnknown(learning,['observations','assumptions','adaptations','what_happened','what_was_expected','what_changed','what_helped','what_hindered','what_was_learned','repeat','redesign','uncertainties','pattern_reviews'],'$.input.learning'); rejectUnknown(next,['actions','checkpoint_date','success_signal','scope_decision','scope_decision_notes','blockers','escalation_log','changed_assumptions','reassessment_trigger'],'$.input.next_steps');
     var supportLevel=clampScale(supports.level,'$.input.supports.level'); var clarity=clampScale(capacity.clarity_level,'$.input.capacity.clarity_level'); var pressureLevel=clampScale(pressure.level,'$.input.pressure.level');
     return {
       context:{title:text(context.title,'$.input.context.title','',true),domain:enumValue(context.domain,'$.input.context.domain',DOMAINS,'project'),description:text(context.description,'$.input.context.description','',false),stakeholders:stringList(context.stakeholders,'$.input.context.stakeholders'),affected_work:stringList(context.affected_work,'$.input.context.affected_work')},
@@ -297,7 +311,7 @@
       pressure:{level:pressureLevel,sources:stringList(pressure.sources,'$.input.pressure.sources'),competing_demands:stringList(pressure.competing_demands,'$.input.pressure.competing_demands'),decision_ambiguity:clampScale(pressure.decision_ambiguity === undefined ? 5 : pressure.decision_ambiguity,'$.input.pressure.decision_ambiguity'),dependency_friction:clampScale(pressure.dependency_friction === undefined ? 5 : pressure.dependency_friction,'$.input.pressure.dependency_friction'),stakeholder_friction:clampScale(pressure.stakeholder_friction === undefined ? 5 : pressure.stakeholder_friction,'$.input.pressure.stakeholder_friction')},
       constraints:{items:normalizeConstraints(constraints.items,'$.input.constraints.items')}, supports:{level:supportLevel,available:normalizeSupports(supports.available,'$.input.supports.available')},
       capacity:{energy_level:clampScale(capacity.energy_level,'$.input.capacity.energy_level'),clarity_level:clarity,available_time_hours:nullableNumber(capacity.available_time_hours,'$.input.capacity.available_time_hours'),time_horizon_days:integer(capacity.time_horizon_days,'$.input.capacity.time_horizon_days',14),attention_level:clampScale(capacity.attention_level === undefined ? clarity : capacity.attention_level,'$.input.capacity.attention_level'),coordination_capacity:clampScale(capacity.coordination_capacity === undefined ? supportLevel : capacity.coordination_capacity,'$.input.capacity.coordination_capacity'),recovery_time_hours:nullableNumber(capacity.recovery_time_hours,'$.input.capacity.recovery_time_hours'),load_level:clampScale(capacity.load_level === undefined ? pressureLevel : capacity.load_level,'$.input.capacity.load_level')},
-      response:{actions:normalizeActions(response.actions,'$.input.response.actions',true),current_strategy:text(response.current_strategy,'$.input.response.current_strategy','',false)}, learning:{observations:stringList(learning.observations,'$.input.learning.observations'),assumptions:stringList(learning.assumptions,'$.input.learning.assumptions'),adaptations:stringList(learning.adaptations,'$.input.learning.adaptations')}, next_steps:{actions:normalizeActions(next.actions,'$.input.next_steps.actions',false),checkpoint_date:optionalDate(next.checkpoint_date,'$.input.next_steps.checkpoint_date'),success_signal:text(next.success_signal,'$.input.next_steps.success_signal','',false),scope_decision:enumValue(next.scope_decision,'$.input.next_steps.scope_decision',PLAN_DECISIONS,'continue'),scope_decision_notes:text(next.scope_decision_notes,'$.input.next_steps.scope_decision_notes','',false),blockers:stringList(next.blockers,'$.input.next_steps.blockers'),escalation_log:stringList(next.escalation_log,'$.input.next_steps.escalation_log'),changed_assumptions:stringList(next.changed_assumptions,'$.input.next_steps.changed_assumptions'),reassessment_trigger:text(next.reassessment_trigger,'$.input.next_steps.reassessment_trigger','',false)}
+      response:{actions:normalizeActions(response.actions,'$.input.response.actions',true),current_strategy:text(response.current_strategy,'$.input.response.current_strategy','',false)}, learning:{observations:stringList(learning.observations,'$.input.learning.observations'),assumptions:stringList(learning.assumptions,'$.input.learning.assumptions'),adaptations:stringList(learning.adaptations,'$.input.learning.adaptations'),what_happened:text(learning.what_happened,'$.input.learning.what_happened','',false),what_was_expected:text(learning.what_was_expected,'$.input.learning.what_was_expected','',false),what_changed:text(learning.what_changed,'$.input.learning.what_changed','',false),what_helped:stringList(learning.what_helped,'$.input.learning.what_helped'),what_hindered:stringList(learning.what_hindered,'$.input.learning.what_hindered'),what_was_learned:stringList(learning.what_was_learned,'$.input.learning.what_was_learned'),repeat:stringList(learning.repeat,'$.input.learning.repeat'),redesign:stringList(learning.redesign,'$.input.learning.redesign'),uncertainties:stringList(learning.uncertainties,'$.input.learning.uncertainties'),pattern_reviews:normalizePatternReviews(learning.pattern_reviews,'$.input.learning.pattern_reviews')}, next_steps:{actions:normalizeActions(next.actions,'$.input.next_steps.actions',false),checkpoint_date:optionalDate(next.checkpoint_date,'$.input.next_steps.checkpoint_date'),success_signal:text(next.success_signal,'$.input.next_steps.success_signal','',false),scope_decision:enumValue(next.scope_decision,'$.input.next_steps.scope_decision',PLAN_DECISIONS,'continue'),scope_decision_notes:text(next.scope_decision_notes,'$.input.next_steps.scope_decision_notes','',false),blockers:stringList(next.blockers,'$.input.next_steps.blockers'),escalation_log:stringList(next.escalation_log,'$.input.next_steps.escalation_log'),changed_assumptions:stringList(next.changed_assumptions,'$.input.next_steps.changed_assumptions'),reassessment_trigger:text(next.reassessment_trigger,'$.input.next_steps.reassessment_trigger','',false)}
     };
   }
   function normalizeProfile(value) {
@@ -320,6 +334,9 @@
   function upgradePriorInput(value, sourceSchema) {
     var upgraded=clone(value);
     if(sourceSchema===VERSION) return upgraded;
+    upgraded.learning=upgraded.learning || {};
+    ['what_happened','what_was_expected','what_changed'].forEach(function(key){if(upgraded.learning[key]===undefined) upgraded.learning[key]='';});
+    ['what_helped','what_hindered','what_was_learned','repeat','redesign','uncertainties','pattern_reviews'].forEach(function(key){if(upgraded.learning[key]===undefined) upgraded.learning[key]=[];});
     upgraded.next_steps=upgraded.next_steps || {};
     if(upgraded.next_steps.scope_decision===undefined) upgraded.next_steps.scope_decision='continue';
     if(upgraded.next_steps.scope_decision_notes===undefined) upgraded.next_steps.scope_decision_notes='';
@@ -423,6 +440,30 @@
     var base=new Date((asOf || nowISO().slice(0,10))+'T00:00:00Z'), due=[]; actions.forEach(function(item){if(item.target_date && ['completed','cancelled'].indexOf(item.status)===-1){var target=new Date(item.target_date+'T00:00:00Z'); if(target<base) due.push({action_key:item.action_key,title:item.title,target_date:item.target_date,days_past_target:Math.floor((base-target)/86400000),message:'Target date passed; review support, scope, or sequencing without assigning blame.'});}});
     return {plan_status:blocked.length?'needs_support':'ready',smallest_recoverable_next_step:smallest,horizons:horizons,dependency_sequence:sequence,unresolved_dependencies:unresolved,scope_decision:{decision:input.next_steps.scope_decision,notes:input.next_steps.scope_decision_notes},checkpoint:{scheduled_for:checkpoint,success_signal:input.next_steps.success_signal,reassessment_trigger:input.next_steps.reassessment_trigger},blocker_log:blocked.concat(input.next_steps.blockers.map(function(item){return {action_key:null,title:item,blocked_reason:item,required_support:[],escalation_path:''};})),escalation_log:input.next_steps.escalation_log.slice(),changed_assumptions:input.next_steps.changed_assumptions.slice(),due_for_review:due,compatibility_defaults:defaults,plan_rules:['At least one action has a named owner.','A dated checkpoint is required.','Blocked and past-target actions are support signals, not performance judgments.','Reassessment creates a new record revision and preserves prior findings.']};
   }
+  function unique(values) { var out=[]; values.forEach(function(item){ if(out.indexOf(item)===-1) out.push(item); }); return out; }
+  function buildRetrospective(input) {
+    var learning=input.learning, happened=learning.what_happened || input.trigger.summary, learned=unique(learning.what_was_learned.concat(learning.observations)), repeat=unique(learning.repeat.concat(learning.what_helped)), redesign=unique(learning.redesign.concat(learning.adaptations));
+    var fields=[happened,learning.what_was_expected,learning.what_changed,learning.what_helped,learning.what_hindered,learned,repeat,redesign,learning.uncertainties], completed=fields.filter(function(item){return Boolean(Array.isArray(item)?item.length:item);}).length;
+    return {what_happened:happened,what_was_expected:learning.what_was_expected,what_changed:learning.what_changed,what_helped:learning.what_helped.slice(),what_hindered:learning.what_hindered.slice(),what_was_learned:learned,repeat:repeat,redesign:redesign,uncertainties:learning.uncertainties.slice(),completion:{percent:round(completed/fields.length*100,1),completed_fields:completed,total_fields:fields.length},evidence_paths:{what_happened:learning.what_happened?'$.input.learning.what_happened':'$.input.trigger.summary',what_was_expected:'$.input.learning.what_was_expected',what_changed:'$.input.learning.what_changed',what_helped:'$.input.learning.what_helped',what_hindered:'$.input.learning.what_hindered',what_was_learned:'$.input.learning.what_was_learned',repeat:'$.input.learning.repeat',redesign:'$.input.learning.redesign',uncertainties:'$.input.learning.uncertainties'},interpretation_limit:'The retrospective records supplied observations and uncertainty; it does not establish causation by itself.'};
+  }
+  function buildAdaptationPatterns(input) {
+    var patterns=[], seen={};
+    function add(category,label,path,value,basis,candidate){var clean=String(label||'').trim();if(!clean)return;var key=category+':'+patternSlug(clean);if(seen[key])return;seen[key]=true;patterns.push({pattern_key:key,category:category,label:clean,status:'inferred',basis:basis||'recorded',occurrence_count:1,evidence:[{source_path:path,value:clone(value)}],adaptation_candidate:candidate||'',review:{decision:null,corrected_label:'',notes:''},interpretation:'Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.'});}
+    input.pressure.sources.forEach(function(item,index){add('recurring_pressure',item,'$.input.pressure.sources['+index+']',item);});
+    input.pressure.competing_demands.forEach(function(item,index){add('scope_workload',item,'$.input.pressure.competing_demands['+index+']',item);});
+    input.constraints.items.forEach(function(item,index){if(item.type==='dependency')add('dependency_failure',item.label,'$.input.constraints.items['+index+']',item);});
+    input.supports.available.forEach(function(item,index){if(item.status!=='active'||item.reliability<=4)add('support_gap',item.label,'$.input.supports.available['+index+']',item);});
+    if(input.supports.level<=4)add('support_gap','Low recorded support capacity','$.input.supports.level',input.supports.level);
+    if(input.capacity.clarity_level<=4||input.pressure.decision_ambiguity>=7)add('clarity_failure','Decision or recovery clarity gap','$.input.capacity.clarity_level',input.capacity.clarity_level);
+    if(input.capacity.load_level>=7)add('scope_workload','High competing load','$.input.capacity.load_level',input.capacity.load_level);
+    input.learning.what_helped.forEach(function(item,index){add('recovery_action_helped',item,'$.input.learning.what_helped['+index+']',item,'user_observation','');});
+    input.learning.what_hindered.forEach(function(item,index){add('action_did_not_help',item,'$.input.learning.what_hindered['+index+']',item,'user_observation','');});
+    unique(input.learning.redesign.concat(input.learning.adaptations)).forEach(function(item,index){add('adaptation_candidate',item,'$.input.learning.redesign['+index+']',item,'user_proposed',item);});
+    var reviews={};input.learning.pattern_reviews.forEach(function(item){reviews[item.pattern_key]=item;});patterns.forEach(function(item){var review=reviews[item.pattern_key];if(!review)return;item.review=clone(review);item.status={accept:'accepted',reject:'rejected',correct:'corrected'}[review.decision];if(review.decision==='correct')item.label=review.corrected_label;});
+    return patterns;
+  }
+  function buildLearningLoop(input){var retrospective=buildRetrospective(input),patterns=buildAdaptationPatterns(input),candidates=[];patterns.filter(function(item){return item.status!=='rejected';}).forEach(function(item){if(item.adaptation_candidate&&candidates.indexOf(item.adaptation_candidate)===-1)candidates.push(item.adaptation_candidate);});return {retrospective:retrospective,patterns:patterns,adaptation_candidates:candidates,review_required:patterns.some(function(item){return item.status==='inferred';}),review_guidance:'Patterns remain proposals until a user accepts, rejects, or corrects them.',system_change_guidance:'Link any process change to the records and evidence that motivated it, then record an adopt, revise, defer, or retire decision after the pilot.',personality_labeling_prohibited:true};}
+
   function buildNextActions(input) {
     var output = []; var seen = {};
     function add(code, title, rationale, source, priority) { var key = title.trim().toLowerCase(); if (key && !seen[key] && output.length < 6) { seen[key] = true; output.push({ code: code, title: title, rationale: rationale, source: source, priority: priority }); } }
@@ -437,14 +478,14 @@
   function generateRecord(data, methodologyProfile) {
     var canonical = normalizeInput(data); var input = canonical.input; var profile = normalizeProfile(methodologyProfile || canonical.methodology_profile);
     var components = calculateComponentScores(input, profile); var total = 0; Object.keys(components).forEach(function (key) { total += components[key].normalized_value * components[key].weight; }); var score = round(total, 1);
-    var generatedState = stateFromScore(score, profile); var override = canonical.human_review.override_state; var effective = override || generatedState; var conditionMap=buildConditionMap(input); var interpretation=buildInterpretation(input);
+    var generatedState = stateFromScore(score, profile); var override = canonical.human_review.override_state; var effective = override || generatedState; var conditionMap=buildConditionMap(input); var interpretation=buildInterpretation(input); var learningLoop=buildLearningLoop(input);
     return {
       metadata: canonical.metadata,
       user_input: canonical.user_input,
       normalized_input: input,
       findings: {
         methodology: profile, condition_map: conditionMap, interpretation: interpretation, component_scores: components, recovery_score: score, generated_state: generatedState, effective_state: effective,
-        human_override_applied: Boolean(override), flags: buildFlags(input), recommended_actions: buildNextActions(input), recovery_plan: buildRecoveryPlan(input, canonical.metadata.updated_at.slice(0,10)),
+        human_override_applied: Boolean(override), flags: buildFlags(input), recommended_actions: buildNextActions(input), recovery_plan: buildRecoveryPlan(input, canonical.metadata.updated_at.slice(0,10)), retrospective: learningLoop.retrospective, adaptation_patterns: learningLoop.patterns, learning_loop: learningLoop,
         decision_note: 'Recorded recovery conditions are assessed as ' + generatedState + '. The composite conditions score is ' + score + '/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.',
         method_path: METHOD_PATH.slice(), interpretation_limits: INTERPRETATION_LIMITS.slice(),
         calculation_provenance: { schema_version: VERSION, engine_version: VERSION, profile_id: profile.profile_id, profile_version: profile.profile_version, calculated_at: canonical.metadata.updated_at }
@@ -471,7 +512,7 @@
         constraints: { items: lines(form.constraints.value) }, supports: { level: form.support_level.value, available: lines(form.supports_available.value) },
         capacity: { energy_level: form.energy_level.value, clarity_level: form.clarity_level.value, available_time_hours: form.available_time_hours.value, time_horizon_days: form.time_horizon_days.value, attention_level: form.attention_level.value, coordination_capacity: form.coordination_capacity.value, recovery_time_hours: form.recovery_time_hours.value, load_level: form.load_level.value },
         response: { actions: planActions(lines(form.response_actions.value), form.action_owner.value, form.action_horizon.value, form.action_target_date.value, 'response'), current_strategy: form.current_strategy.value },
-        learning: { observations: lines(form.learning_observations.value), assumptions: lines(form.learning_assumptions.value), adaptations: lines(form.learning_adaptations.value) },
+        learning: { observations: lines(form.learning_observations.value), assumptions: lines(form.learning_assumptions.value), adaptations: lines(form.learning_adaptations.value), what_happened: form.learning_what_happened ? form.learning_what_happened.value : '', what_was_expected: form.learning_expected ? form.learning_expected.value : '', what_changed: form.learning_changed ? form.learning_changed.value : '', what_helped: form.learning_helped ? lines(form.learning_helped.value) : [], what_hindered: form.learning_hindered ? lines(form.learning_hindered.value) : [], what_was_learned: form.learning_lessons ? lines(form.learning_lessons.value) : [], repeat: form.learning_repeat ? lines(form.learning_repeat.value) : [], redesign: form.learning_redesign ? lines(form.learning_redesign.value) : [], uncertainties: form.learning_uncertainties ? lines(form.learning_uncertainties.value) : [], pattern_reviews: [] },
         next_steps: { actions: planActions(lines(form.next_actions.value), form.action_owner.value, '7_days', '', 'next'), checkpoint_date: form.checkpoint_date.value || null, success_signal: form.success_signal.value, scope_decision: form.scope_decision.value, scope_decision_notes: form.scope_decision_notes.value, blockers: lines(form.blockers.value), escalation_log: lines(form.escalation_log.value), changed_assumptions: [], reassessment_trigger: form.reassessment_trigger.value }
       },
       human_review: { review_status: form.review_status.value, reviewer: null, reviewed_at: null, notes: '', accepted_findings: [], rejected_findings: [], override_state: null },
@@ -495,6 +536,7 @@
       list(widget.querySelector('[data-cg-missing]'), output.findings.interpretation.completeness.missing_context, function(item){return item.path+': '+item.prompt;}, 'No missing-context prompts.'); list(widget.querySelector('[data-cg-contradictions]'), output.findings.interpretation.contradictions, function(item){return item.message+' '+item.review_prompt;}, 'No contradictions detected.');
       list(widget.querySelector('[data-cg-flags]'), output.findings.flags, function (item) { return item.severity.toUpperCase() + ' · ' + item.section + ': ' + item.message; }, 'No major review flags generated.');
       list(widget.querySelector('[data-cg-actions]'), output.findings.recommended_actions, function (item) { return item.priority.toUpperCase() + ': ' + item.title + ' — ' + item.rationale; }, 'No actions generated.');
+      var retro=output.findings.retrospective;if(widget.querySelector('[data-cg-retrospective]'))widget.querySelector('[data-cg-retrospective]').textContent='What changed: '+(retro.what_changed||'not recorded')+' · completion '+retro.completion.percent+'%';if(widget.querySelector('[data-cg-patterns]'))list(widget.querySelector('[data-cg-patterns]'),output.findings.adaptation_patterns,function(item){return item.category.replace(/_/g,' ')+': '+item.label+' · '+item.status+' · '+item.evidence[0].source_path;},'No pattern candidates generated.');if(widget.querySelector('[data-cg-adaptations]'))list(widget.querySelector('[data-cg-adaptations]'),output.findings.learning_loop.adaptation_candidates,function(item){return item;},'No adaptation candidates recorded.');
       widget.querySelector('[data-cg-note]').textContent = output.findings.decision_note; widget.querySelector('[data-cg-json]').textContent = JSON.stringify(output, null, 2); widget._cgOutput = output; return output;
     } catch (error) { showError(widget, error); throw error; }
   }
@@ -508,5 +550,5 @@
     });
   }
   if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize); else initialize(); }
-  return { VERSION: VERSION, DEFAULT_PROFILE: clone(DEFAULT_PROFILE), ValidationError: ValidationError, migrateV1Request: migrateV1Request, normalizeInput: normalizeInput, normalizeProfile: normalizeProfile, calculateComponentScores: calculateComponentScores, stateFromScore: stateFromScore, buildConditionMap: buildConditionMap, buildInterpretation: buildInterpretation, buildFlags: buildFlags, buildNextActions: buildNextActions, buildRecoveryPlan: buildRecoveryPlan, generateRecord: generateRecord };
+  return { VERSION: VERSION, DEFAULT_PROFILE: clone(DEFAULT_PROFILE), ValidationError: ValidationError, migrateV1Request: migrateV1Request, normalizeInput: normalizeInput, normalizeProfile: normalizeProfile, calculateComponentScores: calculateComponentScores, stateFromScore: stateFromScore, buildConditionMap: buildConditionMap, buildInterpretation: buildInterpretation, buildFlags: buildFlags, buildNextActions: buildNextActions, buildRecoveryPlan: buildRecoveryPlan, buildRetrospective: buildRetrospective, buildAdaptationPatterns: buildAdaptationPatterns, buildLearningLoop: buildLearningLoop, generateRecord: generateRecord };
 });

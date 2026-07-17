@@ -1,14 +1,14 @@
 {
   "metadata": {
     "record_id": "cgr_11111111111111111111111111111111",
-    "schema_version": "1.4.0",
+    "schema_version": "1.5.0",
     "created_at": "2026-07-17T12:00:00Z",
     "updated_at": "2026-07-17T12:00:00Z",
     "status": "draft",
     "provenance": {
       "created_by": "example-user",
       "source": "direct_entry",
-      "source_schema_version": "1.4.0",
+      "source_schema_version": "1.5.0",
       "source_record_id": null,
       "notes": "Canonical recovery-record example."
     }
@@ -160,7 +160,31 @@
       ],
       "adaptations": [
         "Record the decision owner before the next review cycle."
-      ]
+      ],
+      "what_happened": "Conflicting review channels changed the deliverable after the checkpoint.",
+      "what_was_expected": "One decision owner would consolidate feedback before review.",
+      "what_changed": "Feedback arrived through separate channels and the decision owner was not explicit.",
+      "what_helped": [
+        "Reducing scope to one decision",
+        "Using a shared decision log"
+      ],
+      "what_hindered": [
+        "Parallel feedback channels",
+        "Unclear approval ownership"
+      ],
+      "what_was_learned": [
+        "Decision ownership must be visible before review begins."
+      ],
+      "repeat": [
+        "Use a single shared decision log."
+      ],
+      "redesign": [
+        "Require one named decision owner before the review window opens."
+      ],
+      "uncertainties": [
+        "Whether all reviewers can use the same feedback channel."
+      ],
+      "pattern_reviews": []
     },
     "next_steps": {
       "actions": [

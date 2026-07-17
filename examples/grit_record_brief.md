@@ -52,7 +52,7 @@ The workstream lost momentum after conflicting stakeholder feedback and a missed
 - **Score (component context required):** 47.8/100
 - **Generated state:** fragile recovery conditions
 - **Effective state:** fragile recovery conditions
-- **Methodology:** cg-recovery-conditions v1.4.0
+- **Methodology:** cg-recovery-conditions v1.5.0
 
 ## Component scores
 
@@ -78,6 +78,44 @@ The workstream lost momentum after conflicting stakeholder feedback and a missed
 - **High:** Write a one-sentence definition of recovery for this situation. — Clarity is at or below the midpoint.
 - **High:** Reduce the work to one near-term checkpoint instead of a full reset. — Pressure is elevated.
 
+## Learning loop
+
+- **What happened:** Conflicting review channels changed the deliverable after the checkpoint.
+- **What was expected:** One decision owner would consolidate feedback before review.
+- **What changed:** Feedback arrived through separate channels and the decision owner was not explicit.
+- **Retrospective completion:** 100.0%
+
+### Repeat
+
+- Use a single shared decision log.
+- Reducing scope to one decision
+- Using a shared decision log
+
+### Redesign
+
+- Require one named decision owner before the review window opens.
+- Record the decision owner before the next review cycle.
+
+### Uncertainty
+
+- Whether all reviewers can use the same feedback channel.
+
+### Adaptation pattern candidates
+
+- **Recurring Pressure:** publication deadline — inferred · evidence `$.input.pressure.sources[0]`
+- **Recurring Pressure:** stakeholder disagreement — inferred · evidence `$.input.pressure.sources[1]`
+- **Scope Workload:** parallel publication work — inferred · evidence `$.input.pressure.competing_demands[0]`
+- **Scope Workload:** reviewer availability — inferred · evidence `$.input.pressure.competing_demands[1]`
+- **Dependency Failure:** Final approval dependency — inferred · evidence `$.input.constraints.items[0]`
+- **Clarity Failure:** Decision or recovery clarity gap — inferred · evidence `$.input.capacity.clarity_level`
+- **Scope Workload:** High competing load — inferred · evidence `$.input.capacity.load_level`
+- **Recovery Action Helped:** Reducing scope to one decision — inferred · evidence `$.input.learning.what_helped[0]`
+- **Recovery Action Helped:** Using a shared decision log — inferred · evidence `$.input.learning.what_helped[1]`
+- **Action Did Not Help:** Parallel feedback channels — inferred · evidence `$.input.learning.what_hindered[0]`
+- **Action Did Not Help:** Unclear approval ownership — inferred · evidence `$.input.learning.what_hindered[1]`
+- **Adaptation Candidate:** Require one named decision owner before the review window opens. — inferred · evidence `$.input.learning.redesign[0]`
+- **Adaptation Candidate:** Record the decision owner before the next review cycle. — inferred · evidence `$.input.learning.redesign[1]`
+
 ## Decision note
 
 Recorded recovery conditions are assessed as fragile recovery conditions. The composite conditions score is 47.8/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. Protect available capacity, address the highest-friction condition, and update the record at the next checkpoint.
@@ -97,6 +135,6 @@ Recorded recovery conditions are assessed as fragile recovery conditions. The co
 
 ## Release provenance
 
-- **Schema version:** 1.4.0
-- **Engine version:** 1.4.0
-- **Method path:** context → trigger → impact → pressure → constraints → supports → capacity → response → learning → next steps → human review
+- **Schema version:** 1.5.0
+- **Engine version:** 1.5.0
+- **Method path:** context → trigger → impact → pressure → constraints → supports → capacity → response → learning → retrospective → adaptation patterns → next steps → human review

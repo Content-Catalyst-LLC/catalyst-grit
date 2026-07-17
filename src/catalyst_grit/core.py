@@ -26,6 +26,8 @@ METHOD_PATH = [
     "capacity",
     "response",
     "learning",
+    "retrospective",
+    "adaptation patterns",
     "next steps",
     "human review",
 ]
@@ -95,6 +97,8 @@ ALLOWED_SUPPORT_TYPES = {
 ALLOWED_ACTION_STATUSES = {"planned", "in_progress", "blocked", "completed", "paused", "deferred", "cancelled"}
 ALLOWED_ACTION_HORIZONS = {"24_hours", "72_hours", "7_days", "longer_term"}
 ALLOWED_PLAN_DECISIONS = {"continue", "reduce_scope", "pause", "delegate", "escalate"}
+ALLOWED_PATTERN_REVIEW_DECISIONS = {"accept", "reject", "correct"}
+ALLOWED_SYSTEM_CHANGE_DECISIONS = {"proposed", "piloting", "adopt", "revise", "defer", "retire"}
 ALLOWED_PROVENANCE_SOURCES = {"direct_entry", "browser", "cli", "api", "import", "migration"}
 
 EXTENSION_KEY = re.compile(r"^[a-z][a-z0-9-]*(?:\.[a-z0-9-]+)+$")
@@ -108,7 +112,7 @@ DEFAULT_ACTIONS = [
 
 DEFAULT_METHODOLOGY_PROFILE: dict[str, Any] = {
     "profile_id": "cg-recovery-conditions",
-    "profile_version": "1.4.0",
+    "profile_version": "1.5.0",
     "calculation_spec": "weighted-components-v1",
     "component_weights": {
         "impact_buffer": 15.0,
@@ -377,6 +381,34 @@ def _normalize_action_list(value: Any, path: str, *, default_actions: bool = Fal
     return actions
 
 
+def _normalize_pattern_reviews(value: Any, path: str) -> list[dict[str, Any]]:
+    if value in (None, ""):
+        return []
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise _issue(path, "type_error", "Must be an array of pattern review objects.", value)
+    reviews: list[dict[str, Any]] = []
+    for index, raw in enumerate(value):
+        item_path = f"{path}[{index}]"
+        item = _mapping(raw, item_path)
+        _reject_unknown(item, {"pattern_key", "decision", "corrected_label", "notes"}, item_path)
+        decision = _enum(item.get("decision"), f"{item_path}.decision", ALLOWED_PATTERN_REVIEW_DECISIONS, "accept")
+        corrected = _text(item.get("corrected_label"), f"{item_path}.corrected_label")
+        if decision == "correct" and not corrected:
+            raise _issue(f"{item_path}.corrected_label", "required", "A corrected pattern requires corrected_label.")
+        reviews.append({
+            "pattern_key": _text(item.get("pattern_key"), f"{item_path}.pattern_key", required=True),
+            "decision": decision,
+            "corrected_label": corrected,
+            "notes": _text(item.get("notes"), f"{item_path}.notes"),
+        })
+    return reviews
+
+
+def _pattern_slug(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return slug[:56] or "unspecified"
+
+
 def _control_zone(controllability: str) -> str:
     return {"controllable": "control", "influence": "influence", "limited": "outside_control", "unknown": "unknown"}[controllability]
 
@@ -548,7 +580,7 @@ def migrate_v1_request(data: Mapping[str, Any]) -> dict[str, Any]:
                 "actions": actions,
                 "current_strategy": "",
             },
-            "learning": {"observations": [], "assumptions": [], "adaptations": []},
+            "learning": {"observations": [], "assumptions": [], "adaptations": [], "what_happened": "", "what_was_expected": "", "what_changed": "", "what_helped": [], "what_hindered": [], "what_was_learned": [], "repeat": [], "redesign": [], "uncertainties": [], "pattern_reviews": []},
             "next_steps": {"actions": [], "checkpoint_date": None, "success_signal": ""},
         },
         "human_review": {
@@ -576,7 +608,7 @@ def _normalize_metadata(value: Any, *, source_schema_version: str) -> dict[str, 
         raise _issue("$.metadata.record_id", "record_id", "Must match cgr_ followed by 32 lowercase hexadecimal characters.", record_id)
 
     supplied_schema = _optional_text(metadata.get("schema_version"))
-    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.3.0", "1.2.0", "1.1.0", "1.0.1"}:
+    if supplied_schema and supplied_schema not in {SCHEMA_VERSION, "1.4.0", "1.3.0", "1.2.0", "1.1.0", "1.0.1"}:
         raise _issue("$.metadata.schema_version", "schema_version", f"Unsupported source schema version: {supplied_schema}.", supplied_schema)
     supplied_engine = _optional_text(metadata.get("engine_version"))
     if supplied_engine and supplied_engine != ENGINE_VERSION:
@@ -689,7 +721,7 @@ def _normalize_input_sections(value: Any) -> dict[str, Any]:
     response = _mapping(input_data["response"], "$.input.response")
     _reject_unknown(response, {"actions", "current_strategy"}, "$.input.response")
     learning = _mapping(input_data["learning"], "$.input.learning")
-    _reject_unknown(learning, {"observations", "assumptions", "adaptations"}, "$.input.learning")
+    _reject_unknown(learning, {"observations", "assumptions", "adaptations", "what_happened", "what_was_expected", "what_changed", "what_helped", "what_hindered", "what_was_learned", "repeat", "redesign", "uncertainties", "pattern_reviews"}, "$.input.learning")
     next_steps = _mapping(input_data["next_steps"], "$.input.next_steps")
     _reject_unknown(next_steps, {"actions", "checkpoint_date", "success_signal", "scope_decision", "scope_decision_notes", "blockers", "escalation_log", "changed_assumptions", "reassessment_trigger"}, "$.input.next_steps")
 
@@ -742,6 +774,16 @@ def _normalize_input_sections(value: Any) -> dict[str, Any]:
             "observations": _string_list(learning.get("observations"), "$.input.learning.observations"),
             "assumptions": _string_list(learning.get("assumptions"), "$.input.learning.assumptions"),
             "adaptations": _string_list(learning.get("adaptations"), "$.input.learning.adaptations"),
+            "what_happened": _text(learning.get("what_happened"), "$.input.learning.what_happened"),
+            "what_was_expected": _text(learning.get("what_was_expected"), "$.input.learning.what_was_expected"),
+            "what_changed": _text(learning.get("what_changed"), "$.input.learning.what_changed"),
+            "what_helped": _string_list(learning.get("what_helped"), "$.input.learning.what_helped"),
+            "what_hindered": _string_list(learning.get("what_hindered"), "$.input.learning.what_hindered"),
+            "what_was_learned": _string_list(learning.get("what_was_learned"), "$.input.learning.what_was_learned"),
+            "repeat": _string_list(learning.get("repeat"), "$.input.learning.repeat"),
+            "redesign": _string_list(learning.get("redesign"), "$.input.learning.redesign"),
+            "uncertainties": _string_list(learning.get("uncertainties"), "$.input.learning.uncertainties"),
+            "pattern_reviews": _normalize_pattern_reviews(learning.get("pattern_reviews"), "$.input.learning.pattern_reviews"),
         },
         "next_steps": {
             "actions": _normalize_action_list(next_steps.get("actions"), "$.input.next_steps.actions"),
@@ -813,10 +855,22 @@ def normalize_methodology_profile(value: Mapping[str, Any] | None = None) -> dic
 
 
 def _upgrade_prior_input(value: Mapping[str, Any], source_schema: str) -> dict[str, Any]:
-    """Add non-destructive v1.4 defaults to earlier canonical requests."""
+    """Add non-destructive v1.5 defaults to earlier canonical requests."""
     upgraded = deepcopy(dict(value))
     if source_schema == SCHEMA_VERSION:
         return upgraded
+    learning = dict(upgraded.get("learning") or {})
+    learning.setdefault("what_happened", "")
+    learning.setdefault("what_was_expected", "")
+    learning.setdefault("what_changed", "")
+    learning.setdefault("what_helped", [])
+    learning.setdefault("what_hindered", [])
+    learning.setdefault("what_was_learned", [])
+    learning.setdefault("repeat", [])
+    learning.setdefault("redesign", [])
+    learning.setdefault("uncertainties", [])
+    learning.setdefault("pattern_reviews", [])
+    upgraded["learning"] = learning
     next_steps = dict(upgraded.get("next_steps") or {})
     next_steps.setdefault("scope_decision", "continue")
     next_steps.setdefault("scope_decision_notes", "")
@@ -1175,6 +1229,129 @@ def build_recovery_plan(normalized: Mapping[str, Any], *, as_of: str | None = No
     }
 
 
+def build_retrospective(normalized: Mapping[str, Any]) -> dict[str, Any]:
+    """Build an evidence-preserving retrospective without inventing certainty."""
+    learning = normalized["learning"]
+    what_happened = learning["what_happened"] or normalized["trigger"]["summary"]
+    expected = learning["what_was_expected"]
+    changed = learning["what_changed"]
+    learned = list(dict.fromkeys([*learning["what_was_learned"], *learning["observations"]]))
+    repeat = list(dict.fromkeys([*learning["repeat"], *learning["what_helped"]]))
+    redesign = list(dict.fromkeys([*learning["redesign"], *learning["adaptations"]]))
+    fields = [what_happened, expected, changed, learning["what_helped"], learning["what_hindered"], learned, repeat, redesign, learning["uncertainties"]]
+    completed = sum(bool(item) for item in fields)
+    return {
+        "what_happened": what_happened,
+        "what_was_expected": expected,
+        "what_changed": changed,
+        "what_helped": list(learning["what_helped"]),
+        "what_hindered": list(learning["what_hindered"]),
+        "what_was_learned": learned,
+        "repeat": repeat,
+        "redesign": redesign,
+        "uncertainties": list(learning["uncertainties"]),
+        "completion": {
+            "percent": _round_half_up(completed / len(fields) * 100, 1),
+            "completed_fields": completed,
+            "total_fields": len(fields),
+        },
+        "evidence_paths": {
+            "what_happened": "$.input.learning.what_happened" if learning["what_happened"] else "$.input.trigger.summary",
+            "what_was_expected": "$.input.learning.what_was_expected",
+            "what_changed": "$.input.learning.what_changed",
+            "what_helped": "$.input.learning.what_helped",
+            "what_hindered": "$.input.learning.what_hindered",
+            "what_was_learned": "$.input.learning.what_was_learned",
+            "repeat": "$.input.learning.repeat",
+            "redesign": "$.input.learning.redesign",
+            "uncertainties": "$.input.learning.uncertainties",
+        },
+        "interpretation_limit": "The retrospective records supplied observations and uncertainty; it does not establish causation by itself.",
+    }
+
+
+def build_adaptation_patterns(normalized: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Create explainable, reviewable pattern candidates from recorded conditions."""
+    patterns: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add(category: str, label: str, path: str, value: Any, *, basis: str = "recorded", candidate: str = "") -> None:
+        clean = str(label).strip()
+        if not clean:
+            return
+        key = f"{category}:{_pattern_slug(clean)}"
+        if key in seen:
+            return
+        seen.add(key)
+        patterns.append({
+            "pattern_key": key,
+            "category": category,
+            "label": clean,
+            "status": "inferred",
+            "basis": basis,
+            "occurrence_count": 1,
+            "evidence": [{"source_path": path, "value": deepcopy(value)}],
+            "adaptation_candidate": candidate,
+            "review": {"decision": None, "corrected_label": "", "notes": ""},
+            "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        })
+
+    for index, item in enumerate(normalized["pressure"]["sources"]):
+        add("recurring_pressure", item, f"$.input.pressure.sources[{index}]", item)
+    for index, item in enumerate(normalized["pressure"]["competing_demands"]):
+        add("scope_workload", item, f"$.input.pressure.competing_demands[{index}]", item)
+    for index, item in enumerate(normalized["constraints"]["items"]):
+        if item["type"] == "dependency":
+            add("dependency_failure", item["label"], f"$.input.constraints.items[{index}]", item)
+    for index, item in enumerate(normalized["supports"]["available"]):
+        if item["status"] != "active" or item["reliability"] <= 4:
+            add("support_gap", item["label"], f"$.input.supports.available[{index}]", item)
+    if normalized["supports"]["level"] <= 4:
+        add("support_gap", "Low recorded support capacity", "$.input.supports.level", normalized["supports"]["level"])
+    if normalized["capacity"]["clarity_level"] <= 4 or normalized["pressure"]["decision_ambiguity"] >= 7:
+        add("clarity_failure", "Decision or recovery clarity gap", "$.input.capacity.clarity_level", normalized["capacity"]["clarity_level"])
+    if normalized["capacity"]["load_level"] >= 7:
+        add("scope_workload", "High competing load", "$.input.capacity.load_level", normalized["capacity"]["load_level"])
+    for index, item in enumerate(normalized["learning"]["what_helped"]):
+        add("recovery_action_helped", item, f"$.input.learning.what_helped[{index}]", item, basis="user_observation")
+    for index, item in enumerate(normalized["learning"]["what_hindered"]):
+        add("action_did_not_help", item, f"$.input.learning.what_hindered[{index}]", item, basis="user_observation")
+    candidates = list(dict.fromkeys([*normalized["learning"]["redesign"], *normalized["learning"]["adaptations"]]))
+    for index, item in enumerate(candidates):
+        add("adaptation_candidate", item, f"$.input.learning.redesign[{index}]", item, basis="user_proposed", candidate=item)
+
+    reviews = {item["pattern_key"]: item for item in normalized["learning"]["pattern_reviews"]}
+    for item in patterns:
+        review = reviews.get(item["pattern_key"])
+        if not review:
+            continue
+        item["review"] = deepcopy(review)
+        item["status"] = {"accept": "accepted", "reject": "rejected", "correct": "corrected"}[review["decision"]]
+        if review["decision"] == "correct":
+            item["label"] = review["corrected_label"]
+    return patterns
+
+
+def build_learning_loop(normalized: Mapping[str, Any]) -> dict[str, Any]:
+    retrospective = build_retrospective(normalized)
+    patterns = build_adaptation_patterns(normalized)
+    active_patterns = [item for item in patterns if item["status"] != "rejected"]
+    candidates = []
+    for item in active_patterns:
+        candidate = item["adaptation_candidate"]
+        if candidate and candidate not in candidates:
+            candidates.append(candidate)
+    return {
+        "retrospective": retrospective,
+        "patterns": patterns,
+        "adaptation_candidates": candidates,
+        "review_required": any(item["status"] == "inferred" for item in patterns),
+        "review_guidance": "Patterns remain proposals until a user accepts, rejects, or corrects them.",
+        "system_change_guidance": "Link any process change to the records and evidence that motivated it, then record an adopt, revise, defer, or retire decision after the pilot.",
+        "personality_labeling_prohibited": True,
+    }
+
+
 def build_next_actions(normalized: Mapping[str, Any]) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -1212,7 +1389,7 @@ def generate_record(
     data: Mapping[str, Any],
     methodology_profile: Mapping[str, Any] | None = None,
 ) -> RecoveryRecord:
-    """Generate a canonical v1.4 recovery record with an executable recovery plan."""
+    """Generate a canonical v1.5 recovery record with learning loops and adaptation patterns."""
     canonical = normalize_input(data)
     normalized = canonical["input"]
     profile = normalize_methodology_profile(methodology_profile or canonical["methodology_profile"])
@@ -1226,6 +1403,7 @@ def generate_record(
     flags = build_flags(normalized)
     actions = build_next_actions(normalized)
     recovery_plan = build_recovery_plan(normalized, as_of=canonical["metadata"]["updated_at"][:10])
+    learning_loop = build_learning_loop(normalized)
     note = (
         f"Recorded recovery conditions are assessed as {generated_state}. The composite conditions score is {score}/100 and must be interpreted with the pressure, constraint, support, capacity, and component maps. "
         "Protect available capacity, address the highest-friction condition, "
@@ -1243,6 +1421,9 @@ def generate_record(
         "flags": flags,
         "recommended_actions": actions,
         "recovery_plan": recovery_plan,
+        "retrospective": learning_loop["retrospective"],
+        "adaptation_patterns": learning_loop["patterns"],
+        "learning_loop": learning_loop,
         "decision_note": note,
         "method_path": list(METHOD_PATH),
         "interpretation_limits": list(INTERPRETATION_LIMITS),
@@ -1296,6 +1477,14 @@ def to_markdown(output: RecoveryRecord) -> str:
     supports_map = "\n".join(f"- **{item['label']}:** {item['status']} · reliability {item['reliability']}/10 · contribution {item['capacity_contribution']}/10" for item in condition_map["support_map"]) or "- No support channels mapped."
     missing_context = "\n".join(f"- `{item['path']}` — {item['prompt']}" for item in output.findings["interpretation"]["completeness"]["missing_context"]) or "- No required context prompts remain."
     contradictions = "\n".join(f"- **{item['code']}:** {item['message']}" for item in output.findings["interpretation"]["contradictions"]) or "- No contradictions detected."
+    retrospective = output.findings["retrospective"]
+    pattern_lines = "\n".join(
+        f"- **{item['category'].replace('_', ' ').title()}:** {item['label']} — {item['status']} · evidence `{item['evidence'][0]['source_path']}`"
+        for item in output.findings["adaptation_patterns"]
+    ) or "- No pattern candidates generated."
+    repeat_lines = "\n".join(f"- {item}" for item in retrospective["repeat"]) or "- Nothing recorded yet."
+    redesign_lines = "\n".join(f"- {item}" for item in retrospective["redesign"]) or "- Nothing recorded yet."
+    uncertainty_lines = "\n".join(f"- {item}" for item in retrospective["uncertainties"]) or "- No uncertainty recorded."
     metadata = output.metadata
     context = output.normalized_input["context"]
     return f"""# Catalyst Grit Recovery Brief
@@ -1359,6 +1548,29 @@ def to_markdown(output: RecoveryRecord) -> str:
 ## Recommended actions
 
 {actions}
+
+## Learning loop
+
+- **What happened:** {retrospective['what_happened'] or 'Not recorded'}
+- **What was expected:** {retrospective['what_was_expected'] or 'Not recorded'}
+- **What changed:** {retrospective['what_changed'] or 'Not recorded'}
+- **Retrospective completion:** {retrospective['completion']['percent']}%
+
+### Repeat
+
+{repeat_lines}
+
+### Redesign
+
+{redesign_lines}
+
+### Uncertainty
+
+{uncertainty_lines}
+
+### Adaptation pattern candidates
+
+{pattern_lines}
 
 ## Decision note
 

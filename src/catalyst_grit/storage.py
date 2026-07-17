@@ -353,6 +353,12 @@ class SQLiteWorkspaceRepository:
                         "INSERT INTO action_events(event_id,action_id,record_id,revision_id,from_status,to_status,actor_id,reason,blocked_reason,completion_evidence,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                         (_id("cgae"), action_id, record_id, revision_id, None, str(action.get("status", "planned")), actor_id, "action created from record revision", str(action.get("blocked_reason", "")), str(action.get("completion_evidence", "")), created_at_action),
                     )
+            retrospective = (canonical.get("findings") or {}).get("retrospective") or {}
+            if retrospective:
+                self.connection.execute(
+                    "INSERT OR IGNORE INTO retrospectives(retrospective_id,record_id,revision_id,content_json,uncertainties_json,created_by,created_at) VALUES(?,?,?,?,?,?,?)",
+                    (_id("cgrt"), record_id, revision_id, _json(retrospective), _json(retrospective.get("uncertainties") or []), actor_id, _utc_now()),
+                )
             previous_status = existing["status"] if existing else None
             if previous_status != status:
                 self._history("record", record_id, previous_status, status, actor_id, reason)
@@ -783,6 +789,192 @@ class SQLiteWorkspaceRepository:
         ids = [row["reassessment_id"] for row in self.connection.execute("SELECT reassessment_id FROM reassessments WHERE record_id=? ORDER BY created_at,rowid", (record_id,))]
         return [self.get_reassessment(item) for item in ids]
 
+    def list_retrospectives(self, record_id: str) -> list[dict[str, Any]]:
+        self._require_record(record_id, include_deleted=True)
+        output = []
+        for row in self.connection.execute("SELECT * FROM retrospectives WHERE record_id=? ORDER BY created_at,rowid", (record_id,)):
+            item = dict(row)
+            item["content"] = json.loads(item.pop("content_json"))
+            item["uncertainties"] = json.loads(item.pop("uncertainties_json"))
+            output.append(item)
+        return output
+
+    @staticmethod
+    def _merge_pattern(group: dict[str, Any], item: Mapping[str, Any], record_id: str, revision_id: str) -> None:
+        group["occurrence_count"] += 1
+        group["record_ids"].append(record_id)
+        for evidence in item.get("evidence") or []:
+            group["evidence"].append({"record_id": record_id, "revision_id": revision_id, **deepcopy(dict(evidence))})
+        candidate = str(item.get("adaptation_candidate") or "")
+        if candidate and candidate not in group["adaptation_candidates"]:
+            group["adaptation_candidates"].append(candidate)
+
+    def detect_project_patterns(self, project_id: str, *, minimum_occurrences: int = 2, include_singletons: bool = False) -> list[dict[str, Any]]:
+        self._require_project(project_id, include_deleted=True)
+        if minimum_occurrences < 1:
+            raise WorkspaceError("minimum_occurrences must be at least one")
+        grouped: dict[str, dict[str, Any]] = {}
+        records = self.list_records(project_id, include_archived=True, include_deleted=False)
+        for record in records:
+            current = self.get_record(record["record_id"], include_canonical=True)["canonical"]
+            revision_id = record["current_revision_id"]
+            for item in (current.get("findings") or {}).get("adaptation_patterns") or []:
+                key = str(item.get("pattern_key") or "")
+                if not key or item.get("status") == "rejected":
+                    continue
+                if key not in grouped:
+                    grouped[key] = {
+                        "pattern_key": key,
+                        "category": item.get("category"),
+                        "label": item.get("label"),
+                        "status": "inferred",
+                        "occurrence_count": 0,
+                        "record_ids": [],
+                        "evidence": [],
+                        "adaptation_candidates": [],
+                        "review": None,
+                        "explanation": "Occurrences are counted from current record revisions and retain record, revision, path, and value evidence.",
+                    }
+                self._merge_pattern(grouped[key], item, record["record_id"], revision_id)
+        reviews: dict[str, dict[str, Any]] = {}
+        for row in self.connection.execute("SELECT * FROM pattern_reviews WHERE project_id=? ORDER BY created_at,rowid", (project_id,)):
+            item = dict(row); item["evidence"] = json.loads(item.pop("evidence_json")); reviews[item["pattern_key"]] = item
+        output = []
+        for key in sorted(grouped):
+            item = grouped[key]
+            item["record_ids"] = sorted(set(item["record_ids"]))
+            review = reviews.get(key)
+            if review:
+                item["review"] = review
+                item["status"] = {"accept": "accepted", "reject": "rejected", "correct": "corrected"}[review["decision"]]
+                if review["decision"] == "correct":
+                    item["label"] = review["corrected_label"]
+            if include_singletons or item["occurrence_count"] >= minimum_occurrences or review:
+                output.append(item)
+        return output
+
+    def review_pattern(
+        self,
+        project_id: str,
+        pattern_key: str,
+        *,
+        decision: str,
+        corrected_label: str = "",
+        notes: str = "",
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        self._require_project(project_id)
+        if decision not in {"accept", "reject", "correct"}:
+            raise WorkspaceError("unsupported pattern review decision")
+        if decision == "correct" and not corrected_label.strip():
+            raise WorkspaceError("corrected_label is required when correcting a pattern")
+        patterns = {item["pattern_key"]: item for item in self.detect_project_patterns(project_id, minimum_occurrences=1, include_singletons=True)}
+        if pattern_key not in patterns:
+            raise WorkspaceError(f"pattern not found: {pattern_key}")
+        review_id = _id("cgpr")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO pattern_reviews(pattern_review_id,project_id,pattern_key,decision,corrected_label,notes,evidence_json,actor_id,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                (review_id, project_id, pattern_key, decision, corrected_label.strip(), notes.strip(), _json(patterns[pattern_key]["evidence"]), actor_id, now),
+            )
+            self._audit("pattern.reviewed", "pattern", pattern_key, actor_id, {"project_id": project_id, "decision": decision})
+        row = dict(self.connection.execute("SELECT * FROM pattern_reviews WHERE pattern_review_id=?", (review_id,)).fetchone())
+        row["evidence"] = json.loads(row.pop("evidence_json"))
+        return row
+
+    def list_pattern_reviews(self, project_id: str) -> list[dict[str, Any]]:
+        self._require_project(project_id, include_deleted=True)
+        output = []
+        for row in self.connection.execute("SELECT * FROM pattern_reviews WHERE project_id=? ORDER BY created_at,rowid", (project_id,)):
+            item = dict(row); item["evidence"] = json.loads(item.pop("evidence_json")); output.append(item)
+        return output
+
+    def create_system_change(
+        self,
+        project_id: str,
+        title: str,
+        proposed_change: str,
+        *,
+        owner: str | None = None,
+        source_record_ids: Sequence[str] | None = None,
+        evidence_note: str = "",
+        expected_benefit: str = "",
+        pilot_start: str | None = None,
+        pilot_end: str | None = None,
+        decision: str = "proposed",
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        self._require_project(project_id)
+        if decision not in {"proposed", "piloting", "adopt", "revise", "defer", "retire"}:
+            raise WorkspaceError("unsupported system change decision")
+        if not title.strip() or not proposed_change.strip():
+            raise WorkspaceError("title and proposed_change are required")
+        sources = list(dict.fromkeys(source_record_ids or []))
+        if not sources:
+            raise WorkspaceError("at least one source record is required")
+        for record_id in sources:
+            record = self._require_record(record_id)
+            if record["project_id"] != project_id:
+                raise WorkspaceError("system-change source record belongs to another project")
+        change_id = _id("cgsc")
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO system_changes(system_change_id,project_id,title,proposed_change,owner,expected_benefit,pilot_start,pilot_end,review_result,decision,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                (change_id, project_id, title.strip(), proposed_change.strip(), owner, expected_benefit.strip(), pilot_start, pilot_end, "", decision, now, now),
+            )
+            for record_id in sources:
+                self.connection.execute("INSERT INTO system_change_sources(system_change_id,record_id,evidence_note) VALUES(?,?,?)", (change_id, record_id, evidence_note.strip()))
+            self.connection.execute(
+                "INSERT INTO system_change_events(event_id,system_change_id,from_decision,to_decision,review_result,actor_id,reason,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (_id("cgsce"), change_id, None, decision, "", actor_id, "system change created", now),
+            )
+            self._audit("system_change.created", "system_change", change_id, actor_id, {"project_id": project_id, "source_record_ids": sources})
+        return self.get_system_change(change_id)
+
+    def get_system_change(self, system_change_id: str) -> dict[str, Any]:
+        row = _row(self.connection.execute("SELECT * FROM system_changes WHERE system_change_id=?", (system_change_id,)).fetchone())
+        if not row:
+            raise WorkspaceError(f"system change not found: {system_change_id}")
+        row["sources"] = [dict(item) for item in self.connection.execute("SELECT * FROM system_change_sources WHERE system_change_id=? ORDER BY record_id", (system_change_id,))]
+        row["events"] = [dict(item) for item in self.connection.execute("SELECT * FROM system_change_events WHERE system_change_id=? ORDER BY created_at,rowid", (system_change_id,))]
+        return row
+
+    def list_system_changes(self, project_id: str) -> list[dict[str, Any]]:
+        self._require_project(project_id, include_deleted=True)
+        ids = [row["system_change_id"] for row in self.connection.execute("SELECT system_change_id FROM system_changes WHERE project_id=? ORDER BY created_at,rowid", (project_id,))]
+        return [self.get_system_change(item) for item in ids]
+
+    def update_system_change(
+        self,
+        system_change_id: str,
+        *,
+        decision: str,
+        review_result: str = "",
+        reason: str = "reviewed",
+        owner: str | None = None,
+        pilot_start: str | None = None,
+        pilot_end: str | None = None,
+        actor_id: str = "self",
+    ) -> dict[str, Any]:
+        if decision not in {"proposed", "piloting", "adopt", "revise", "defer", "retire"}:
+            raise WorkspaceError("unsupported system change decision")
+        current = self.get_system_change(system_change_id)
+        now = _utc_now()
+        with self.connection:
+            self.connection.execute(
+                "UPDATE system_changes SET decision=?,review_result=?,owner=?,pilot_start=?,pilot_end=?,updated_at=? WHERE system_change_id=?",
+                (decision, review_result.strip(), current["owner"] if owner is None else owner, current["pilot_start"] if pilot_start is None else pilot_start, current["pilot_end"] if pilot_end is None else pilot_end, now, system_change_id),
+            )
+            self.connection.execute(
+                "INSERT INTO system_change_events(event_id,system_change_id,from_decision,to_decision,review_result,actor_id,reason,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (_id("cgsce"), system_change_id, current["decision"], decision, review_result.strip(), actor_id, reason.strip(), now),
+            )
+            self._history("system_change", system_change_id, current["decision"], decision, actor_id, reason)
+            self._audit("system_change.reviewed", "system_change", system_change_id, actor_id, {"from_decision": current["decision"], "to_decision": decision})
+        return self.get_system_change(system_change_id)
+
     def status_history(self, entity_type: str, entity_id: str) -> list[dict[str, Any]]:
         return [dict(row) for row in self.connection.execute("SELECT * FROM status_history WHERE entity_type=? AND entity_id=? ORDER BY created_at, rowid", (entity_type, entity_id))]
 
@@ -818,6 +1010,7 @@ class SQLiteWorkspaceRepository:
             "action_events": [dict(row) for row in self.connection.execute("SELECT * FROM action_events WHERE record_id=? ORDER BY created_at,rowid", (record_id,))],
             "blockers": self.list_blockers(record_id),
             "reassessments": self.list_reassessments(record_id),
+            "retrospectives": self.list_retrospectives(record_id),
             "checkpoints": self.list_checkpoints(project["project_id"], record_id=record_id),
             "reviews": self.list_reviews(record_id),
             "status_history": self.status_history("record", record_id),
@@ -827,7 +1020,7 @@ class SQLiteWorkspaceRepository:
     def export_project(self, project_id: str) -> dict[str, Any]:
         project = self.get_project(project_id, include_deleted=True)
         records = self.list_records(project_id, include_archived=True, include_deleted=True)
-        return {"format": WORKSPACE_FORMAT, "exported_at": _utc_now(), "product_version": __version__, "project": project, "records": [self.export_record(item["record_id"]) for item in records]}
+        return {"format": WORKSPACE_FORMAT, "exported_at": _utc_now(), "product_version": __version__, "project": project, "records": [self.export_record(item["record_id"]) for item in records], "patterns": self.detect_project_patterns(project_id, minimum_occurrences=1, include_singletons=True), "pattern_reviews": self.list_pattern_reviews(project_id), "system_changes": self.list_system_changes(project_id)}
 
     def import_payload(self, payload: Mapping[str, Any], *, project_id: str | None = None, actor_id: str = "self") -> dict[str, Any]:
         if payload.get("format") == WORKSPACE_FORMAT:
@@ -868,7 +1061,106 @@ class SQLiteWorkspaceRepository:
                     except WorkspaceError:
                         record_id = None
                     self.create_checkpoint(target_project, checkpoint.get("title") or "Imported checkpoint", record_id=record_id, scheduled_for=checkpoint.get("scheduled_for"), notes=checkpoint.get("notes") or "", actor_id=actor_id, checkpoint_id=checkpoint.get("checkpoint_id"))
-        return {"project_id": target_project, "imported": imported}
+
+        imported_pattern_reviews = 0
+        for review in payload.get("pattern_reviews") or []:
+            review_id = str(review.get("pattern_review_id") or _id("cgpr"))
+            if self.connection.execute("SELECT 1 FROM pattern_reviews WHERE pattern_review_id=?", (review_id,)).fetchone():
+                continue
+            decision = str(review.get("decision") or "")
+            if decision not in {"accept", "reject", "correct"}:
+                continue
+            with self.connection:
+                self.connection.execute(
+                    "INSERT INTO pattern_reviews(pattern_review_id,project_id,pattern_key,decision,corrected_label,notes,evidence_json,actor_id,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                    (
+                        review_id,
+                        target_project,
+                        str(review.get("pattern_key") or ""),
+                        decision,
+                        str(review.get("corrected_label") or ""),
+                        str(review.get("notes") or ""),
+                        _json(review.get("evidence") or []),
+                        actor_id,
+                        str(review.get("created_at") or _utc_now()),
+                    ),
+                )
+                self._audit("pattern.review_imported", "pattern", str(review.get("pattern_key") or ""), actor_id, {"project_id": target_project, "source_pattern_review_id": review_id})
+            imported_pattern_reviews += 1
+
+        imported_system_changes = 0
+        for change in payload.get("system_changes") or []:
+            change_id = str(change.get("system_change_id") or _id("cgsc"))
+            if self.connection.execute("SELECT 1 FROM system_changes WHERE system_change_id=?", (change_id,)).fetchone():
+                continue
+            valid_sources = []
+            for source in change.get("sources") or []:
+                record_id = str(source.get("record_id") or "")
+                try:
+                    record = self._require_record(record_id)
+                except WorkspaceError:
+                    continue
+                if record["project_id"] == target_project:
+                    valid_sources.append(source)
+            if not valid_sources:
+                continue
+            decision = str(change.get("decision") or "proposed")
+            if decision not in {"proposed", "piloting", "adopt", "revise", "defer", "retire"}:
+                decision = "proposed"
+            created_at = str(change.get("created_at") or _utc_now())
+            updated_at = str(change.get("updated_at") or created_at)
+            with self.connection:
+                self.connection.execute(
+                    "INSERT INTO system_changes(system_change_id,project_id,title,proposed_change,owner,expected_benefit,pilot_start,pilot_end,review_result,decision,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        change_id,
+                        target_project,
+                        str(change.get("title") or "Imported system change"),
+                        str(change.get("proposed_change") or "Imported proposal"),
+                        change.get("owner"),
+                        str(change.get("expected_benefit") or ""),
+                        change.get("pilot_start"),
+                        change.get("pilot_end"),
+                        str(change.get("review_result") or ""),
+                        decision,
+                        created_at,
+                        updated_at,
+                    ),
+                )
+                for source in valid_sources:
+                    self.connection.execute(
+                        "INSERT INTO system_change_sources(system_change_id,record_id,evidence_note) VALUES(?,?,?)",
+                        (change_id, source["record_id"], str(source.get("evidence_note") or "")),
+                    )
+                events = change.get("events") or []
+                if not events:
+                    events = [{"from_decision": None, "to_decision": decision, "review_result": str(change.get("review_result") or ""), "reason": "system change imported", "created_at": created_at}]
+                for event in events:
+                    event_id = str(event.get("event_id") or _id("cgsce"))
+                    if self.connection.execute("SELECT 1 FROM system_change_events WHERE event_id=?", (event_id,)).fetchone():
+                        event_id = _id("cgsce")
+                    self.connection.execute(
+                        "INSERT INTO system_change_events(event_id,system_change_id,from_decision,to_decision,review_result,actor_id,reason,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                        (
+                            event_id,
+                            change_id,
+                            event.get("from_decision"),
+                            str(event.get("to_decision") or decision),
+                            str(event.get("review_result") or ""),
+                            actor_id,
+                            str(event.get("reason") or "system change imported"),
+                            str(event.get("created_at") or created_at),
+                        ),
+                    )
+                self._audit("system_change.imported", "system_change", change_id, actor_id, {"project_id": target_project, "source_records": [item["record_id"] for item in valid_sources]})
+            imported_system_changes += 1
+
+        return {
+            "project_id": target_project,
+            "imported": imported,
+            "pattern_reviews_imported": imported_pattern_reviews,
+            "system_changes_imported": imported_system_changes,
+        }
 
     def write_export(self, payload: Mapping[str, Any], path: str | Path) -> Path:
         output = Path(path)
@@ -879,7 +1171,7 @@ class SQLiteWorkspaceRepository:
     def health(self) -> dict[str, Any]:
         integrity = self.connection.execute("PRAGMA integrity_check").fetchone()[0]
         counts = {}
-        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "checkpoints", "reviews", "status_history", "audit_events"):
+        for table in ("projects", "recovery_records", "record_revisions", "actions", "action_events", "blockers", "reassessments", "retrospectives", "pattern_reviews", "system_changes", "system_change_events", "checkpoints", "reviews", "status_history", "audit_events"):
             try:
                 counts[table] = self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             except sqlite3.OperationalError:

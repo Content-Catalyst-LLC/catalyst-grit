@@ -1,0 +1,11 @@
+DROP TRIGGER IF EXISTS system_change_events_guard_delete;
+DROP TRIGGER IF EXISTS system_change_events_no_update;
+DROP TRIGGER IF EXISTS pattern_reviews_guard_delete;
+DROP TRIGGER IF EXISTS pattern_reviews_no_update;
+DROP TRIGGER IF EXISTS retrospectives_guard_delete;
+DROP TRIGGER IF EXISTS retrospectives_no_update;
+DROP TABLE IF EXISTS system_change_events;
+DROP TABLE IF EXISTS system_change_sources;
+DROP TABLE IF EXISTS system_changes;
+DROP TABLE IF EXISTS pattern_reviews;
+DROP TABLE IF EXISTS retrospectives;

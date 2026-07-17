@@ -241,7 +241,7 @@ def test_health_reports_integrity_migrations_and_counts(tmp_path: Path):
         create_saved(repo)
         health = repo.health()
         assert health["integrity"] == "ok"
-        assert health["migrations"]["current"] == 3
+        assert health["migrations"]["current"] == 4
         assert health["counts"]["projects"] == 1
         assert health["counts"]["record_revisions"] == 1
         assert health["private_by_default"] is True

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Portable, dependency-free Catalyst Grit v1.4.0 smoke test."""
+"""Portable, dependency-free Catalyst Grit v1.5.0 smoke test."""
 from __future__ import annotations
 
 import json
@@ -41,12 +41,12 @@ def main() -> int:
         f"local package import mismatch: imported {imported_file}; expected under {expected_package}",
     )
     check(
-        version == __version__ == "1.4.0",
+        version == __version__ == "1.5.0",
         f"version identity mismatch: VERSION={version!r}, imported={__version__!r}, module={imported_file}",
     )
     manifest = json.loads((ROOT / "catalyst_grit_manifest.json").read_text())
     check(manifest["version"] == manifest["schema_version"] == manifest["engine_version"] == version, "manifest version mismatch")
-    check(json.loads((ROOT / "methodology/recovery-profile-v1.4.0.json").read_text()) == DEFAULT_METHODOLOGY_PROFILE, "methodology profile mismatch")
+    check(json.loads((ROOT / "methodology/recovery-profile-v1.5.0.json").read_text()) == DEFAULT_METHODOLOGY_PROFILE, "methodology profile mismatch")
     schema_names = [
         "catalyst_grit_record.schema.json",
         "catalyst_grit_request.schema.json",
@@ -57,12 +57,12 @@ def main() -> int:
     for name in schema_names:
         schema = json.loads((ROOT / "schemas" / name).read_text())
         check(schema["x-catalyst-grit-version"] == version, f"schema version mismatch: {name}")
-    check([item.version for item in MigrationManager.available()] == [1, 2, 3], "packaged migration discovery failed")
+    check([item.version for item in MigrationManager.available()] == [1, 2, 3, 4], "packaged migration discovery failed")
 
     plugin = (ROOT / "wordpress/catalyst-grit-demo/catalyst-grit-demo.php").read_text()
     check(bool(re.search(r"Version:\s*" + re.escape(version), plugin)), "plugin version mismatch")
     check("wp_ajax_nopriv_catalyst_grit_workspace" not in plugin, "private workspace exposes an anonymous AJAX action")
-    check("check_ajax_referer('catalyst_grit_workspace_v140', 'nonce')" in plugin, "workspace nonce guard missing")
+    check("check_ajax_referer('catalyst_grit_workspace_v150', 'nonce')" in plugin, "workspace nonce guard missing")
 
     request = json.loads((ROOT / "examples/grit_record_input.json").read_text())
     expected = json.loads((ROOT / "examples/grit_record_output.json").read_text())
@@ -74,6 +74,13 @@ def main() -> int:
     check(plan["smallest_recoverable_next_step"]["owner"], "smallest next step has no owner")
     check(plan["checkpoint"]["scheduled_for"], "recovery plan has no checkpoint")
     check(set(plan["horizons"]) == {"24_hours", "72_hours", "7_days", "longer_term"}, "planning horizons missing")
+    retrospective = generated["findings"]["retrospective"]
+    check(retrospective["completion"]["percent"] == 100.0, "retrospective completeness mismatch")
+    check(retrospective["evidence_paths"]["uncertainties"] == "$.input.learning.uncertainties", "retrospective evidence path missing")
+    patterns = generated["findings"]["adaptation_patterns"]
+    check(patterns and all(item["evidence"] for item in patterns), "adaptation pattern evidence missing")
+    check(all(all(evidence.get("source_path") for evidence in item["evidence"]) for item in patterns), "adaptation pattern source path missing")
+    check(generated["findings"]["learning_loop"]["personality_labeling_prohibited"] is True, "learning-loop personality safeguard missing")
 
     with tempfile.TemporaryDirectory(prefix="catalyst-grit-smoke-") as temp:
         database = Path(temp) / "workspace.sqlite3"
@@ -89,10 +96,29 @@ def main() -> int:
             check(len(repo.action_history(actions[0]["action_id"])) >= 2, "append-only action history missing")
             blocker = repo.add_blocker(record_id, "Portable smoke dependency", action_id=actions[0]["action_id"], actor_id="portable-smoke")
             check(blocker["status"] == "open", "blocker persistence failed")
-            check(repo.health()["migrations"]["current"] == 3, "workspace migration level mismatch")
+            check(repo.health()["migrations"]["current"] == 4, "workspace migration level mismatch")
+            retrospectives = repo.list_retrospectives(record_id)
+            check(retrospectives and retrospectives[0]["content"]["uncertainties"], "persistent retrospective missing")
+            project_patterns = repo.detect_project_patterns(project["project_id"], minimum_occurrences=1, include_singletons=True)
+            pressure_pattern = next(item for item in project_patterns if item["category"] == "recurring_pressure")
+            reviewed_pattern = repo.review_pattern(project["project_id"], pressure_pattern["pattern_key"], decision="accept", actor_id="portable-smoke")
+            check(reviewed_pattern["evidence"], "pattern review evidence missing")
+            system_change = repo.create_system_change(
+                project["project_id"],
+                "Portable smoke system change",
+                "Use one review channel.",
+                source_record_ids=[record_id],
+                evidence_note="Linked to the generated retrospective.",
+                decision="piloting",
+                actor_id="portable-smoke",
+            )
+            system_change = repo.update_system_change(system_change["system_change_id"], decision="adopt", review_result="The pilot reduced duplicate feedback.", actor_id="portable-smoke")
+            check(len(system_change["events"]) == 2, "system-change event history missing")
             exported = repo.export_record(record_id)
             check(exported["format"] == WORKSPACE_FORMAT, "workspace export format mismatch")
             check(exported["action_events"] and exported["blockers"], "plan-history export missing")
+            project_export = repo.export_project(project["project_id"])
+            check(project_export["pattern_reviews"] and project_export["system_changes"], "learning-history export missing")
             check(repo.health()["integrity"] == "ok", "SQLite integrity failed")
         with SQLiteWorkspaceRepository(database) as reopened:
             check(reopened.get_record(record_id, include_canonical=True)["canonical"] == expected, "record did not survive restart")
@@ -119,7 +145,7 @@ def main() -> int:
         elif path.suffix in {".db", ".sqlite", ".sqlite3"} and not allow_local_state:
             forbidden.append(str(rel))
     check(not forbidden, "forbidden repository artifacts: " + ", ".join(forbidden))
-    print("Catalyst Grit v1.4.0 portable release smoke tests passed.")
+    print("Catalyst Grit v1.5.0 portable release smoke tests passed.")
     return 0
 
 

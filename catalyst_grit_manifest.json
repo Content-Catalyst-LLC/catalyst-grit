@@ -1,18 +1,19 @@
 {
   "module": "Catalyst Grit",
   "slug": "catalyst-grit",
-  "version": "1.4.0",
-  "schema_version": "1.4.0",
-  "engine_version": "1.4.0",
-  "release": "Recovery Planning and Action Management",
+  "version": "1.5.0",
+  "schema_version": "1.5.0",
+  "engine_version": "1.5.0",
+  "release": "Learning Loops and Adaptation Patterns",
   "canonical_product_model": "recovery-record",
-  "methodology_profile": "cg-recovery-conditions@1.4.0",
+  "methodology_profile": "cg-recovery-conditions@1.5.0",
   "workspace_format": "catalyst-grit-workspace/1.0",
   "storage": "SQLite private workspace with ordered packaged migrations",
   "migrations": [
     "001_core_workspace",
     "002_checkpoints_reviews_audit",
-    "003_recovery_plans_actions_reassessment"
+    "003_recovery_plans_actions_reassessment",
+    "004_learning_loops_adaptation_patterns"
   ],
   "persistent_entities": [
     "projects",
@@ -25,7 +26,11 @@
     "reassessments",
     "reviews",
     "status_history",
-    "audit_events"
+    "audit_events",
+    "retrospectives",
+    "pattern_reviews",
+    "system_changes",
+    "system_change_events"
   ],
   "shortcodes": [
     "[catalyst_grit_demo]",
@@ -71,5 +76,42 @@
       "escalate"
     ],
     "history": "append-only action events and reassessments"
+  },
+  "learning_contract": {
+    "retrospective_fields": [
+      "what_happened",
+      "what_was_expected",
+      "what_changed",
+      "what_helped",
+      "what_hindered",
+      "what_was_learned",
+      "repeat",
+      "redesign",
+      "uncertainties"
+    ],
+    "pattern_categories": [
+      "recurring_pressure",
+      "dependency_failure",
+      "support_gap",
+      "clarity_failure",
+      "scope_workload",
+      "recovery_action_helped",
+      "action_did_not_help",
+      "adaptation_candidate"
+    ],
+    "pattern_review_decisions": [
+      "accept",
+      "reject",
+      "correct"
+    ],
+    "system_change_decisions": [
+      "proposed",
+      "piloting",
+      "adopt",
+      "revise",
+      "defer",
+      "retire"
+    ],
+    "safeguard": "patterns remain explainable, user-reviewable, non-diagnostic, and non-personality-based"
   }
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0 — Learning Loops and Adaptation Patterns
+
+- Added structured retrospectives with explicit evidence paths, completeness, and uncertainty preservation.
+- Added explainable adaptation-pattern candidates for recurring pressure, dependency failure, support gaps, clarity failures, scope/workload friction, helpful actions, unhelpful actions, and adaptation opportunities.
+- Added user-controlled accept, reject, and correct decisions for pattern candidates; patterns remain observations about recorded conditions, not personality labels.
+- Added migration 004 with append-only retrospectives, pattern reviews, source-linked system changes, and immutable system-change events.
+- Added project-level pattern aggregation and system-change pilot workflows with adopt, revise, defer, and retire decisions.
+- Added retrospective, pattern-review, and system-change CLI workflows plus evidence-preserving workspace exports.
+- Expanded the public WordPress demo with retrospective and learning-loop fields while preserving its non-persistent boundary.
+- Preserved v1.0.x through v1.4.0 compatibility, checksum-based installation, and existing private SQLite workspace files.
+
 ## 1.4.0 — Recovery Planning and Action Management
 
 - Added executable recovery plans with owned actions, four planning horizons, dependencies, expected effects, support requirements, effort, urgency, evidence, and reassessment triggers.

@@ -107,6 +107,15 @@ def build_parser() -> argparse.ArgumentParser:
     review_add = commands.add_parser("review-add", help="Record a human review event"); _db_argument(review_add); review_add.add_argument("record_id"); review_add.add_argument("--status", required=True); review_add.add_argument("--reviewer", required=True); review_add.add_argument("--notes", default="")
     review_list = commands.add_parser("review-list", help="List record reviews"); _db_argument(review_list); review_list.add_argument("record_id")
 
+    retrospectives = commands.add_parser("retrospective-list", help="List append-only retrospectives for a record"); _db_argument(retrospectives); retrospectives.add_argument("record_id")
+    patterns = commands.add_parser("pattern-list", help="Detect explainable recurring project patterns"); _db_argument(patterns); patterns.add_argument("project_id"); patterns.add_argument("--minimum-occurrences", type=int, default=2); patterns.add_argument("--include-singletons", action="store_true")
+    pattern_review = commands.add_parser("pattern-review", help="Accept, reject, or correct a detected pattern"); _db_argument(pattern_review); pattern_review.add_argument("project_id"); pattern_review.add_argument("pattern_key"); pattern_review.add_argument("--decision", choices=("accept","reject","correct"), required=True); pattern_review.add_argument("--corrected-label", default=""); pattern_review.add_argument("--notes", default="")
+    pattern_reviews = commands.add_parser("pattern-review-list", help="List append-only pattern review decisions"); _db_argument(pattern_reviews); pattern_reviews.add_argument("project_id")
+    change_add = commands.add_parser("system-change-add", help="Create a system-change proposal linked to source records"); _db_argument(change_add); change_add.add_argument("project_id"); change_add.add_argument("--title", required=True); change_add.add_argument("--proposed-change", required=True); change_add.add_argument("--owner"); change_add.add_argument("--record", action="append", required=True); change_add.add_argument("--evidence-note", default=""); change_add.add_argument("--expected-benefit", default=""); change_add.add_argument("--pilot-start"); change_add.add_argument("--pilot-end"); change_add.add_argument("--decision", default="proposed")
+    change_list = commands.add_parser("system-change-list", help="List project system-change records"); _db_argument(change_list); change_list.add_argument("project_id")
+    change_show = commands.add_parser("system-change-show", help="Show one system-change record and event history"); _db_argument(change_show); change_show.add_argument("system_change_id")
+    change_update = commands.add_parser("system-change-update", help="Review a system change after its pilot"); _db_argument(change_update); change_update.add_argument("system_change_id"); change_update.add_argument("--decision", required=True); change_update.add_argument("--review-result", default=""); change_update.add_argument("--reason", default="reviewed"); change_update.add_argument("--owner"); change_update.add_argument("--pilot-start"); change_update.add_argument("--pilot-end")
+
     export = commands.add_parser("workspace-export", help="Export a record or project bundle"); _db_argument(export); group = export.add_mutually_exclusive_group(required=True); group.add_argument("--record"); group.add_argument("--project"); export.add_argument("--output", type=Path, required=True)
     import_cmd = commands.add_parser("workspace-import", help="Import v1.0/v1.1 records or workspace bundles"); _db_argument(import_cmd); import_cmd.add_argument("input", type=Path); import_cmd.add_argument("--project")
     return parser
@@ -151,6 +160,14 @@ def _workspace_command(args: argparse.Namespace) -> Any:
         if args.command == "reassessment-list": return repo.list_reassessments(args.record_id)
         if args.command == "review-add": return repo.add_review(args.record_id, status=args.status, reviewer_id=args.reviewer, notes=args.notes)
         if args.command == "review-list": return repo.list_reviews(args.record_id)
+        if args.command == "retrospective-list": return repo.list_retrospectives(args.record_id)
+        if args.command == "pattern-list": return repo.detect_project_patterns(args.project_id, minimum_occurrences=args.minimum_occurrences, include_singletons=args.include_singletons)
+        if args.command == "pattern-review": return repo.review_pattern(args.project_id, args.pattern_key, decision=args.decision, corrected_label=args.corrected_label, notes=args.notes)
+        if args.command == "pattern-review-list": return repo.list_pattern_reviews(args.project_id)
+        if args.command == "system-change-add": return repo.create_system_change(args.project_id, args.title, args.proposed_change, owner=args.owner, source_record_ids=args.record, evidence_note=args.evidence_note, expected_benefit=args.expected_benefit, pilot_start=args.pilot_start, pilot_end=args.pilot_end, decision=args.decision)
+        if args.command == "system-change-list": return repo.list_system_changes(args.project_id)
+        if args.command == "system-change-show": return repo.get_system_change(args.system_change_id)
+        if args.command == "system-change-update": return repo.update_system_change(args.system_change_id, decision=args.decision, review_result=args.review_result, reason=args.reason, owner=args.owner, pilot_start=args.pilot_start, pilot_end=args.pilot_end)
         if args.command == "workspace-export":
             payload = repo.export_record(args.record) if args.record else repo.export_project(args.project)
             repo.write_export(payload, args.output)

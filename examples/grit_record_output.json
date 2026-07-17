@@ -1,12 +1,295 @@
 {
   "extensions": {},
   "findings": {
+    "adaptation_patterns": [
+      {
+        "adaptation_candidate": "",
+        "basis": "recorded",
+        "category": "recurring_pressure",
+        "evidence": [
+          {
+            "source_path": "$.input.pressure.sources[0]",
+            "value": "publication deadline"
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "publication deadline",
+        "occurrence_count": 1,
+        "pattern_key": "recurring_pressure:publication-deadline",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "recorded",
+        "category": "recurring_pressure",
+        "evidence": [
+          {
+            "source_path": "$.input.pressure.sources[1]",
+            "value": "stakeholder disagreement"
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "stakeholder disagreement",
+        "occurrence_count": 1,
+        "pattern_key": "recurring_pressure:stakeholder-disagreement",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "recorded",
+        "category": "scope_workload",
+        "evidence": [
+          {
+            "source_path": "$.input.pressure.competing_demands[0]",
+            "value": "parallel publication work"
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "parallel publication work",
+        "occurrence_count": 1,
+        "pattern_key": "scope_workload:parallel-publication-work",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "recorded",
+        "category": "scope_workload",
+        "evidence": [
+          {
+            "source_path": "$.input.pressure.competing_demands[1]",
+            "value": "reviewer availability"
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "reviewer availability",
+        "occurrence_count": 1,
+        "pattern_key": "scope_workload:reviewer-availability",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "recorded",
+        "category": "dependency_failure",
+        "evidence": [
+          {
+            "source_path": "$.input.constraints.items[0]",
+            "value": {
+              "control_zone": "influence",
+              "controllability": "influence",
+              "label": "Final approval dependency",
+              "layer": "near_term",
+              "notes": "Requires a named decision owner.",
+              "severity": 8.0,
+              "type": "dependency"
+            }
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "Final approval dependency",
+        "occurrence_count": 1,
+        "pattern_key": "dependency_failure:final-approval-dependency",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "recorded",
+        "category": "clarity_failure",
+        "evidence": [
+          {
+            "source_path": "$.input.capacity.clarity_level",
+            "value": 4.0
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "Decision or recovery clarity gap",
+        "occurrence_count": 1,
+        "pattern_key": "clarity_failure:decision-or-recovery-clarity-gap",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "recorded",
+        "category": "scope_workload",
+        "evidence": [
+          {
+            "source_path": "$.input.capacity.load_level",
+            "value": 8.0
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "High competing load",
+        "occurrence_count": 1,
+        "pattern_key": "scope_workload:high-competing-load",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "user_observation",
+        "category": "recovery_action_helped",
+        "evidence": [
+          {
+            "source_path": "$.input.learning.what_helped[0]",
+            "value": "Reducing scope to one decision"
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "Reducing scope to one decision",
+        "occurrence_count": 1,
+        "pattern_key": "recovery_action_helped:reducing-scope-to-one-decision",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "user_observation",
+        "category": "recovery_action_helped",
+        "evidence": [
+          {
+            "source_path": "$.input.learning.what_helped[1]",
+            "value": "Using a shared decision log"
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "Using a shared decision log",
+        "occurrence_count": 1,
+        "pattern_key": "recovery_action_helped:using-a-shared-decision-log",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "user_observation",
+        "category": "action_did_not_help",
+        "evidence": [
+          {
+            "source_path": "$.input.learning.what_hindered[0]",
+            "value": "Parallel feedback channels"
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "Parallel feedback channels",
+        "occurrence_count": 1,
+        "pattern_key": "action_did_not_help:parallel-feedback-channels",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "",
+        "basis": "user_observation",
+        "category": "action_did_not_help",
+        "evidence": [
+          {
+            "source_path": "$.input.learning.what_hindered[1]",
+            "value": "Unclear approval ownership"
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "Unclear approval ownership",
+        "occurrence_count": 1,
+        "pattern_key": "action_did_not_help:unclear-approval-ownership",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "Require one named decision owner before the review window opens.",
+        "basis": "user_proposed",
+        "category": "adaptation_candidate",
+        "evidence": [
+          {
+            "source_path": "$.input.learning.redesign[0]",
+            "value": "Require one named decision owner before the review window opens."
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "Require one named decision owner before the review window opens.",
+        "occurrence_count": 1,
+        "pattern_key": "adaptation_candidate:require-one-named-decision-owner-before-the-review-windo",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      },
+      {
+        "adaptation_candidate": "Record the decision owner before the next review cycle.",
+        "basis": "user_proposed",
+        "category": "adaptation_candidate",
+        "evidence": [
+          {
+            "source_path": "$.input.learning.redesign[1]",
+            "value": "Record the decision owner before the next review cycle."
+          }
+        ],
+        "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+        "label": "Record the decision owner before the next review cycle.",
+        "occurrence_count": 1,
+        "pattern_key": "adaptation_candidate:record-the-decision-owner-before-the-next-review-cycle",
+        "review": {
+          "corrected_label": "",
+          "decision": null,
+          "notes": ""
+        },
+        "status": "inferred"
+      }
+    ],
     "calculation_provenance": {
       "calculated_at": "2026-07-17T12:00:00Z",
-      "engine_version": "1.4.0",
+      "engine_version": "1.5.0",
       "profile_id": "cg-recovery-conditions",
-      "profile_version": "1.4.0",
-      "schema_version": "1.4.0"
+      "profile_version": "1.5.0",
+      "schema_version": "1.5.0"
     },
     "component_scores": {
       "action_readiness": {
@@ -320,6 +603,345 @@
       "Must not be used for employee ranking, automated eligibility, or performance evaluation.",
       "Generated findings require human review when used for consequential decisions."
     ],
+    "learning_loop": {
+      "adaptation_candidates": [
+        "Require one named decision owner before the review window opens.",
+        "Record the decision owner before the next review cycle."
+      ],
+      "patterns": [
+        {
+          "adaptation_candidate": "",
+          "basis": "recorded",
+          "category": "recurring_pressure",
+          "evidence": [
+            {
+              "source_path": "$.input.pressure.sources[0]",
+              "value": "publication deadline"
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "publication deadline",
+          "occurrence_count": 1,
+          "pattern_key": "recurring_pressure:publication-deadline",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "recorded",
+          "category": "recurring_pressure",
+          "evidence": [
+            {
+              "source_path": "$.input.pressure.sources[1]",
+              "value": "stakeholder disagreement"
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "stakeholder disagreement",
+          "occurrence_count": 1,
+          "pattern_key": "recurring_pressure:stakeholder-disagreement",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "recorded",
+          "category": "scope_workload",
+          "evidence": [
+            {
+              "source_path": "$.input.pressure.competing_demands[0]",
+              "value": "parallel publication work"
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "parallel publication work",
+          "occurrence_count": 1,
+          "pattern_key": "scope_workload:parallel-publication-work",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "recorded",
+          "category": "scope_workload",
+          "evidence": [
+            {
+              "source_path": "$.input.pressure.competing_demands[1]",
+              "value": "reviewer availability"
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "reviewer availability",
+          "occurrence_count": 1,
+          "pattern_key": "scope_workload:reviewer-availability",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "recorded",
+          "category": "dependency_failure",
+          "evidence": [
+            {
+              "source_path": "$.input.constraints.items[0]",
+              "value": {
+                "control_zone": "influence",
+                "controllability": "influence",
+                "label": "Final approval dependency",
+                "layer": "near_term",
+                "notes": "Requires a named decision owner.",
+                "severity": 8.0,
+                "type": "dependency"
+              }
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "Final approval dependency",
+          "occurrence_count": 1,
+          "pattern_key": "dependency_failure:final-approval-dependency",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "recorded",
+          "category": "clarity_failure",
+          "evidence": [
+            {
+              "source_path": "$.input.capacity.clarity_level",
+              "value": 4.0
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "Decision or recovery clarity gap",
+          "occurrence_count": 1,
+          "pattern_key": "clarity_failure:decision-or-recovery-clarity-gap",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "recorded",
+          "category": "scope_workload",
+          "evidence": [
+            {
+              "source_path": "$.input.capacity.load_level",
+              "value": 8.0
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "High competing load",
+          "occurrence_count": 1,
+          "pattern_key": "scope_workload:high-competing-load",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "user_observation",
+          "category": "recovery_action_helped",
+          "evidence": [
+            {
+              "source_path": "$.input.learning.what_helped[0]",
+              "value": "Reducing scope to one decision"
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "Reducing scope to one decision",
+          "occurrence_count": 1,
+          "pattern_key": "recovery_action_helped:reducing-scope-to-one-decision",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "user_observation",
+          "category": "recovery_action_helped",
+          "evidence": [
+            {
+              "source_path": "$.input.learning.what_helped[1]",
+              "value": "Using a shared decision log"
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "Using a shared decision log",
+          "occurrence_count": 1,
+          "pattern_key": "recovery_action_helped:using-a-shared-decision-log",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "user_observation",
+          "category": "action_did_not_help",
+          "evidence": [
+            {
+              "source_path": "$.input.learning.what_hindered[0]",
+              "value": "Parallel feedback channels"
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "Parallel feedback channels",
+          "occurrence_count": 1,
+          "pattern_key": "action_did_not_help:parallel-feedback-channels",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "",
+          "basis": "user_observation",
+          "category": "action_did_not_help",
+          "evidence": [
+            {
+              "source_path": "$.input.learning.what_hindered[1]",
+              "value": "Unclear approval ownership"
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "Unclear approval ownership",
+          "occurrence_count": 1,
+          "pattern_key": "action_did_not_help:unclear-approval-ownership",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "Require one named decision owner before the review window opens.",
+          "basis": "user_proposed",
+          "category": "adaptation_candidate",
+          "evidence": [
+            {
+              "source_path": "$.input.learning.redesign[0]",
+              "value": "Require one named decision owner before the review window opens."
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "Require one named decision owner before the review window opens.",
+          "occurrence_count": 1,
+          "pattern_key": "adaptation_candidate:require-one-named-decision-owner-before-the-review-windo",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        },
+        {
+          "adaptation_candidate": "Record the decision owner before the next review cycle.",
+          "basis": "user_proposed",
+          "category": "adaptation_candidate",
+          "evidence": [
+            {
+              "source_path": "$.input.learning.redesign[1]",
+              "value": "Record the decision owner before the next review cycle."
+            }
+          ],
+          "interpretation": "Candidate pattern derived from recorded conditions; confirm, reject, or correct before reuse.",
+          "label": "Record the decision owner before the next review cycle.",
+          "occurrence_count": 1,
+          "pattern_key": "adaptation_candidate:record-the-decision-owner-before-the-next-review-cycle",
+          "review": {
+            "corrected_label": "",
+            "decision": null,
+            "notes": ""
+          },
+          "status": "inferred"
+        }
+      ],
+      "personality_labeling_prohibited": true,
+      "retrospective": {
+        "completion": {
+          "completed_fields": 9,
+          "percent": 100.0,
+          "total_fields": 9
+        },
+        "evidence_paths": {
+          "redesign": "$.input.learning.redesign",
+          "repeat": "$.input.learning.repeat",
+          "uncertainties": "$.input.learning.uncertainties",
+          "what_changed": "$.input.learning.what_changed",
+          "what_happened": "$.input.learning.what_happened",
+          "what_helped": "$.input.learning.what_helped",
+          "what_hindered": "$.input.learning.what_hindered",
+          "what_was_expected": "$.input.learning.what_was_expected",
+          "what_was_learned": "$.input.learning.what_was_learned"
+        },
+        "interpretation_limit": "The retrospective records supplied observations and uncertainty; it does not establish causation by itself.",
+        "redesign": [
+          "Require one named decision owner before the review window opens.",
+          "Record the decision owner before the next review cycle."
+        ],
+        "repeat": [
+          "Use a single shared decision log.",
+          "Reducing scope to one decision",
+          "Using a shared decision log"
+        ],
+        "uncertainties": [
+          "Whether all reviewers can use the same feedback channel."
+        ],
+        "what_changed": "Feedback arrived through separate channels and the decision owner was not explicit.",
+        "what_happened": "Conflicting review channels changed the deliverable after the checkpoint.",
+        "what_helped": [
+          "Reducing scope to one decision",
+          "Using a shared decision log"
+        ],
+        "what_hindered": [
+          "Parallel feedback channels",
+          "Unclear approval ownership"
+        ],
+        "what_was_expected": "One decision owner would consolidate feedback before review.",
+        "what_was_learned": [
+          "Decision ownership must be visible before review begins.",
+          "Feedback arrived through multiple channels."
+        ]
+      },
+      "review_guidance": "Patterns remain proposals until a user accepts, rejects, or corrects them.",
+      "review_required": true,
+      "system_change_guidance": "Link any process change to the records and evidence that motivated it, then record an adopt, revise, defer, or retire decision after the pilot."
+    },
     "method_path": [
       "context",
       "trigger",
@@ -330,6 +952,8 @@
       "capacity",
       "response",
       "learning",
+      "retrospective",
+      "adaptation patterns",
       "next steps",
       "human review"
     ],
@@ -345,7 +969,7 @@
         "support_capacity": 15.0
       },
       "profile_id": "cg-recovery-conditions",
-      "profile_version": "1.4.0",
+      "profile_version": "1.5.0",
       "thresholds": {
         "focused_support": 55.0,
         "fragile": 35.0,
@@ -580,7 +1204,53 @@
       },
       "unresolved_dependencies": []
     },
-    "recovery_score": 47.8
+    "recovery_score": 47.8,
+    "retrospective": {
+      "completion": {
+        "completed_fields": 9,
+        "percent": 100.0,
+        "total_fields": 9
+      },
+      "evidence_paths": {
+        "redesign": "$.input.learning.redesign",
+        "repeat": "$.input.learning.repeat",
+        "uncertainties": "$.input.learning.uncertainties",
+        "what_changed": "$.input.learning.what_changed",
+        "what_happened": "$.input.learning.what_happened",
+        "what_helped": "$.input.learning.what_helped",
+        "what_hindered": "$.input.learning.what_hindered",
+        "what_was_expected": "$.input.learning.what_was_expected",
+        "what_was_learned": "$.input.learning.what_was_learned"
+      },
+      "interpretation_limit": "The retrospective records supplied observations and uncertainty; it does not establish causation by itself.",
+      "redesign": [
+        "Require one named decision owner before the review window opens.",
+        "Record the decision owner before the next review cycle."
+      ],
+      "repeat": [
+        "Use a single shared decision log.",
+        "Reducing scope to one decision",
+        "Using a shared decision log"
+      ],
+      "uncertainties": [
+        "Whether all reviewers can use the same feedback channel."
+      ],
+      "what_changed": "Feedback arrived through separate channels and the decision owner was not explicit.",
+      "what_happened": "Conflicting review channels changed the deliverable after the checkpoint.",
+      "what_helped": [
+        "Reducing scope to one decision",
+        "Using a shared decision log"
+      ],
+      "what_hindered": [
+        "Parallel feedback channels",
+        "Unclear approval ownership"
+      ],
+      "what_was_expected": "One decision owner would consolidate feedback before review.",
+      "what_was_learned": [
+        "Decision ownership must be visible before review begins.",
+        "Feedback arrived through multiple channels."
+      ]
+    }
   },
   "human_review": {
     "accepted_findings": [],
@@ -593,16 +1263,16 @@
   },
   "metadata": {
     "created_at": "2026-07-17T12:00:00Z",
-    "engine_version": "1.4.0",
+    "engine_version": "1.5.0",
     "provenance": {
       "created_by": "example-user",
       "notes": "Canonical recovery-record example.",
       "source": "direct_entry",
       "source_record_id": null,
-      "source_schema_version": "1.4.0"
+      "source_schema_version": "1.5.0"
     },
     "record_id": "cgr_11111111111111111111111111111111",
-    "schema_version": "1.4.0",
+    "schema_version": "1.5.0",
     "status": "draft",
     "updated_at": "2026-07-17T12:00:00Z"
   },
@@ -668,6 +1338,30 @@
       ],
       "observations": [
         "Feedback arrived through multiple channels."
+      ],
+      "pattern_reviews": [],
+      "redesign": [
+        "Require one named decision owner before the review window opens."
+      ],
+      "repeat": [
+        "Use a single shared decision log."
+      ],
+      "uncertainties": [
+        "Whether all reviewers can use the same feedback channel."
+      ],
+      "what_changed": "Feedback arrived through separate channels and the decision owner was not explicit.",
+      "what_happened": "Conflicting review channels changed the deliverable after the checkpoint.",
+      "what_helped": [
+        "Reducing scope to one decision",
+        "Using a shared decision log"
+      ],
+      "what_hindered": [
+        "Parallel feedback channels",
+        "Unclear approval ownership"
+      ],
+      "what_was_expected": "One decision owner would consolidate feedback before review.",
+      "what_was_learned": [
+        "Decision ownership must be visible before review begins."
       ]
     },
     "next_steps": {
@@ -877,6 +1571,30 @@
       ],
       "observations": [
         "Feedback arrived through multiple channels."
+      ],
+      "pattern_reviews": [],
+      "redesign": [
+        "Require one named decision owner before the review window opens."
+      ],
+      "repeat": [
+        "Use a single shared decision log."
+      ],
+      "uncertainties": [
+        "Whether all reviewers can use the same feedback channel."
+      ],
+      "what_changed": "Feedback arrived through separate channels and the decision owner was not explicit.",
+      "what_happened": "Conflicting review channels changed the deliverable after the checkpoint.",
+      "what_helped": [
+        "Reducing scope to one decision",
+        "Using a shared decision log"
+      ],
+      "what_hindered": [
+        "Parallel feedback channels",
+        "Unclear approval ownership"
+      ],
+      "what_was_expected": "One decision owner would consolidate feedback before review.",
+      "what_was_learned": [
+        "Decision ownership must be visible before review begins."
       ]
     },
     "next_steps": {

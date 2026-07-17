@@ -1,6 +1,6 @@
 [project]
 name = "catalyst-grit"
-version = "1.4.0"
+version = "1.5.0"
 description = "Structured recovery records for setbacks, recovery conditions, actions, and learning loops"
 authors = [{name = "Tariq Ahmad", email = "tariq@thecontentcatalyst.net"}]
 readme = "README.md"

@@ -175,6 +175,8 @@ class SQLiteWorkspaceRepository:
             self.connection.rollback()
             raise
 
+    # This helper checks existence/deletion state, not actor ownership.
+    # A service exposing it across users must enforce authorization upstream.
     def _require_project(self, project_id: str, *, include_deleted: bool = False) -> dict[str, Any]:
         row = _row(self.connection.execute("SELECT * FROM projects WHERE project_id=?", (project_id,)).fetchone())
         if not row or (row["deleted_at"] and not include_deleted):
@@ -187,6 +189,8 @@ class SQLiteWorkspaceRepository:
             raise WorkspaceError(f"record not found: {record_id}")
         return row
 
+    # The caller supplies actor_id; this audit write records attribution but
+    # does not authenticate that actor by itself.
     def _audit(self, event_type: str, entity_type: str, entity_id: str, actor_id: str, payload: Mapping[str, Any] | None = None) -> str:
         event_id = _id("cge")
         self.connection.execute(

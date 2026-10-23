@@ -960,6 +960,9 @@ def _action_readiness(normalized: Mapping[str, Any]) -> tuple[float, int]:
     return min(1.0, count / 4.0), count
 
 
+# Weighted inputs describe reported recovery conditions on a bounded scale.
+# The default profile is a heuristic, not a validated clinical or personnel
+# assessment; change of weights changes interpretation and reproducibility.
 def calculate_component_scores(normalized: Mapping[str, Any], profile: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
     """Calculate explainable weighted component scores."""
     weights = profile["component_weights"]
@@ -1030,6 +1033,8 @@ def calculate_recovery_score(
     return _round_half_up(sum(item["normalized_value"] * item["weight"] for item in components.values()), 1)
 
 
+# Threshold labels summarize the configured profile only. They do not predict
+# a person's outcome or authorize consequential decisions without review.
 def state_from_score(score: float, profile: Mapping[str, Any] | None = None) -> str:
     methodology = normalize_methodology_profile(profile)
     thresholds = methodology["thresholds"]
